@@ -12,7 +12,7 @@
 
 ### Come li ottiene un'altra persona
 - **Per giocare (l'amico che testa)**: non serve nulla del progetto. Riceve una **build Windows** già compilata (cartella zippata condivisa via Google Drive/WeTransfer); gli asset sono dentro la build. Con l'App ID proprio si userà un branch Steam privato.
-- **Per sviluppare** (un secondo sviluppatore, o un PC nuovo): clona il repo e scarica la cartella `FpsWaveTest_Assets` da Google Drive dentro `Assets/ThirdParty/`; in alternativa riscarica le fonti dal registro qui sotto (sono tutte gratuite).
+- **Per sviluppare** (un secondo sviluppatore, o un PC nuovo): clona il repo, scarica gratis da Fab con il proprio account i pacchetti del registro qui sotto (la licenza Fab non permette di passarsi i file) ed esegui `tools/setup-fab-assets.ps1` **prima di aprire Unity**, che copia e converte tutto con i nomi attesi dai `.meta`. Procedura completa in `GUIDA_COLLABORATORE.md`. Ogni nuovo asset che richiede copie o conversioni va aggiunto allo script.
 
 ## 2. Fonti approvate
 | Fonte | Contenuto | Licenza | Note |

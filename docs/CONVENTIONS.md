@@ -4,16 +4,25 @@
 - Repo: github.com/hrdnlab-bit/fps-wave-test.
 - Conventional Commits: `feat`, `fix`, `refactor`, `perf`, `net`, `docs`, `chore`, `test`. Formato: `tipo(ambito): descrizione breve in inglese`, corpo di 1-3 righe con cosa e perché.
   Esempio: `feat(weapons): add hitscan fire with server validation`.
-- Un commit per modifica logica. Branch `feature/mN-nome` per ogni milestone, merge su `main` a milestone verificata, tag `v0.N.0`.
+- Un commit per modifica logica. Branch `<persona>/<argomento>` (es. `manuel/m2-enemies`); su `main` si entra solo con una **pull request** dopo la verifica (`main` è protetto: niente push diretti né force push per i collaboratori). Versioni in `CHANGELOG.md` (i tag non si pubblicano dall'ambiente AI).
 - `.gitignore` Unity standard (Library, Temp, Obj, Logs, UserSettings, Build, file di progetto dell'IDE) + esclusione dei binari in `Assets/ThirdParty/` (si versionano solo i `.meta` e i file di testo, vedi `ASSETS.md`). `.gitattributes` con LFS resta come rete di sicurezza ma non si usa.
 - `CHANGELOG.md` aggiornato a ogni merge.
 - Nessun token o credenziale nel repo o in chat.
 
 ## 2. Flusso file tra AI e PC
-- Progetto Unity sul PC: `C:\Users\manue\FpsWaveTest` (non è un clone git: è la copia di lavoro dell'Editor).
+- PC di Manuel: `C:\Users\manue\FpsWaveTest` (non è un clone git: è la copia di lavoro dell'Editor, sincronizzata dall'AI). Sugli altri PC la cartella del progetto **è** un clone git e Claude Code lavora direttamente lì (vedi `GUIDA_COLLABORATORE.md`).
 - L'AI lavora su un clone del repo nel proprio ambiente cloud (commit e push da lì) e sincronizza i file nella cartella del PC.
 - I file generati dall'Editor sul PC (`.meta`, scene, prefab, ProjectSettings, Packages) vengono riportati nel clone prima di ogni commit.
 - L'utente non deve fare commit manuali; se modifica qualcosa nell'Editor lo segnala, così l'AI risincronizza.
+
+## 2b. Lavoro in due
+- Ognuno lavora sul proprio branch e apre una PR verso `main`; l'altro (o il suo Claude) la può rivedere, ma non serve approvazione per unirla.
+- Inizio sessione: `git pull` su `main`, `docs/LOCKS.md`, il proprio `docs/handoff/<persona>.md`. Fine sessione: aggiornare il proprio handoff, togliere i propri lock, push.
+- `docs/HANDOFF.md` = stato comune (milestone, come si prova, verifiche, problemi aperti): si aggiorna nella PR quando cambia per tutti.
+- Divisione per aree per ridurre i conflitti (es. uno armi/rete, l'altro nemici/mappa); le aree attive si dichiarano in `LOCKS.md`.
+- Dopo un `git pull` che porta modifiche a `Packages/` o `ProjectSettings/`, riaprire Unity prima di lavorare. Dopo modifiche agli strumenti `FpsWave/Setup`, rieseguire lo strumento interessato.
+- Asset binari nuovi: registrarli in `ASSETS.md` con il link alla fonte e, se servono conversioni, aggiornare `tools/setup-fab-assets.ps1`, così l'altro li rimette a posto sul suo PC.
+- Merge delle scene: driver `unityyamlmerge` già indicato in `.gitattributes`; ognuno lo configura sul proprio PC (comando in `GUIDA_COLLABORATORE.md`).
 
 ## 3. Verifica (ciclo obbligatorio)
 1. Compilazione: lettura di `Logs/FpsWaveConsole.log` (mirror della Console scritto da `ConsoleLogMirror`, azzerato a ogni compilazione) e, se serve, della Console tramite controllo dell'Editor: 0 errori. L'accesso diretto all'Editor.log in AppData non è concesso.
