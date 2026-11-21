@@ -30,6 +30,12 @@ namespace HrdnLab.FpsWave.Weapons
         /// <summary>Tolleranza di base tra il punto d'impatto dichiarato e il collider del bersaglio sul server.</summary>
         public const float TargetBaseTolerance = 1.0f;
 
+        /// <summary>
+        /// Ritardo stimato tra ciò che vede il client e la posizione sul server per un bersaglio che si muove
+        /// (interpolazione di ~2 tick + latenza tipica). Moltiplicato per la velocità del bersaglio allarga la tolleranza.
+        /// </summary>
+        public const float MovingTargetLagSeconds = 0.35f;
+
         public static bool IsOriginPlausible(Vector3 claimedOrigin, Vector3 serverEyePosition) =>
             (claimedOrigin - serverEyePosition).sqrMagnitude <= OriginTolerance * OriginTolerance;
 

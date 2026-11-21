@@ -3,6 +3,7 @@ using FishNet.Managing;
 using FishNet.Object;
 using HrdnLab.FpsWave.Combat;
 using HrdnLab.FpsWave.Core;
+using HrdnLab.FpsWave.Enemies;
 using HrdnLab.FpsWave.Net;
 using HrdnLab.FpsWave.Player;
 using HrdnLab.FpsWave.UI;
@@ -53,6 +54,7 @@ namespace HrdnLab.FpsWave.Editor
             GameObject dummyPrefab = CreateDummyPrefab(mats);
             GameObject playerPrefab = CreatePlayerPrefab(mats, new[] { rifle, pistol });
             CreateGreyboxScene(mats, dummyPrefab);
+            M2EnemyBuilder.Build(); // nemici M2: prefab Runner, muri di copertura, nodi di spawn, EnemyDirector
             WireBootScene(playerPrefab.GetComponent<NetworkObject>());
 
             EditorBuildSettings.scenes = new[]
@@ -229,6 +231,7 @@ namespace HrdnLab.FpsWave.Editor
             var health = ObjectFactory.AddComponent<Health>(root);
             var view = ObjectFactory.AddComponent<PlayerView>(root);
             var hud = root.AddComponent<PlayerHud>();
+            var enemyTarget = ObjectFactory.AddComponent<EnemyTarget>(root);
 
             GameObject body = Primitive(PrimitiveType.Capsule, "Body", root.transform, new Vector3(0f, 0.9f, 0f),
                 new Vector3(0.7f, 0.9f, 0.7f), mats.PlayerBody);
@@ -263,6 +266,7 @@ namespace HrdnLab.FpsWave.Editor
                 mats.Tracer, mats.Impact, mats.Placeholder);
             health.EditorSetup(100f, System.Array.Empty<HitZone>());
             hud.EditorSetup(weapons, health);
+            enemyTarget.EditorSetup(motor);
             view.EditorSetup(camera, listener, new Renderer[] { body.GetComponent<Renderer>() }, viewModelRoot.gameObject,
                 new Behaviour[] { hud });
 

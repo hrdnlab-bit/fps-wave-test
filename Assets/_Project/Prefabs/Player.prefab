@@ -238,6 +238,7 @@ GameObject:
   - component: {fileID: 6349178083940523481}
   - component: {fileID: 6877239407612744869}
   - component: {fileID: 7516362521724315046}
+  - component: {fileID: 5509995605537476103}
   m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
@@ -546,6 +547,23 @@ MonoBehaviour:
   _weapons: {fileID: 4251965635168637423}
   _health: {fileID: 6349178083940523481}
   _hitMarkerDuration: 0.18
+--- !u!114 &5509995605537476103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3842048281382028655}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91637ae4b532fa045b75b2dcc30c77c2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Enemies.EnemyTarget
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 139051151714448617}
+  _networkObjectCache: {fileID: 0}
+  _autoReviveDelay: 5
+  _motor: {fileID: 6190854792051640263}
 --- !u!1 &8751762922156321670
 GameObject:
   m_ObjectHideFlags: 0

@@ -51,3 +51,10 @@ Co-op PvE tra amici: l'obiettivo è **reattività locale** e **economia autorevo
 - Condizioni degradate: simulatore di latenza/perdita (150 ms, 2-5% loss, jitter).
 - Steam: PC dell'utente + PC di un amico con il suo account Steam (non si possono avviare due client Steam con lo stesso account sulla stessa macchina). Il build di test va condiviso con l'amico (zip o branch Steam dopo il rilascio dell'App ID).
 - Overlay di debug: RTT, banda in/out, tick, oggetti osservati.
+
+## Nemici (implementazione M2)
+- `NetworkObject` in pool (`DespawnType.Pool`, cache di 24 sul server), `NetworkTransform` server-authoritative ogni 2 tick (15 Hz a 30 Hz di tick), solo posizione + yaw (rotazione X/Z bloccate).
+- NavMeshAgent attivo solo sul server; salute in SyncVar; attacco = danno sul server + un `ObserversRpc` senza parametri per l'affondo cosmetico.
+- Animazione procedurale calcolata sui client dalla posizione interpolata: nessun dato in più in rete.
+- Validazione colpi: tolleranza + velocità del bersaglio * 0.35 s (`IMovingTarget`).
+- Interest management per distanza non ancora attivo (Greybox piccola: tutti vedono tutto); da aggiungere con la mappa vasta (M7).

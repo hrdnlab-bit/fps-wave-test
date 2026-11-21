@@ -3,6 +3,18 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Added (M2 - nemici, prima parte)
+- Primo nemico, il **Runner** (60 HP, 6 m/s, corpo a corpo): AI solo sul server con NavMeshAgent (insegue, si ferma, colpisce), bersaglio = player vivo più vicino con isteresi, al massimo 3 nemici attaccano lo stesso player e gli altri aspettano appena fuori portata.
+- **EnemyDirector** (solo server): NavMesh costruito a runtime, nodi di spawn valutati a runtime (anello 25-60 m attorno al player con meno pressione, mai visibili da nessun player, percorso valido), gruppi da 2-4 scaglionati (max 2 spawn per frame), riciclo dei nemici bloccati o a oltre 90 m. Finché non arrivano le wave (M3) tiene in campo 4 + 4 nemici per player (tetto 40). F8 sull'Host attiva/disattiva gli spawn; riga di debug in basso a sinistra.
+- Pool di rete per i nemici (despawn al pool, cache iniziale di 24), NetworkTransform server-authoritative a 15 Hz con solo posizione + yaw.
+- Grafica procedurale del Runner sui client (corsa, affondo, colore per la salute, posa a terra) senza dati di rete aggiuntivi; hitbox separate dal modello animato.
+- Greybox: 16 muri di copertura alti 4 m e 102 nodi di spawn ai lati dei ripari.
+- Strumento `FpsWave/Setup/6. Build Enemies (M2)` (richiamato anche da `Setup/3`).
+- Test EditMode della selezione dei punti di spawn e della tolleranza sui bersagli in movimento (43/43).
+
+### Changed
+- Validazione dei colpi: tolleranza sul bersaglio allargata di velocità * 0.35 s per i bersagli in movimento (`IMovingTarget`), necessaria per colpire i nemici che corrono.
+- Player: componente `EnemyTarget` (registro dei bersagli dei nemici). TEMPORANEO: dopo la morte il player torna in vita sul posto dopo 5 s, finché non arrivano "a terra" e rianimazione.
 
 ## [0.2.0] - 2026-11-21
 ### Added (M0b - Steam)

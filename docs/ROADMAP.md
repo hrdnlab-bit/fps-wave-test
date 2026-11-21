@@ -37,3 +37,10 @@ Ogni milestone è giocabile e testata in multiplayer (host + client). Percorso s
 4. M0b.4 Build Windows zippata per i test. **(fatto: `FpsWave/Build/Windows + Zip`)**
 5. M0b.5 Overlay di debug completo (RTT, banda, tick, oggetti osservati). **(da fare)**
 6. M0b.6 Console comandi. **(da fare)**
+
+## Task di M2
+1. M2.1 Runner: prefab di rete in pool, AI server con NavMeshAgent (insegui, fermati, colpisci), posti di attacco. **(fatto, branch `matteo/m2-runner`)**
+2. M2.2 Spawn: nodi di spawn dietro i ripari, EnemyDirector con anello/visibilità/percorso/pressione per player, riciclo. **(fatto, numero di nemici fisso fino a M3)**
+3. M2.3 Brute (600 HP, carica). **(da fare)**
+4. M2.4 Stato a terra e rianimazione dei player (sostituisce il ritorno in vita automatico). **(da fare)**
+5. M2.5 Verifica a 40 nemici entro budget (profiler) e test host + client via Steam. **(da fare)**

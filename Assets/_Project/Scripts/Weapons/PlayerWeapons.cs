@@ -424,9 +424,10 @@ namespace HrdnLab.FpsWave.Weapons
             if (zone == null)
                 return ShotRejectReason.TargetMismatch;
 
-            // Bersagli fermi per ora: la velocità del bersaglio entrerà in gioco con i nemici (M2).
+            // Bersagli in movimento (nemici): tolleranza allargata di velocità * ritardo stimato del client.
+            float targetSpeed = target.TryGetComponent(out IMovingTarget moving) ? moving.ServerSpeed : 0f;
             Vector3 closest = zone.Collider.ClosestPoint(end);
-            if (!ShotValidation.IsTargetPlausible(end, closest, 0f, 0f))
+            if (!ShotValidation.IsTargetPlausible(end, closest, targetSpeed, ShotValidation.MovingTargetLagSeconds))
                 return ShotRejectReason.TargetMismatch;
 
             if (distance > 0.2f && Physics.Linecast(origin, end - toEnd / distance * 0.1f, GameLayers.LineOfSightMask, QueryTriggerInteraction.Ignore))
