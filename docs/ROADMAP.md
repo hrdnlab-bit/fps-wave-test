@@ -28,4 +28,12 @@ Ogni milestone è giocabile e testata in multiplayer (host + client). Percorso s
 3. M1.3 Player FPS replicato (movimento, camera, input, spawn per connessione). **(fatto)**
 4. M1.4 Pistola hitscan validata dal server + fucile di test, ADS, feedback, bersagli. **(fatto)**
 5. M1.5 Overlay FPS/RTT (nell'HUD). **(fatto)**
-6. M1.6 Asset realistici: pistola, fucile, braccia FPS, suoni. **(in corso: fucile M4 + braccia fatti; pistola e suoni da fare)**
+6. M1.6 Asset realistici: pistola, fucile, braccia FPS, suoni. **(armi fatte: M4 con braccia, pistola Beretta; suoni da fare)**
+
+## Task di M0b
+1. M0b.1 Steamworks.NET + FishySteamworks, Multipass LAN/Steam. **(fatto)**
+2. M0b.2 Lobby Steam per amici: crea, invita, entra (codice, invito, lista amici). **(fatto, test con l'amico da fare)**
+3. M0b.3 Controllo versione al join. **(fatto, sui dati della lobby)**
+4. M0b.4 Build Windows zippata per i test. **(fatto: `FpsWave/Build/Windows + Zip`)**
+5. M0b.5 Overlay di debug completo (RTT, banda, tick, oggetti osservati). **(da fare)**
+6. M0b.6 Console comandi. **(da fare)**

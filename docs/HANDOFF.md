@@ -1,60 +1,49 @@
 # HANDOFF
 
-Ultimo aggiornamento: 2026-11-21
+Ultimo aggiornamento: 2026-11-21 (versione 0.2.0)
 
 ## Stato attuale
-- **M0a completata** (setup + rete locale, versione 0.1.0).
-- **M1 in corso**: nucleo di gameplay fatto e verificato (M1.1-M1.5), sparo dal client remoto confermato dall'utente. **M1.6** in corso: fucile M4 realistico con braccia e animazioni fatto; mancano pistola e suoni.
-- Progetto Unity: `C:\Users\manue\FpsWaveTest` (Unity 6000.6.9f1, URP). Repo: `hrdnlab-bit/fps-wave-test`, branch `main` (merge di `feature/m1-player-weapons`).
+- **M0a completata** (0.1.0). **M1 quasi completa**: gameplay verificato in rete (anche lo sparo dal client remoto), armi realistiche fatte (M4 con braccia animate, pistola Beretta con animazione procedurale). Manca **M1.6 suoni**.
+- **M0b in corso**: Steam integrato e verificato in locale (Steam pronto, lobby creata, server/client FishySteamworks attivi), build Windows zippata pronta. Da fare: **test con l'amico** (`OPEN_QUESTIONS.md` #14), overlay di debug completo, console comandi.
+- Progetto Unity: `C:\Users\manue\FpsWaveTest` (Unity 6000.6.9f1, URP). Repo `hrdnlab-bit/fps-wave-test`, branch `main`.
 - `C:\Users\manue\My project` contiene un ALTRO gioco (SABBIA): non toccarlo.
-- Ultimo commit: `69771bf feat(weapons): realistic M4 first-person view model with arms` (su `main`, branch `feature/m1-assets`).
-- Tag git: il push dei tag dall'ambiente AI è bloccato (403); le versioni sono tracciate in `CHANGELOG.md`. Il tag `v0.1.0` NON esiste su GitHub.
+- Ultimi commit su `main`: `391a153` (codice lobby, inviti dal gioco, DX11), `eccc40f` (Steam + Multipass), `41cbef3` (pistola), `69771bf` (M4).
+- Tag git: il push dei tag dall'ambiente AI è bloccato (403); le versioni sono in `CHANGELOG.md`.
 
 ## Come si prova
-1. Scena `Assets/_Project/Scenes/Boot.unity` -> Play: l'istanza principale fa da Host e carica la mappa `Greybox`.
-2. Controlli: WASD, mouse, Shift sprint, Ctrl/C crouch, Spazio salto, tasto sinistro spara, tasto destro mira (ADS), R ricarica, 1 fucile (test), 2 pistola, Esc libera il cursore, Home (solo sviluppo) riallinea la visuale.
-3. Poligono davanti allo spawn: bersagli a 10/20/35/50 m (diventano rossi con i danni, scuri da morti, si rigenerano dopo 3 s), muro per il test della linea di vista, cover, rampa + piattaforma, tunnel basso per il crouch.
-4. Multiplayer: Window > Multiplayer > Multiplayer Play Mode, attivare Player 2-4, poi Play (join automatico).
-5. Il Play parte sempre da `Boot` anche con un'altra scena aperta; per uscire usare **Ctrl+P** (un clic sul pulsante Play col cursore bloccato spara).
-6. Se si rigenera il contenuto (`FpsWave/Setup/3. Build M1 Content`), **disattivare prima i giocatori virtuali**: bloccano `DefaultPrefabObjects.asset` (errore "Accesso negato").
+1. Scena qualsiasi -> Play (parte sempre da `Boot`): l'Editor fa da **Host LAN** e carica `Greybox`. Uscire con **Ctrl+P**.
+2. Multiplayer locale: Window > Multiplayer > Multiplayer Play Mode, attivare Player 2-4, Play (join automatico in LAN).
+3. Steam in Editor: nel menu "Disconnetti" -> "Host Steam (crea lobby)". In Editor l'overlay di Steam non compare.
+4. Controlli: WASD, mouse, Shift sprint, Ctrl/C crouch, Spazio salto, sinistro spara, destro mira, R ricarica, 1 fucile, 2 pistola, Esc libera il cursore, Home (sviluppo) riallinea la visuale.
+5. Build per l'amico: `FpsWave/Build/Windows + Zip (test con amici)` -> `Build/FpsWaveTest_0.2.0_win64.zip` (~66 MB). Istruzioni in `LEGGIMI.txt` dentro lo zip.
+6. Rigenerazione contenuti (disattivare prima i giocatori virtuali): `Setup/3` (mappa, player, armi), poi `Setup/4` (view model armi; la pistola viene copiata da `Download/FPS Guns 4K - Pistol 2` se non è già nel progetto), `Setup/5` (Steam/Multipass).
 
-## Script chiave (M1)
+## Script chiave
 | Area | File |
 |---|---|
 | Statistiche | `Scripts/Stats/` (StatType, StatModifier, Stat, StatBlock) |
-| Combattimento | `Scripts/Combat/` (Health SyncVar server, HitZone, DamageCalculator, TrainingDummy) |
+| Combattimento | `Scripts/Combat/` (Health, HitZone, DamageInfo, TrainingDummy) |
 | Player | `Scripts/Player/` (FpsInput, PlayerInputReader, PlayerMotor, PlayerLook, PlayerView, PlayerSpawnPoint) |
-| Armi | `Scripts/Weapons/` (WeaponDefinition SO, WeaponState, FireRateLimiter, ShotValidation, PlayerWeapons, ShotFxPool) |
-| Sessione | `Scripts/Net/` (GameSession: carica Greybox; PlayerSpawnService; NetBootstrapMenu) |
-| UI | `Scripts/UI/PlayerHud.cs` (temporaneo, OnGUI) |
-| Play Mode | `Scripts/Editor/PlayModeNetworkGuard.cs` (Play da Boot, chiusura rete all'uscita), `Scripts/Net/EditorInstanceInfo.cs` (riconosce i giocatori virtuali) |
-| View model | `Scripts/Weapons/WeaponViewModel.cs` (animazioni, compensazione osso camera), `Scripts/Editor/WeaponViewModelBuilder.cs` (menu `FpsWave/Setup/4`) |
-| Editor | `Scripts/Editor/M1ContentBuilder.cs` (genera layer, materiali, armi, prefab, Greybox con SceneId stabili, collega Boot) |
-| Dati | `Data/Weapons/Pistol.asset`, `AssaultRifle.asset` |
+| Armi | `Scripts/Weapons/` (WeaponDefinition, WeaponState, FireRateLimiter, ShotValidation, PlayerWeapons, ShotFxPool, WeaponViewModel) |
+| Rete | `Scripts/Net/` (NetBootstrapMenu: menu LAN/Steam; NetTransports: Multipass; SteamService: Steam, lobby, inviti; GameSession; PlayerSpawnService; EditorInstanceInfo) |
+| Editor | `Scripts/Editor/` (M1ContentBuilder `Setup/3`, WeaponViewModelBuilder `Setup/4`, SteamSetupTools `Setup/5`, BuildTools `Build/...`, PlayModeNetworkGuard, ConsoleLogMirror) |
+| Terze parti | `Assets/ThirdParty/FishySteamworks/` (codice, nel repo), `Assets/ThirdParty/Fab/M4Animations/` e `Fab/Pistol2/` (binari solo sul PC) |
 
-## Verifica fatta (M1)
-- Compilazione 0 errori; test EditMode **29/29** (2026-11-21, dopo il fix MPPM).
-- Fix MPPM verificato: Host + Player 2 collegati, uscita e rientro nel Play dopo 12 s senza errori di porta, Player 2 ricollegato in entrambe le sessioni.
-- Host da solo: caricamento Greybox, spawn, HUD; pistola 12 -> 9 colpi con danno replicato sul bersaglio; fucile ~13 colpi in 1.2 s (600 RPM), bersaglio abbattuto, ricarica 17 -> 30; nessun colpo rifiutato dal server.
-- Host + Player 2 (MPPM): connessione, due player spawnati, 0 errori su entrambe le istanze.
-- Sparo da Player 2 verificato dall'utente (2026-11-21).
-- M4: estrazione, raffica (tracer, luce, rinculo) e ricarica verificati in Play. ADS non verificato (serve tenere premuto il tasto destro): da provare a mano, i valori sono in `AssaultRifle.asset` (`_viewAdsOffset`).
+## Verifica fatta (2026-11-21)
+- Compilazione 0 errori; test EditMode **32/32**.
+- MPPM: Host + Player 2, rientro nel Play senza errori di porta; sparo da Player 2 confermato dall'utente.
+- M4: estrazione, raffica, ricarica (adattata ai 2,2 s). Pistola: texture metalliche, calcio e carrello, ricarica procedurale. ADS non verificato (serve tenere premuto il tasto destro).
+- Steam in Editor: `SteamAPI` pronto (account dell'utente, App ID 480), lobby creata, server+client FishySteamworks avviati, mappa caricata, chiusura pulita all'uscita.
+- Build 0.2.0 avviata dall'utente: Steam pronto e Host Steam funzionante. L'overlay (Shift+Tab) non si apriva nella build DX12: aggiunti codice lobby e inviti dal gioco, build passata a DirectX 11 (da riverificare l'overlay).
 
 ## Problemi aperti / note
-- Il primo frame dopo lo spawn può muovere la visuale se il mouse si muove (cursore bloccato subito): accettabile.
-- Scena "Untitled" vuota nella gerarchia dopo il caricamento globale di FishNet: innocua.
-- HUD e menu in OnGUI (temporanei, allocano poco ma non zero): da sostituire con UI Toolkit (M0b/M5).
-- Asset binari sul PC: `Assets/ThirdParty/Fab/M4Animations/` (fuori dal repo). Da fare il backup in Google Drive (`OPEN_QUESTIONS.md` #12).
-- Pistola "FPS Guns 4K - Pistol 2" scaricata dall'utente in `Downloads/fps_guns_4k_pistol_2.zip` (148 MB): il trasferimento verso l'ambiente AI fallisce per dimensione/timeout; serve estrarla sul PC (o riprovare).
-- Se si rigenera `3. Build M1 Content`, rieseguire poi `4. Build Weapon View Models`.
-
-## Risposte dell'utente (2026-11-21)
-- Procedura asset: Fab nel browser dell'app, login dell'utente, l'AI propone nome/licenza/dimensione prima di scaricare. CC-BY accettati.
-- Ordine: M1.6 prima di M0b.
-- Test sparo da Player 2: bloccato dall'errore di porta, ora corretto; da ripetere.
+- Due client Steam con lo stesso account sullo stesso PC non sono possibili: il join via Steam si prova solo con l'amico.
+- Avvisi di API deprecate di Unity 6.6 (`FindFirstObjectByType`, `FindObjectsSortMode`) in `NetBootstrapMenu` e `PlayerSpawnService`: da aggiornare.
+- HUD e menu in OnGUI (temporanei).
+- Backup asset binari su Google Drive ancora da fare (`OPEN_QUESTIONS.md` #12).
 
 ## Prossimi passi
-1. M1.6: pistola (estrarre lo zip sul PC in `Assets/ThirdParty/Fab/Pistol2/`, materiali URP, view model senza braccia o con le braccia dell'M4) e suoni (Sonniss GDC / Freesound CC0).
-2. Verifica ADS del fucile e regolazione di `_viewAdsOffset`.
-3. Chiudere M1 (versione 0.2.0).
-4. M0b: Steam (Steamworks.NET + FishySteamworks), lobby, controllo versione al join, overlay debug completo, console comandi.
+1. Test con l'amico (build 0.2.0): Host Steam -> codice lobby -> Join Steam; verificare movimento, sparo e danno su entrambi; annotare RTT.
+2. M1.6 suoni (Sonniss GDC / Freesound CC0) e verifica ADS del fucile.
+3. M0b: overlay di debug completo (RTT, banda, tick, oggetti osservati) e console comandi.
+4. M2: nemici (Runner, Brute), AI host-side, pooling di rete, a terra e rianimazione.

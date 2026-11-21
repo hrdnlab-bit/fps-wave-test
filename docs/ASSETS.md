@@ -35,4 +35,5 @@
 ## 4. Registro asset importati
 | Asset | Fonte | Licenza | Link | Data | Dove nel progetto |
 |---|---|---|---|---|---|
+| FPS Guns 4K - Pistol 2, Heart State Games: Beretta M92 modulare PBR 4K (importata a 2K) | Fab | Fab Standard License (redistribuzione dei file vietata) | https://www.fab.com/listings/0d1c1104-b08d-44e1-88a9-4d59106636ac | 2026-11-21 | `Assets/ThirdParty/Fab/Pistol2/` (copiata e convertita da `FpsWave/Setup/4` dalla cartella estratta in Download) |
 | M4 - FPS Weapon Animations Pack FREE (v.1), BarcodeGames: braccia FPS con guanti + M4, animazioni Idle/Draw/Holster/Fire/Reload/Reload_Empty | Fab | Fab Standard License | https://www.fab.com/listings/38da8f1e-cb54-4cda-beb1-6e55642a55a9 | 2026-11-21 | `Assets/ThirdParty/Fab/M4Animations/` (+ `Packed/` con le mappe Specular+Smoothness generate da noi) |

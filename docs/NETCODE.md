@@ -33,6 +33,15 @@ Co-op PvE tra amici: l'obiettivo è **reattività locale** e **economia autorevo
 - Disconnessione Host: fine partita e ritorno al menu per tutti (host migration fuori scope).
 - Controllo di versione (`GameInfo.ProtocolVersion`) al momento del join.
 
+## 4b. Steam (M0b, implementato)
+- Pacchetti: Steamworks.NET 2025.165.0 (Package Manager, URL git fissato) e FishySteamworks 4.1.0 copiato in `Assets/ThirdParty/FishySteamworks/` (licenza BSD 2-Clause, asmdef proprio).
+- `NetworkManager` in Boot con **Multipass**: indice 0 = Tugboat (LAN, Multiplayer Play Mode), indice 1 = FishySteamworks peer to peer (relay Steam). Azioni server globali **disattivate**: si avvia solo il transport scelto, sempre tramite `NetTransports` (anche l'arresto; `ServerManager.Start/StopConnection` non vanno usati direttamente). Configurazione ripetibile: `FpsWave/Setup/5. Configure Steam (Multipass)`.
+- `SteamService`: `SteamAPI.InitEx` (serve `steam_appid.txt` con 480 nella cartella del progetto e accanto all'exe), callback, lobby **solo amici** da 4 posti con dati `fpswave_host` (SteamID64 dell'Host), `fpswave_proto`, `fpswave_ver`.
+- Ingresso: **codice lobby** (l'Host lo copia, l'amico lo incolla in "Join Steam"), invito dal gioco (elenco amici online, `InviteUserToLobby`), "Unisciti alla partita" dalla lista amici (rich presence `+connect_lobby`), invito dall'overlay quando disponibile.
+- **Controllo versione al join**: prima di connettersi il client confronta `fpswave_proto` con `GameInfo.ProtocolVersion`; se diverso esce dalla lobby e mostra le due versioni.
+- Steam è disattivato nei giocatori virtuali di Multiplayer Play Mode (usano Tugboat); l'Editor principale inizializza Steam ma in Editor l'overlay non compare.
+- Overlay di Steam: con il gioco avviato fuori dal client Steam e DirectX 12 non si aggancia; le build Windows usano DirectX 11 e l'ingresso non dipende dall'overlay.
+
 ## 5. Struttura del codice
 - Per funzionalità (`Player/`, `Weapons/`, `Enemies/`...); in ogni funzionalità la logica server è in metodi `[Server]` o in classi `*Server`, quella client in `*Client` / `*View`, i dati condivisi in `*Data`/ScriptableObject.
 - Logica pura (formule, tabelle, director, difficoltà) in classi C# senza MonoBehaviour: testabile in EditMode e indipendente dalla rete.
