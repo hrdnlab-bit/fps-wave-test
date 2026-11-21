@@ -114,7 +114,8 @@ namespace HrdnLab.FpsWave.Weapons
             _rotSpring.AddImpulse(rotKick * (scale * Mathf.Sqrt(_feel.RotationStiffness)));
 
             // Calore
-            _heat = Mathf.Clamp01(_heat + _feel.HeatPerShot);
+            if (_feel.UsesHeat)
+                _heat = Mathf.Clamp01(_heat + _feel.HeatPerShot);
             if (_heat >= VentStart)
                 _venting = true;
 

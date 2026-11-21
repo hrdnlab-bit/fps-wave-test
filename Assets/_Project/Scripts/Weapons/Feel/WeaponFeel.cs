@@ -73,6 +73,8 @@ namespace HrdnLab.FpsWave.Weapons
         [Range(0f, 0.1f)] public float FovPunch = 0.004f;
 
         [Header("Sci-fi: energia e calore (cosmetici)")]
+        [Tooltip("Arma a energia: accumula calore (barra nel HUD, luce che vira al caldo, tremolio). Le armi a proiettili non ne hanno.")]
+        public bool UsesHeat;
         [Tooltip("Colore della scarica: luce di volata e tracciante.")]
         public Color EnergyColor = new(0.35f, 0.85f, 1f);
         [Tooltip("Colore della luce a calore massimo.")]

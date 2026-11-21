@@ -79,6 +79,11 @@ namespace HrdnLab.FpsWave.Weapons
         /// <summary>Calore cosmetico dell'arma impugnata (0-1) e stato di raffreddamento, per il HUD.</summary>
         public float Heat => _feel != null ? _feel.Heat : 0f;
         public bool IsVenting => _feel != null && _feel.IsVenting;
+        /// <summary>L'arma impugnata è a energia (ha il calore): il HUD mostra la barra solo in quel caso.</summary>
+        public bool UsesHeat => Current != null && Current.Definition.Feel.UsesHeat;
+        /// <summary>Armi della dotazione e indice di quella impugnata (per la striscia delle armi nel HUD).</summary>
+        public System.Collections.Generic.IReadOnlyList<WeaponDefinition> Loadout => _loadout;
+        public int EquippedIndex => _localEquipped;
 
         /// <summary>Dispersione attuale in gradi (per il mirino dell'HUD).</summary>
         public float CurrentSpread

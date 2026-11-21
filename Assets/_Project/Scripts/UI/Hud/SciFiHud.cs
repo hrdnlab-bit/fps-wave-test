@@ -7,13 +7,15 @@ using UnityEngine.UIElements;
 namespace HrdnLab.FpsWave.UI
 {
     /// <summary>
-    /// HUD minimale "visore della tuta" in stile Crysis (UI Toolkit, stile in UI/Styles/Hud.uss, texture in ThirdParty/_Own/Hud),
-    /// solo per il player locale. Pochi elementi, sottili e puliti:
-    /// - in alto al centro una bussola stretta con la direzione;
-    /// - in basso a destra un unico blocco: arma, munizioni grandi, ricarica, calore e integrità a segmenti;
-    /// - al centro un mirino a quattro tratti che si apre con lo spread, hit marker colorati;
-    /// - ai bordi una vignetta leggera del visore e il rosso quando si subisce danno (solo ai margini).
-    /// Costruito da codice; i testi si aggiornano solo quando cambia il valore (niente allocazioni a ogni frame).
+    /// HUD "visore della tuta" in stile Crysis (UI Toolkit, stile in UI/Styles/Hud.uss, texture in ThirdParty/_Own/Hud),
+    /// solo per il player locale. Elementi sottili e puliti, con dettagli ma senza pannelli pieni:
+    /// - in alto: obiettivo a sinistra, bussola con direzione al centro, telemetria a destra (se attiva);
+    /// - in basso a sinistra: integrità della tuta (valore, stato, segmenti, righello);
+    /// - in basso a destra: arma (slot, nome, modalità di fuoco), munizioni grandi con una tacca per colpo, ricarica,
+    ///   calore solo per le armi a energia, striscia delle armi in dotazione;
+    /// - al centro: mirino a quattro tratti che si apre con lo spread, hit marker; rosso del danno solo ai bordi.
+    /// Dimensioni pensate su 1920x1080 e scalate dal PanelSettings (ScaleWithScreenSize), quindi proporzionate a ogni schermo.
+    /// I testi si aggiornano solo quando cambia il valore (niente allocazioni a ogni frame).
     /// Abilitato/disabilitato da PlayerView insieme al suo UIDocument (owner-only).
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
@@ -22,7 +24,7 @@ namespace HrdnLab.FpsWave.UI
         private const int HealthSegments = 20;
         private const float WarnThreshold = 0.5f;
         private const float CriticalThreshold = 0.25f;
-        private const float CompassWidth = 420f;
+        private const float CompassWidth = 600f;
         private const float CompassPixelsPerDegree = 4f;
 
         private static readonly string[] CompassNames = { "N", "NE", "E", "SE", "S", "SO", "O", "NO" };
@@ -34,11 +36,15 @@ namespace HrdnLab.FpsWave.UI
 
         private UIDocument _document;
         private VisualElement _root;
-        private VisualElement _cluster;
+        private VisualElement _vitals;
+        private VisualElement _weaponBlock;
 
         // Integrità
         private Label _healthValue;
+        private Label _healthMax;
+        private Label _healthStatus;
         private Label _healthAlert;
+        private int _shownMaxHealth = -1;
         private readonly VisualElement[] _segments = new VisualElement[HealthSegments];
         private int _shownHealth = -1;
         private int _shownSegments = -1;
@@ -46,7 +52,15 @@ namespace HrdnLab.FpsWave.UI
 
         // Arma
         private Label _weaponName;
+        private Label _weaponSlot;
+        private Label _fireMode;
         private Label _ammo;
+        private VisualElement _ticksRow;
+        private VisualElement[] _ticks = System.Array.Empty<VisualElement>();
+        private VisualElement _loadoutRow;
+        private Label[] _loadoutLabels = System.Array.Empty<Label>();
+        private int _shownEquipped = -1;
+        private bool _shownUsesHeat = true;
         private Label _ammoMax;
         private VisualElement _reloadRow;
         private Label _reloadLabel;
@@ -131,20 +145,24 @@ namespace HrdnLab.FpsWave.UI
             _damageFlash = Element("layer", "hud-damage");
             _root.Add(_damageFlash);
 
-            BuildCompass();
-            BuildCluster();
+            BuildTop();
+            BuildVitals();
+            BuildWeapon();
             BuildReticle();
 
-            _healthAlert = Text("INTEGRITÀ CRITICA", "alert", "font-bold");
+            _healthAlert = Text("INTEGRITÀ CRITICA · CERCA COPERTURA", "alert", "font-bold");
             _healthAlert.style.display = DisplayStyle.None;
             _root.Add(_healthAlert);
-
-            _telemetry = Text("", "telemetry", "font-mono");
-            _root.Add(_telemetry);
         }
 
-        private void BuildCompass()
+        private void BuildTop()
         {
+            var objective = Element("objective");
+            objective.Add(Text("OBIETTIVO", "objective-tag", "font-bold"));
+            objective.Add(Text("SOPRAVVIVI ALLE ONDATE", "objective-text", "font-bold"));
+            objective.Add(Element("objective-line"));
+            _root.Add(objective);
+
             var top = Element("hud-top");
             var compass = Element("compass");
             _compassTicks = Element("compass-ticks");
@@ -157,52 +175,92 @@ namespace HrdnLab.FpsWave.UI
                 compass.Add(_compassLabels[i]);
             }
             compass.Add(Element("compass-center"));
+            compass.Add(Element("compass-fade", "compass-fade--left"));
+            compass.Add(Element("compass-fade", "compass-fade--right"));
             top.Add(compass);
+            var headingBox = Element("compass-heading-box");
             _compassHeading = Text("000", "compass-heading", "font-mono");
-            top.Add(_compassHeading);
+            headingBox.Add(_compassHeading);
+            top.Add(headingBox);
             _root.Add(top);
+
+            _telemetry = Text("", "telemetry", "font-mono");
+            _root.Add(_telemetry);
         }
 
-        /// <summary>Blocco unico in basso a destra: arma e munizioni sopra, barre sottili sotto.</summary>
-        private void BuildCluster()
+        /// <summary>Integrità della tuta, in basso a sinistra.</summary>
+        private void BuildVitals()
         {
-            _cluster = Element("cluster");
-            _cluster.Add(Element("cluster-backdrop"));
+            _vitals = Element("block", "block--left");
+            _vitals.Add(Element("block-backdrop"));
+            Brackets(_vitals);
 
-            _weaponName = Text("—", "weapon-name", "font-bold");
-            _cluster.Add(_weaponName);
+            var header = Element("block-header");
+            header.Add(Text("ARMATURA", "block-title", "font-bold"));
+            header.Add(Element("spacer"));
+            _healthStatus = Text("NOMINALE", "status-tag", "font-mono");
+            header.Add(_healthStatus);
+            _vitals.Add(header);
 
-            var ammoRow = Element("ammo-row");
-            _ammo = Text("0", "ammo", "font-display");
-            _ammoMax = Text("/0", "ammo-max", "font-display");
-            ammoRow.Add(_ammo);
-            ammoRow.Add(_ammoMax);
-            _cluster.Add(ammoRow);
+            var valueRow = Element("value-row");
+            _healthValue = Text("100", "health-value", "font-display");
+            _healthMax = Text("/100", "health-max", "font-display");
+            valueRow.Add(_healthValue);
+            valueRow.Add(_healthMax);
+            valueRow.Add(Element("spacer"));
+            valueRow.Add(Text("TUTA MK-VII", "micro", "font-mono"));
+            _vitals.Add(valueRow);
 
-            _cluster.Add(Element("rule"));
-
-            _reloadRow = Bar("RICARICA", out _reloadLabel, out _reloadFill);
-            _reloadRow.AddToClassList("bar-row--reload");
-            _reloadRow.style.display = DisplayStyle.None;
-            _cluster.Add(_reloadRow);
-
-            _heatRow = Bar("CALORE", out _heatLabel, out _heatFill);
-            _cluster.Add(_heatRow);
-
-            var vitals = Element("vitals-row");
-            vitals.Add(Text("ARMATURA", "bar-label", "font-bold"));
             var segments = Element("segments");
             for (int i = 0; i < HealthSegments; i++)
             {
                 _segments[i] = Element("segment", "segment--on");
                 segments.Add(_segments[i]);
             }
-            vitals.Add(segments);
-            _healthValue = Text("100", "health-value", "font-display");
-            vitals.Add(_healthValue);
-            _cluster.Add(vitals);
+            _vitals.Add(segments);
+            _vitals.Add(Element("ruler"));
+            _root.Add(_vitals);
+        }
 
-            _root.Add(_cluster);
+        /// <summary>Arma impugnata, munizioni e dotazione, in basso a destra.</summary>
+        private void BuildWeapon()
+        {
+            _weaponBlock = Element("block", "block--right");
+            _weaponBlock.Add(Element("block-backdrop"));
+            Brackets(_weaponBlock);
+
+            var header = Element("block-header");
+            _weaponSlot = Text("1", "slot-box", "font-display");
+            _weaponName = Text("—", "block-title", "font-bold");
+            _fireMode = Text("AUTO", "status-tag", "font-mono");
+            header.Add(_weaponSlot);
+            header.Add(_weaponName);
+            header.Add(Element("spacer"));
+            header.Add(_fireMode);
+            _weaponBlock.Add(header);
+
+            var ammoRow = Element("value-row", "value-row--right");
+            _ammo = Text("0", "ammo", "font-display");
+            _ammoMax = Text("/0", "ammo-max", "font-display");
+            ammoRow.Add(_ammo);
+            ammoRow.Add(_ammoMax);
+            _weaponBlock.Add(ammoRow);
+
+            _ticksRow = Element("ammo-ticks");
+            _weaponBlock.Add(_ticksRow);
+
+            _reloadRow = Bar("RICARICA", out _reloadLabel, out _reloadFill);
+            _reloadRow.AddToClassList("bar-row--reload");
+            _reloadRow.style.display = DisplayStyle.None;
+            _weaponBlock.Add(_reloadRow);
+
+            _heatRow = Bar("CALORE", out _heatLabel, out _heatFill);
+            _weaponBlock.Add(_heatRow);
+
+            _weaponBlock.Add(Element("ruler"));
+            _loadoutRow = Element("loadout");
+            _weaponBlock.Add(_loadoutRow);
+            _root.Add(_weaponBlock);
         }
 
         private void BuildReticle()
@@ -272,6 +330,12 @@ namespace HrdnLab.FpsWave.UI
                 _shownHealth = hp;
                 _healthValue.text = Number(hp);
             }
+            int max = Mathf.CeilToInt(_health.Max);
+            if (max != _shownMaxHealth)
+            {
+                _shownMaxHealth = max;
+                _healthMax.text = "/" + Number(max);
+            }
 
             int lit = HudMath.LitSegments(normalized, HealthSegments);
             if (lit != _shownSegments)
@@ -285,8 +349,9 @@ namespace HrdnLab.FpsWave.UI
             if (level != _vitalsLevel)
             {
                 _vitalsLevel = level;
-                _cluster.EnableInClassList("cluster--warn", level == 1);
-                _cluster.EnableInClassList("cluster--critical", level == 2);
+                _vitals.EnableInClassList("block--warn", level == 1);
+                _vitals.EnableInClassList("block--critical", level == 2);
+                _healthStatus.text = level == 2 ? "CRITICA" : level == 1 ? "DANNEGGIATA" : "NOMINALE";
                 _healthAlert.style.display = level == 2 ? DisplayStyle.Flex : DisplayStyle.None;
             }
             if (level == 2)
@@ -303,6 +368,7 @@ namespace HrdnLab.FpsWave.UI
             {
                 _shownWeapon = state.Definition;
                 _weaponName.text = state.Definition.DisplayName.ToUpperInvariant();
+                _fireMode.text = state.Definition.Automatic ? "AUTO" : "SEMI";
                 _shownAmmo = -1;
                 _shownMag = -1;
             }
@@ -312,6 +378,7 @@ namespace HrdnLab.FpsWave.UI
             {
                 _shownMag = mag;
                 _ammoMax.text = "/" + Number(mag);
+                RebuildTicks(mag);
                 _shownAmmo = -1;
             }
 
@@ -321,6 +388,8 @@ namespace HrdnLab.FpsWave.UI
                 _ammo.text = Number(state.Ammo);
                 _ammo.EnableInClassList("ammo--empty", state.Ammo == 0);
                 _ammo.EnableInClassList("ammo--low", state.Ammo > 0 && state.Ammo <= Mathf.Max(1, mag / 4));
+                for (int i = 0; i < _ticks.Length; i++)
+                    _ticks[i].EnableInClassList("tick--spent", i >= state.Ammo);
                 if (!state.IsReloading)
                 {
                     bool empty = state.Ammo == 0;
@@ -344,7 +413,22 @@ namespace HrdnLab.FpsWave.UI
             if (state.IsReloading)
                 _reloadFill.style.width = Length.Percent(Mathf.Clamp01((Time.time - _reloadStart) / _reloadDuration) * 100f);
 
-            // Calore (cosmetico): la barra resta discreta e si colora solo quando conta.
+            if (_weapons.EquippedIndex != _shownEquipped)
+            {
+                _shownEquipped = _weapons.EquippedIndex;
+                _weaponSlot.text = Number(_shownEquipped + 1);
+                RebuildLoadout();
+            }
+
+            // Calore (cosmetico) solo per le armi a energia: con le armi a proiettili la barra non c'è.
+            bool usesHeat = _weapons.UsesHeat;
+            if (usesHeat != _shownUsesHeat)
+            {
+                _shownUsesHeat = usesHeat;
+                _heatRow.style.display = usesHeat ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+            if (!usesHeat)
+                return;
             float heat = _weapons.Heat;
             _heatFill.style.width = Length.Percent(heat * 100f);
             int heatLevel = _weapons.IsVenting ? 2 : heat > 0.7f ? 1 : 0;
@@ -356,6 +440,36 @@ namespace HrdnLab.FpsWave.UI
                 _heatLabel.text = heatLevel == 2 ? "RAFFREDDA" : "CALORE";
             }
             _heatLabel.style.opacity = heatLevel == 2 ? 0.5f + 0.5f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 6f)) : 1f;
+        }
+
+        /// <summary>Una tacca sottile per colpo del caricatore (fino a 60), come sui visori di Crysis.</summary>
+        private void RebuildTicks(int magazine)
+        {
+            _ticksRow.Clear();
+            int count = Mathf.Clamp(magazine, 0, 60);
+            _ticks = new VisualElement[count];
+            for (int i = count - 1; i >= 0; i--) // la prima tacca a consumarsi è quella più a sinistra
+            {
+                _ticks[i] = Element("tick");
+                _ticksRow.Add(_ticks[i]);
+            }
+        }
+
+        /// <summary>Striscia delle armi in dotazione: numero del tasto e nome, quella impugnata evidenziata.</summary>
+        private void RebuildLoadout()
+        {
+            _loadoutRow.Clear();
+            var loadout = _weapons.Loadout;
+            _loadoutLabels = new Label[loadout.Count];
+            for (int i = 0; i < loadout.Count; i++)
+            {
+                if (loadout[i] == null)
+                    continue;
+                var label = Text(Number(i + 1) + "  " + loadout[i].DisplayName.ToUpperInvariant(), "loadout-item", "font-bold");
+                label.EnableInClassList("loadout-item--active", i == _shownEquipped);
+                _loadoutLabels[i] = label;
+                _loadoutRow.Add(label);
+            }
         }
 
         private void UpdateCompass()
@@ -455,7 +569,7 @@ namespace HrdnLab.FpsWave.UI
             {
                 _shownFps = fps;
                 _shownRtt = rtt;
-                _telemetry.text = Number(fps) + " FPS   " + Number((int)rtt) + " MS";
+                _telemetry.text = Number(fps) + " FPS  ·  " + Number((int)rtt) + " MS";
             }
         }
 
@@ -507,6 +621,15 @@ namespace HrdnLab.FpsWave.UI
             foreach (string c in classes)
                 label.AddToClassList(c);
             return label;
+        }
+
+        /// <summary>Quattro angoli sottili attorno a un blocco (dettaglio da visore, senza pannello pieno).</summary>
+        private static void Brackets(VisualElement block)
+        {
+            block.Add(Element("bracket", "bracket--tl"));
+            block.Add(Element("bracket", "bracket--tr"));
+            block.Add(Element("bracket", "bracket--bl"));
+            block.Add(Element("bracket", "bracket--br"));
         }
 
         private static VisualElement Bar(string label, out Label labelElement, out VisualElement fill)
