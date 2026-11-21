@@ -1,0 +1,13 @@
+namespace HrdnLab.FpsWave.Core
+{
+    /// <summary>
+    /// Informazioni di versione del gioco.
+    /// ProtocolVersion va incrementato a ogni modifica incompatibile della rete:
+    /// Host e client devono avere lo stesso valore per potersi connettere.
+    /// </summary>
+    public static class GameInfo
+    {
+        public const string Version = "0.0.1";
+        public const int ProtocolVersion = 1;
+    }
+}

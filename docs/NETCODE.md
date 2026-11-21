@@ -1,0 +1,44 @@
+# NETCODE - Modello PvE MVP
+
+## 1. Libreria
+**FishNet** (Fish-Networking, gratuito e open source) con:
+- **Tugboat** per test locali (più istanze sullo stesso PC, LAN);
+- **FishySteamworks** + **Steamworks.NET** per Steam (lobby, inviti, relay/NAT traversal via Steam Datagram Relay), Spacewar App ID 480 in sviluppo.
+
+Motivi della scelta (dettagli in `DECISIONS.md`): attivamente mantenuto, pooling e interest management integrati, transport Steam mantenuto dallo stesso autore, buone prestazioni di banda. Alternative valutate: Netcode for GameObjects + transport Facepunch della community; Mirror + FizzySteamworks.
+
+## 2. Principio
+Co-op PvE tra amici: l'obiettivo è **reattività locale** e **economia autorevole**, non anti-cheat competitivo. Niente prediction/rollback né lag compensation completa.
+
+| Sistema | Autorità | Come |
+|---|---|---|
+| Movimento del player | Client (owner) | NetworkTransform client-authoritative; il server fa controlli di plausibilità (velocità massima, teletrasporti) e corregge solo se fuori soglia |
+| Sparo | Client rileva, server valida | Il client fa il raycast locale e mostra subito il feedback (muzzle, tracer, hit marker); invia `Shot(seq, origine, direzione, idBersaglio, puntoImpatto, weakspot)`; il server controlla cadenza, munizioni, distanza, linea di vista sulla geometria statica e che il bersaglio fosse entro una tolleranza dalla sua posizione (raggio + velocità * RTT); poi applica il danno |
+| Danno, salute, morte, a terra/rianimazione | Server | Variabili sincronizzate |
+| Nemici e AI | Server | NavMesh solo sull'Host; i client interpolano le posizioni |
+| Wave, difficoltà, mutazioni, spawn, drop, risorse, mod, acquisti | Server | I client inviano richieste, il server valida e risponde |
+| Mappa | Deterministica | Seed condiviso (vedi `MAP_ZONES.md`) |
+| Effetti cosmetici (VFX, decal, suoni) | Locale | Eventi leggeri, mai oggetti di rete |
+
+## 3. Banda e frequenze *(default)*
+- Tick server: **30 Hz** (sufficiente per PvE, dimezza il costo CPU dell'Host rispetto a 60).
+- Player: 30 Hz. Nemici: 15-20 Hz entro 40 m, 5-10 Hz oltre; interest management per distanza.
+- Quantizzazione di posizioni e rotazioni (yaw in 16 bit, pitch in 8 bit); i nemici replicano solo yaw.
+- Messaggi aggregati per tick; spari automatici raggruppati.
+- Budget: vedi `TECH_BUDGETS.md`.
+
+## 4. Sessione
+- Lobby Steam: crea, invita, entra (anche da invito Steam); max 4.
+- Join in corso: solo durante la preparazione; chi entra durante una wave è spettatore fino alla preparazione successiva.
+- Disconnessione Host: fine partita e ritorno al menu per tutti (host migration fuori scope).
+- Controllo di versione (`GameInfo.ProtocolVersion`) al momento del join.
+
+## 5. Struttura del codice
+- Per funzionalità (`Player/`, `Weapons/`, `Enemies/`...); in ogni funzionalità la logica server è in metodi `[Server]` o in classi `*Server`, quella client in `*Client` / `*View`, i dati condivisi in `*Data`/ScriptableObject.
+- Logica pura (formule, tabelle, director, difficoltà) in classi C# senza MonoBehaviour: testabile in EditMode e indipendente dalla rete.
+
+## 6. Test
+- Locale: **Multiplayer Play Mode** di Unity 6 (fino a 4 istanze) + Tugboat.
+- Condizioni degradate: simulatore di latenza/perdita (150 ms, 2-5% loss, jitter).
+- Steam: PC dell'utente + PC di un amico con il suo account Steam (non si possono avviare due client Steam con lo stesso account sulla stessa macchina). Il build di test va condiviso con l'amico (zip o branch Steam dopo il rilascio dell'App ID).
+- Overlay di debug: RTT, banda in/out, tick, oggetti osservati.

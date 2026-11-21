@@ -1,0 +1,32 @@
+# ASSET - Fonti, licenze, coerenza
+
+## 1. Regole
+- Solo asset **gratuiti** con licenza che consente l'uso in un gioco commerciale.
+- **Coerenza stilistica**: tutto fotorealistico PBR (scansioni fotogrammetriche o equivalenti), texel density simile (~512 px/m per l'ambiente, maggiore per armi e mani), palette e luce unificate dal post-processing di zona. Niente mix con low-poly o stilizzato, nemmeno come placeholder visibile in build.
+- Ambientazione mista (natura + militare sci-fi): la parte sci-fi deve restare "militare credibile" (metallo verniciato, cemento, cavi, pannelli, luci di servizio). Si scartano kit sci-fi lucidi/cartoon anche se gratuiti.
+- Ogni asset importato va registrato nella tabella in fondo (nome, fonte, licenza, link, data). I CC-BY richiedono attribuzione nei crediti.
+- Asset di terze parti in `Assets/ThirdParty/<Fonte>/`; gli asset del gioco (prefab, materiali URP adattati) in `Assets/_Project/`.
+- Formati pesanti tramite Git LFS; i pacchetti scaricabili di nuovo dalla fonte si possono tenere fuori dal repo se la quota LFS si esaurisce.
+
+## 2. Fonti approvate
+| Fonte | Contenuto | Licenza | Note |
+|---|---|---|---|
+| Poly Haven | Texture, HDRI, modelli | CC0 | Nessun login |
+| ambientCG | Texture/materiali PBR (anche metalli, pannelli, cemento) | CC0 | Nessun login |
+| Fab - Quixel Megascans | Superfici, rocce, vegetazione, props scansionati | Fab Standard License (uso in qualsiasi engine) | Libreria tornata gratuita a novembre 2026; richiede login Epic dell'utente |
+| Fab (altri asset gratuiti) | Kit militari/industriali, armi | Fab Standard License o CC | Verificare licenza per asset |
+| Unity Asset Store (gratuiti) | Pacchetti vari | Standard Unity Asset Store EULA | Login Unity dell'utente; scegliere solo pacchetti realistici |
+| Mixamo | Personaggi e animazioni (mani FPS, creature) | Uso gratuito in giochi, royalty free | Login Adobe dell'utente |
+| Sonniss GameAudioGDC | Effetti sonori professionali (armi, sci-fi, ambienti) | Royalty free, commerciale | Pacchetti annuali |
+| Freesound | Suoni | Solo CC0 (CC-BY con attribuzione) | Verificare la licenza di ogni file |
+
+## 3. Priorità di acquisizione
+1. M1: arma realistica + braccia FPS, materiali di base per la greybox, suoni di sparo/ricarica/impatto.
+2. M2: Runner e Brute con animazioni (corsa, attacco, morte, stagger).
+3. M7: kit ambientali per le 4 zone (natura, cava, villaggio, complesso militare).
+4. M8: VFX, musica, UI, altri nemici e boss.
+
+## 4. Registro asset importati
+| Asset | Fonte | Licenza | Link | Data | Dove nel progetto |
+|---|---|---|---|---|---|
+| - | - | - | - | - | - |
