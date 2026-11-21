@@ -20,31 +20,235 @@ namespace HrdnLab.FpsWave.Editor
         private const string AnimationsDir = "Assets/_Project/Art/Animations";
         private const string ViewModelsDir = "Assets/_Project/Prefabs/ViewModels";
         private const string RifleAsset = "Assets/_Project/Data/Weapons/AssaultRifle.asset";
+        private const string PistolAsset = "Assets/_Project/Data/Weapons/Pistol.asset";
+        private const string PistolDir = "Assets/ThirdParty/Fab/Pistol2";
+        private const string PistolFbx = PistolDir + "/Pistol2.fbx";
+        private const string PistolSourcePref = "FpsWave.PistolSourceDir";
+        private const float PistolLength = 0.217f; // Beretta M92: 217 mm
+        private static readonly string[] PistolParts = { "Body", "Slide", "Bullet" };
         private const string LitShader = "Universal Render Pipeline/Lit";
 
         [MenuItem("FpsWave/Setup/4. Build Weapon View Models")]
         public static void BuildAll()
         {
-            if (!System.IO.File.Exists(M4Fbx))
-            {
-                Debug.LogError($"[FpsWave] {M4Fbx} non trovato: estrai il pacchetto Fab 'M4 - FPS Weapon Animations Pack FREE' in {M4Dir}.");
-                return;
-            }
             EnsureFolder(MaterialsDir);
             EnsureFolder(AnimationsDir);
             EnsureFolder(ViewModelsDir);
 
-            ConfigureTextures(M4Dir);
-            var materials = CreateM4Materials();
-            ConfigureModel(M4Fbx, materials);
-            BuildM4Prefab();
+            if (System.IO.File.Exists(M4Fbx))
+            {
+                ConfigureTextures(M4Dir);
+                var materials = CreateM4Materials();
+                ConfigureModel(M4Fbx, materials);
+                BuildM4Prefab();
+                Debug.Log("[FpsWave] View model M4 costruito e collegato a AssaultRifle.");
+            }
+            else
+            {
+                Debug.LogWarning($"[FpsWave] {M4Fbx} non trovato: estrai il pacchetto Fab 'M4 - FPS Weapon Animations Pack FREE' in {M4Dir}.");
+            }
+
+            if (ImportPistolFiles())
+            {
+                ConfigureTextures(PistolDir, maxSize: 2048);
+                Dictionary<string, Material> pistolMats = CreatePistolMaterials();
+                ConfigurePistolModel(pistolMats);
+                BuildPistolPrefab(pistolMats);
+                Debug.Log("[FpsWave] View model pistola costruito e collegato a Pistol.");
+            }
             AssetDatabase.SaveAssets();
-            Debug.Log("[FpsWave] View model M4 costruito e collegato a AssaultRifle.");
+        }
+
+        // ---------------------------------------------------------------- Pistola (FPS Guns 4K - Pistol 2)
+
+        /// <summary>
+        /// Copia il pacchetto dalla cartella estratta (default: Download) e unisce Metallic + Roughness in una
+        /// mappa MetallicSmoothness per URP. Le texture 4K vengono poi importate a 2K (budget VRAM).
+        /// </summary>
+        private static bool ImportPistolFiles()
+        {
+            if (System.IO.File.Exists(PistolFbx))
+                return true;
+            string home = System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
+            string source = EditorPrefs.GetString(PistolSourcePref,
+                System.IO.Path.Combine(home, "Downloads", "FPS Guns 4K - Pistol 2"));
+            string sourceFbx = System.IO.Path.Combine(source, "Models", "Pistol 2.fbx");
+            if (!System.IO.File.Exists(sourceFbx))
+            {
+                Debug.LogWarning($"[FpsWave] Pistola: {sourceFbx} non trovato. Estrai il pacchetto Fab 'FPS Guns 4K - Pistol 2' in Download " +
+                                 $"(o imposta EditorPrefs '{PistolSourcePref}').");
+                return false;
+            }
+
+            System.IO.Directory.CreateDirectory(PistolDir);
+            System.IO.File.Copy(sourceFbx, PistolFbx, true);
+            foreach (string part in PistolParts)
+            {
+                string dir = System.IO.Path.Combine(source, "Textures", "4K", $"Pistol 2 {part}");
+                System.IO.File.Copy(System.IO.Path.Combine(dir, $"{part}_Base_Color.png"), $"{PistolDir}/{part}_BaseColor.png", true);
+                System.IO.File.Copy(System.IO.Path.Combine(dir, $"{part}_Normal_OpenGL.png"), $"{PistolDir}/{part}_Normal.png", true);
+                System.IO.File.Copy(System.IO.Path.Combine(dir, $"{part}_Mixed_AO.png"), $"{PistolDir}/{part}_AO.png", true);
+                PackMetallicSmoothness(System.IO.Path.Combine(dir, $"{part}_Metallic.png"),
+                    System.IO.Path.Combine(dir, $"{part}_Roughness.png"), $"{PistolDir}/{part}_MetalSmooth.png");
+            }
+            AssetDatabase.Refresh();
+            return true;
+        }
+
+        private static void PackMetallicSmoothness(string metallicPath, string roughnessPath, string outPath)
+        {
+            var metal = new Texture2D(2, 2, TextureFormat.RGBA32, false, true);
+            var rough = new Texture2D(2, 2, TextureFormat.RGBA32, false, true);
+            metal.LoadImage(System.IO.File.ReadAllBytes(metallicPath));
+            rough.LoadImage(System.IO.File.ReadAllBytes(roughnessPath));
+            Color32[] m = metal.GetPixels32();
+            Color32[] r = rough.width == metal.width && rough.height == metal.height ? rough.GetPixels32() : null;
+            for (int i = 0; i < m.Length; i++)
+            {
+                byte roughness = r != null ? r[i].r : (byte)128;
+                m[i] = new Color32(m[i].r, 0, 0, (byte)(255 - roughness));
+            }
+            metal.SetPixels32(m);
+            metal.Apply(false);
+            System.IO.File.WriteAllBytes(outPath, metal.EncodeToPNG());
+            Object.DestroyImmediate(metal);
+            Object.DestroyImmediate(rough);
+        }
+
+        private static Dictionary<string, Material> CreatePistolMaterials()
+        {
+            var result = new Dictionary<string, Material>();
+            foreach (string part in PistolParts)
+            {
+                Material mat = LoadOrCreate($"Pistol_{part}");
+                SetCommon(mat, $"{PistolDir}/{part}_BaseColor.png", $"{PistolDir}/{part}_Normal.png");
+                mat.SetFloat("_WorkflowMode", 1f);
+                mat.SetTexture("_MetallicGlossMap", AssetDatabase.LoadAssetAtPath<Texture2D>($"{PistolDir}/{part}_MetalSmooth.png"));
+                mat.SetFloat("_SmoothnessTextureChannel", 0f);
+                mat.SetFloat("_Metallic", 1f);
+                mat.SetFloat("_Smoothness", 1f);
+                mat.EnableKeyword("_METALLICSPECGLOSSMAP");
+                mat.DisableKeyword("_SPECULAR_SETUP");
+                mat.SetTexture("_OcclusionMap", AssetDatabase.LoadAssetAtPath<Texture2D>($"{PistolDir}/{part}_AO.png"));
+                mat.SetFloat("_OcclusionStrength", 1f);
+                mat.EnableKeyword("_OCCLUSIONMAP");
+                EditorUtility.SetDirty(mat);
+                result[part] = mat;
+            }
+            return result;
+        }
+
+        private static void ConfigurePistolModel(Dictionary<string, Material> mats)
+        {
+            var importer = (ModelImporter)AssetImporter.GetAtPath(PistolFbx);
+            importer.animationType = ModelImporterAnimationType.None;
+            importer.importAnimation = false;
+            importer.importCameras = false;
+            importer.importLights = false;
+            importer.isReadable = true;
+            importer.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
+            importer.materialLocation = ModelImporterMaterialLocation.InPrefab;
+            // I nomi dei materiali nel file hanno un namespace Maya; si mappano entrambe le varianti.
+            string[,] map = { { "Baretta:Body", "Body" }, { "Body", "Body" }, { "Lower_BodySG", "Body" },
+                              { "Baretta:Slide", "Slide" }, { "Slide", "Slide" },
+                              { "Baretta:Bullet", "Bullet" }, { "Bullet", "Bullet" } };
+            for (int i = 0; i < map.GetLength(0); i++)
+                importer.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), map[i, 0]), mats[map[i, 1]]);
+            importer.SaveAndReimport();
+        }
+
+        private static void BuildPistolPrefab(Dictionary<string, Material> mats)
+        {
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(PistolFbx);
+            var root = new GameObject("VM_Pistol");
+            var rig = (GameObject)PrefabUtility.InstantiatePrefab(model);
+            rig.transform.SetParent(root.transform, false);
+
+            // Scala: lunghezza reale dell'arma.
+            Bounds b = WorldBounds(rig.transform);
+            float length = Mathf.Max(b.size.x, b.size.z);
+            rig.transform.localScale *= PistolLength / Mathf.Max(0.0001f, length);
+
+            // Orientamento: canna verso +Z (il mirino anteriore indica il davanti), caricatore verso il basso.
+            Transform frontSight = FindByName(rig.transform, "Front_Sight_");
+            Transform slide = FindByName(rig.transform, "Slide1");
+            Transform magazine = FindByName(rig.transform, "Magazine");
+            b = WorldBounds(rig.transform);
+            Vector3 axis = b.size.x > b.size.z ? Vector3.right : Vector3.forward;
+            Vector3 front = frontSight != null ? WorldBounds(frontSight).center : b.center + axis;
+            if (Vector3.Dot(front - b.center, axis) < 0f) axis = -axis;
+            rig.transform.rotation = Quaternion.FromToRotation(axis, Vector3.forward) * rig.transform.rotation;
+            if (slide != null && magazine != null && WorldBounds(magazine).center.y > WorldBounds(slide).center.y)
+                rig.transform.rotation = Quaternion.AngleAxis(180f, Vector3.forward) * rig.transform.rotation;
+
+            // Origine sulla tacca di mira: in ADS basta portarla sull'asse della camera.
+            Transform rearSight = FindByName(rig.transform, "Rear_Sight");
+            b = WorldBounds(rig.transform);
+            Bounds sightBounds = rearSight != null ? WorldBounds(rearSight) : b;
+            Vector3 sight = new(b.center.x, sightBounds.max.y - 0.002f, sightBounds.center.z);
+            rig.transform.position -= sight;
+
+            Transform barrel = FindByName(rig.transform, "Barrel") ?? slide;
+            Vector3[] barrelVerts = WorldVertices(barrel);
+            Vector3 muzzlePoint = barrelVerts.Length > 0 ? MuzzlePoint(barrelVerts) : new Vector3(0f, -0.01f, WorldBounds(rig.transform).max.z);
+            var muzzle = new GameObject("Muzzle").transform;
+            muzzle.SetParent(barrel != null ? barrel : rig.transform, true);
+            muzzle.position = muzzlePoint + Vector3.forward * 0.01f;
+            muzzle.rotation = Quaternion.identity;
+
+            // I nomi dei materiali nell'FBX non sempre coincidono con le rimappature: si assegnano per parte.
+            foreach (Renderer r in rig.GetComponentsInChildren<Renderer>(true))
+            {
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                Material[] slots = r.sharedMaterials;
+                for (int i = 0; i < slots.Length; i++)
+                {
+                    string n = slots[i] != null ? slots[i].name : r.name;
+                    slots[i] = n.Contains("Slide") ? mats["Slide"] : n.Contains("Bullet") ? mats["Bullet"] : mats["Body"];
+                }
+                r.sharedMaterials = slots;
+            }
+
+            bool hasSlide = slide != null;
+            float slideTravel = 0.022f;
+            if (slide != null && slide.parent != null)
+                slideTravel /= Mathf.Max(0.0001f, slide.parent.lossyScale.x);
+
+            float scale = rig.transform.localScale.x;
+            var vm = root.AddComponent<WeaponViewModel>();
+            vm.EditorSetupProcedural(rig.transform, slide, muzzle, slideTravel);
+
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{ViewModelsDir}/VM_Pistol.prefab");
+            Object.DestroyImmediate(root);
+
+            var pistol = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(PistolAsset);
+            if (pistol != null)
+            {
+                pistol.EditorSetViewModel(prefab, new Vector3(0.13f, -0.105f, 0.30f), new Vector3(0f, 0f, 0.24f));
+                EditorUtility.SetDirty(pistol);
+            }
+            Debug.Log($"[FpsWave] VM_Pistol: scala {scale:F4}, volata {muzzlePoint:F3}, carrello {(hasSlide ? "sì" : "no")}.");
+        }
+
+        private static Transform FindByName(Transform parent, string name)
+        {
+            foreach (Transform t in parent.GetComponentsInChildren<Transform>(true))
+                if (t.name == name) return t;
+            return null;
+        }
+
+        private static Bounds WorldBounds(Transform t)
+        {
+            Renderer[] renderers = t.GetComponentsInChildren<Renderer>(true);
+            if (renderers.Length == 0) return new Bounds(t.position, Vector3.zero);
+            Bounds b = renderers[0].bounds;
+            foreach (Renderer r in renderers) b.Encapsulate(r.bounds);
+            return b;
         }
 
         // ---------------------------------------------------------------- Texture e materiali
 
-        private static void ConfigureTextures(string dir)
+        private static void ConfigureTextures(string dir, int maxSize = 4096)
         {
             foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { dir }))
             {
@@ -52,12 +256,15 @@ namespace HrdnLab.FpsWave.Editor
                 if (AssetImporter.GetAtPath(path) is not TextureImporter importer)
                     continue;
                 string file = System.IO.Path.GetFileNameWithoutExtension(path);
-                bool isNormal = file.EndsWith("_N");
+                bool isNormal = file.EndsWith("_N") || file.EndsWith("_Normal");
+                bool isLinearData = file.EndsWith("_MetalSmooth") || file.EndsWith("_AO");
                 // La mappa specular è un colore (sRGB); la smoothness nel canale alfa è sempre lineare.
                 TextureImporterType type = isNormal ? TextureImporterType.NormalMap : TextureImporterType.Default;
-                bool srgb = !isNormal;
-                if (importer.textureType == type && importer.sRGBTexture == srgb && importer.streamingMipmaps)
+                bool srgb = !isNormal && !isLinearData;
+                if (importer.textureType == type && importer.sRGBTexture == srgb && importer.streamingMipmaps
+                    && importer.maxTextureSize == maxSize)
                     continue;
+                importer.maxTextureSize = maxSize;
                 importer.textureType = type;
                 importer.sRGBTexture = srgb;
                 importer.streamingMipmaps = true; // texture streaming (docs/TECH_BUDGETS.md)

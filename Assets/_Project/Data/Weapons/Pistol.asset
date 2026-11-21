@@ -34,5 +34,8 @@ MonoBehaviour:
   _critChance: 0.05
   _critMultiplier: 1.5
   _weakspotMultiplier: 2
-  _viewModelPrefab: {fileID: 0}
+  _viewModelPrefab: {fileID: 9209295756231340699, guid: e0049615b6ca5dc41a58960354a5d887, type: 3}
   _placeholderSize: {x: 0.05, y: 0.11, z: 0.22}
+  _overrideViewOffsets: 1
+  _viewHipOffset: {x: 0.13, y: -0.105, z: 0.3}
+  _viewAdsOffset: {x: 0, y: 0, z: 0.24}

@@ -53,6 +53,12 @@ MonoBehaviour:
   _rig: {fileID: 4357772082081740824}
   _cameraBone: {fileID: 6849379795782933150}
   _cameraBoneRestRotation: {x: -0, y: 0.7071068, z: -8.659561e-17, w: 0.7071068}
+  _proceduralRoot: {fileID: 0}
+  _slide: {fileID: 0}
+  _slideTravel: 0.025
+  _drawTime: 0.35
+  _fireKickPitch: 6
+  _fireKickBack: 0.03
 --- !u!1 &7948429162110236638
 GameObject:
   m_ObjectHideFlags: 0
