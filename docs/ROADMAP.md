@@ -28,4 +28,4 @@ Ogni milestone è giocabile e testata in multiplayer (host + client). Percorso s
 3. M1.3 Player FPS replicato (movimento, camera, input, spawn per connessione). **(fatto)**
 4. M1.4 Pistola hitscan validata dal server + fucile di test, ADS, feedback, bersagli. **(fatto)**
 5. M1.5 Overlay FPS/RTT (nell'HUD). **(fatto)**
-6. M1.6 Asset realistici: pistola, fucile, braccia FPS, suoni. **(in attesa del login utente)**
+6. M1.6 Asset realistici: pistola, fucile, braccia FPS, suoni. **(in corso: fucile M4 + braccia fatti; pistola e suoni da fare)**

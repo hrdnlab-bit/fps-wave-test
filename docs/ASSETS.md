@@ -35,4 +35,4 @@
 ## 4. Registro asset importati
 | Asset | Fonte | Licenza | Link | Data | Dove nel progetto |
 |---|---|---|---|---|---|
-| - | - | - | - | - | - |
+| M4 - FPS Weapon Animations Pack FREE (v.1), BarcodeGames: braccia FPS con guanti + M4, animazioni Idle/Draw/Holster/Fire/Reload/Reload_Empty | Fab | Fab Standard License | https://www.fab.com/listings/38da8f1e-cb54-4cda-beb1-6e55642a55a9 | 2026-11-21 | `Assets/ThirdParty/Fab/M4Animations/` (+ `Packed/` con le mappe Specular+Smoothness generate da noi) |

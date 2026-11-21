@@ -4,10 +4,10 @@ Ultimo aggiornamento: 2026-11-21
 
 ## Stato attuale
 - **M0a completata** (setup + rete locale, versione 0.1.0).
-- **M1 in corso**: nucleo di gameplay fatto e verificato (M1.1-M1.5); manca **M1.6 asset realistici** (serve il login dell'utente su Fab/Asset Store).
+- **M1 in corso**: nucleo di gameplay fatto e verificato (M1.1-M1.5), sparo dal client remoto confermato dall'utente. **M1.6** in corso: fucile M4 realistico con braccia e animazioni fatto; mancano pistola e suoni.
 - Progetto Unity: `C:\Users\manue\FpsWaveTest` (Unity 6000.6.9f1, URP). Repo: `hrdnlab-bit/fps-wave-test`, branch `main` (merge di `feature/m1-player-weapons`).
 - `C:\Users\manue\My project` contiene un ALTRO gioco (SABBIA): non toccarlo.
-- Ultimo commit: `576df0f fix(net): reliable MPPM play sessions` (su `main`, branch `fix/m1-mppm-port`).
+- Ultimo commit: `69771bf feat(weapons): realistic M4 first-person view model with arms` (su `main`, branch `feature/m1-assets`).
 - Tag git: il push dei tag dall'ambiente AI è bloccato (403); le versioni sono tracciate in `CHANGELOG.md`. Il tag `v0.1.0` NON esiste su GitHub.
 
 ## Come si prova
@@ -28,6 +28,7 @@ Ultimo aggiornamento: 2026-11-21
 | Sessione | `Scripts/Net/` (GameSession: carica Greybox; PlayerSpawnService; NetBootstrapMenu) |
 | UI | `Scripts/UI/PlayerHud.cs` (temporaneo, OnGUI) |
 | Play Mode | `Scripts/Editor/PlayModeNetworkGuard.cs` (Play da Boot, chiusura rete all'uscita), `Scripts/Net/EditorInstanceInfo.cs` (riconosce i giocatori virtuali) |
+| View model | `Scripts/Weapons/WeaponViewModel.cs` (animazioni, compensazione osso camera), `Scripts/Editor/WeaponViewModelBuilder.cs` (menu `FpsWave/Setup/4`) |
 | Editor | `Scripts/Editor/M1ContentBuilder.cs` (genera layer, materiali, armi, prefab, Greybox con SceneId stabili, collega Boot) |
 | Dati | `Data/Weapons/Pistol.asset`, `AssaultRifle.asset` |
 
@@ -36,13 +37,16 @@ Ultimo aggiornamento: 2026-11-21
 - Fix MPPM verificato: Host + Player 2 collegati, uscita e rientro nel Play dopo 12 s senza errori di porta, Player 2 ricollegato in entrambe le sessioni.
 - Host da solo: caricamento Greybox, spawn, HUD; pistola 12 -> 9 colpi con danno replicato sul bersaglio; fucile ~13 colpi in 1.2 s (600 RPM), bersaglio abbattuto, ricarica 17 -> 30; nessun colpo rifiutato dal server.
 - Host + Player 2 (MPPM): connessione, due player spawnati, 0 errori su entrambe le istanze.
-- Non verificato a mano: sparo del client remoto (le finestre dei giocatori virtuali non sono controllabili da remoto) -> da provare dall'utente ora che Player 2 si collega.
+- Sparo da Player 2 verificato dall'utente (2026-11-21).
+- M4: estrazione, raffica (tracer, luce, rinculo) e ricarica verificati in Play. ADS non verificato (serve tenere premuto il tasto destro): da provare a mano, i valori sono in `AssaultRifle.asset` (`_viewAdsOffset`).
 
 ## Problemi aperti / note
 - Il primo frame dopo lo spawn può muovere la visuale se il mouse si muove (cursore bloccato subito): accettabile.
 - Scena "Untitled" vuota nella gerarchia dopo il caricamento globale di FishNet: innocua.
 - HUD e menu in OnGUI (temporanei, allocano poco ma non zero): da sostituire con UI Toolkit (M0b/M5).
-- Asset: vedi `OPEN_QUESTIONS.md` #13 (login e scelta del pacchetto armi/braccia).
+- Asset binari sul PC: `Assets/ThirdParty/Fab/M4Animations/` (fuori dal repo). Da fare il backup in Google Drive (`OPEN_QUESTIONS.md` #12).
+- Pistola "FPS Guns 4K - Pistol 2" scaricata dall'utente in `Downloads/fps_guns_4k_pistol_2.zip` (148 MB): il trasferimento verso l'ambiente AI fallisce per dimensione/timeout; serve estrarla sul PC (o riprovare).
+- Se si rigenera `3. Build M1 Content`, rieseguire poi `4. Build Weapon View Models`.
 
 ## Risposte dell'utente (2026-11-21)
 - Procedura asset: Fab nel browser dell'app, login dell'utente, l'AI propone nome/licenza/dimensione prima di scaricare. CC-BY accettati.
@@ -50,6 +54,7 @@ Ultimo aggiornamento: 2026-11-21
 - Test sparo da Player 2: bloccato dall'errore di porta, ora corretto; da ripetere.
 
 ## Prossimi passi
-1. M1.6: asset realistici di pistola, fucile, braccia FPS e suoni (serve login utente; vedi opzioni in `ASSETS.md`).
-2. Chiudere M1 (versione 0.2.0) dopo il test dello sparo da client remoto.
-3. M0b: Steam (Steamworks.NET + FishySteamworks), lobby, controllo versione al join, overlay debug completo, console comandi.
+1. M1.6: pistola (estrarre lo zip sul PC in `Assets/ThirdParty/Fab/Pistol2/`, materiali URP, view model senza braccia o con le braccia dell'M4) e suoni (Sonniss GDC / Freesound CC0).
+2. Verifica ADS del fucile e regolazione di `_viewAdsOffset`.
+3. Chiudere M1 (versione 0.2.0).
+4. M0b: Steam (Steamworks.NET + FishySteamworks), lobby, controllo versione al join, overlay debug completo, console comandi.

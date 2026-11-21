@@ -23,7 +23,8 @@
 5. Prima di eseguire gli strumenti `FpsWave/Setup` disattivare i giocatori virtuali di Multiplayer Play Mode: bloccano `DefaultPrefabObjects.asset`.
 6. Test di sparo da remoto: il tasto Home (solo Editor/development build) riallinea la visuale alla direzione di spawn; sparare con pressione/rilascio del mouse senza spostarlo.
 7. Uscire dal Play Mode con Ctrl+P (Esc è riservato dal sistema per il controllo remoto; un clic sul pulsante Play col cursore bloccato diventa uno sparo).
-8. Il Play parte sempre da `Boot` (menu `FpsWave/Play Mode/Start From Boot`), anche se è aperta un'altra scena; all'uscita la rete viene chiusa, quindi si può rientrare subito senza errori di porta.
+8. Durante il Play gli script modificati non si ricompilano: le modifiche si applicano all'uscita.
+9. Il Play parte sempre da `Boot` (menu `FpsWave/Play Mode/Start From Boot`), anche se è aperta un'altra scena; all'uscita la rete viene chiusa, quindi si può rientrare subito senza errori di porta.
 4. Solo dopo: commit, push, aggiornamento dei documenti.
 
 ## 4. Struttura cartelle
