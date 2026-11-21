@@ -1,0 +1,470 @@
+using System;
+using FishNet.Connection;
+using FishNet.Object;
+using HrdnLab.FpsWave.Combat;
+using HrdnLab.FpsWave.Core;
+using HrdnLab.FpsWave.Player;
+using HrdnLab.FpsWave.Stats;
+using UnityEngine;
+
+namespace HrdnLab.FpsWave.Weapons
+{
+    public enum HitMarkerType : byte
+    {
+        Hit = 0,
+        Weakspot = 1,
+        Critical = 2,
+        Kill = 3,
+    }
+
+    /// <summary>
+    /// Armi del player. Modello PvE MVP (docs/NETCODE.md): il proprietario spara in locale (raycast e feedback
+    /// immediati) e invia il colpo al server, che ne valida cadenza, munizioni, origine, gittata, bersaglio
+    /// e linea di vista, poi applica il danno. Client e server usano istanze separate di <see cref="WeaponState"/>,
+    /// così sull'Host lo stato predetto e quello autorevole non si sovrappongono.
+    /// </summary>
+    public sealed class PlayerWeapons : NetworkBehaviour
+    {
+        [Header("Armi")]
+        [Tooltip("Indice 0 = primaria, 1 = secondaria. Una voce vuota = slot vuoto.")]
+        [SerializeField] private WeaponDefinition[] _loadout = Array.Empty<WeaponDefinition>();
+        [SerializeField] private int _startingWeapon = 1;
+
+        [Header("Riferimenti")]
+        [SerializeField] private PlayerInputReader _input;
+        [SerializeField] private PlayerLook _look;
+        [SerializeField] private PlayerMotor _motor;
+        [SerializeField] private Transform _viewModelRoot;
+        [SerializeField] private Light _muzzleLight;
+
+        [Header("Effetti")]
+        [SerializeField] private Material _tracerMaterial;
+        [SerializeField] private Material _impactMaterial;
+        [SerializeField] private Material _placeholderMaterial;
+
+        [Header("Mira (ADS)")]
+        [SerializeField] private Vector3 _hipPosition = new(0.22f, -0.2f, 0.42f);
+        [SerializeField] private Vector3 _adsPosition = new(0f, -0.12f, 0.32f);
+        [SerializeField, Range(0.1f, 1f)] private float _adsMoveMultiplier = 0.6f;
+        [SerializeField, Range(0.1f, 1f)] private float _adsRecoilMultiplier = 0.7f;
+
+        private WeaponState[] _local;
+        private WeaponState[] _server;
+        private FireRateLimiter[] _limiters;
+        private int _localEquipped = -1;
+        private int _serverEquipped;
+        private float _aim;
+        private float _muzzleLightUntil;
+        private float _viewKick;
+        private GameObject _viewModel;
+        private Transform _muzzle;
+        private ShotFxPool _fx;
+        private float _nextRejectLogTime;
+
+        /// <summary>Solo player locale: un colpo ha toccato un bersaglio (predetto) o è stato confermato dal server (kill/critico).</summary>
+        public event Action<HitMarkerType> LocalHitMarker;
+
+        public WeaponState Current => _local != null && _localEquipped >= 0 ? _local[_localEquipped] : null;
+        public float AimAmount => _aim;
+        public Camera ViewCamera => _look != null ? _look.Camera : null;
+
+        /// <summary>Dispersione attuale in gradi (per il mirino dell'HUD).</summary>
+        public float CurrentSpread
+        {
+            get
+            {
+                WeaponState s = Current;
+                if (s == null) return 0f;
+                float baseSpread = Mathf.Lerp(s.Stats.Get(StatType.HipSpread), s.Stats.Get(StatType.AdsSpread), _aim);
+                return baseSpread + s.Bloom * Mathf.Lerp(1f, 0.5f, _aim);
+            }
+        }
+
+        private void Awake()
+        {
+            int count = _loadout.Length;
+            _local = new WeaponState[count];
+            _server = new WeaponState[count];
+            _limiters = new FireRateLimiter[count];
+            for (int i = 0; i < count; i++)
+            {
+                if (_loadout[i] == null) continue;
+                _local[i] = new WeaponState(_loadout[i], _loadout[i].CreateStats());
+                _server[i] = new WeaponState(_loadout[i], _loadout[i].CreateStats());
+                _limiters[i] = new FireRateLimiter(_loadout[i].CreateStats().Get(StatType.RoundsPerMinute) / 60f);
+            }
+            _serverEquipped = ClampToValidSlot(_startingWeapon);
+        }
+
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+            if (!IsOwner)
+                return;
+            _fx = ShotFxPool.Get(_tracerMaterial, _impactMaterial);
+            EquipLocal(ClampToValidSlot(_startingWeapon), notifyServer: false);
+        }
+
+        private int ClampToValidSlot(int index)
+        {
+            if (index >= 0 && index < _loadout.Length && _loadout[index] != null)
+                return index;
+            for (int i = 0; i < _loadout.Length; i++)
+                if (_loadout[i] != null) return i;
+            return -1;
+        }
+
+        private void Update()
+        {
+            double now = Time.timeAsDouble;
+            float dt = Time.deltaTime;
+
+            if (IsServerInitialized)
+                TickStates(_server, now, dt);
+
+            if (!IsOwner || _localEquipped < 0)
+                return;
+
+            TickStates(_local, now, dt);
+            HandleOwnerInput(now, dt);
+            UpdateViewModel(dt);
+        }
+
+        private static void TickStates(WeaponState[] states, double now, float dt)
+        {
+            for (int i = 0; i < states.Length; i++)
+                states[i]?.Tick(now, dt, states[i].Definition.BloomRecoveryPerSecond);
+        }
+
+        // ---------------------------------------------------------------- Client (owner)
+
+        private void HandleOwnerInput(double now, float dt)
+        {
+            if (_input == null)
+                return;
+
+            if (_input.Weapon1Pressed) EquipLocal(0, true);
+            else if (_input.Weapon2Pressed) EquipLocal(1, true);
+            else if (_input.SwitchWeaponPressed) EquipLocal(NextSlot(), true);
+
+            WeaponState state = Current;
+            if (state == null)
+                return;
+
+            if (_input.ReloadPressed)
+                RequestReload(state, now);
+
+            bool wantsAim = _input.AimHeld && !state.IsReloading && !(_motor != null && _motor.IsSprinting);
+            _aim = Mathf.MoveTowards(_aim, wantsAim ? 1f : 0f, dt / state.Definition.AdsTime);
+            if (_look != null) _look.FovMultiplier = Mathf.Lerp(1f, state.Definition.AdsFovMultiplier, _aim);
+            if (_motor != null) _motor.SpeedMultiplier = Mathf.Lerp(1f, _adsMoveMultiplier, _aim);
+
+            bool trigger = state.Definition.Automatic ? _input.FireHeld : _input.FirePressed;
+            if (!trigger)
+                return;
+
+            if (state.Ammo <= 0 && !state.IsReloading)
+            {
+                RequestReload(state, now);
+                return;
+            }
+
+            // Più colpi per frame se la cadenza lo richiede (frame lenti o armi molto veloci).
+            int guard = 0;
+            while (state.CanFire(now) && guard++ < 4)
+            {
+                FireLocal(state, now);
+                if (!state.Definition.Automatic)
+                    break;
+            }
+        }
+
+        private int NextSlot()
+        {
+            for (int step = 1; step <= _loadout.Length; step++)
+            {
+                int i = (_localEquipped + step) % _loadout.Length;
+                if (_loadout[i] != null) return i;
+            }
+            return _localEquipped;
+        }
+
+        private void EquipLocal(int index, bool notifyServer)
+        {
+            if (index < 0 || index >= _loadout.Length || _loadout[index] == null || index == _localEquipped)
+                return;
+            Current?.CancelReload();
+            _localEquipped = index;
+            _aim = 0f;
+            BuildViewModel(_loadout[index]);
+            if (notifyServer)
+                RpcEquip((byte)index);
+        }
+
+        private void RequestReload(WeaponState state, double now)
+        {
+            if (state.StartReload(now))
+                RpcReload((byte)_localEquipped);
+        }
+
+        private void FireLocal(WeaponState state, double now)
+        {
+            Camera cam = ViewCamera;
+            if (cam == null)
+                return;
+
+            Transform camTransform = cam.transform;
+            Vector3 origin = camTransform.position;
+            float spread = CurrentSpread;
+            Vector3 direction = ShotValidation.SpreadDirection(camTransform.forward, camTransform.up, spread,
+                UnityEngine.Random.value, UnityEngine.Random.value);
+            float range = state.Stats.Get(StatType.Range);
+
+            Vector3 end = origin + direction * range;
+            HitZone zone = null;
+            bool hitSomething = Physics.Raycast(origin, direction, out RaycastHit hit, range, GameLayers.ShotMask, QueryTriggerInteraction.Ignore);
+            if (hitSomething)
+            {
+                end = hit.point;
+                hit.collider.TryGetComponent(out zone);
+            }
+
+            state.RegisterShot(now, state.Definition.MaxBloom);
+
+            // Feedback immediato (predizione locale).
+            Vector3 muzzle = _muzzle != null ? _muzzle.position : origin;
+            _fx?.Tracer(muzzle, end);
+            if (hitSomething)
+                _fx?.Impact(hit.point, hit.normal);
+            FlashMuzzle();
+            float recoilScale = Mathf.Lerp(1f, _adsRecoilMultiplier, _aim);
+            _look?.AddRecoil(state.Stats.Get(StatType.RecoilPitch) * recoilScale,
+                UnityEngine.Random.Range(-1f, 1f) * state.Stats.Get(StatType.RecoilYaw) * recoilScale,
+                state.Definition.RecoilRecoveryPerSecond);
+            _viewKick = 1f;
+
+            NetworkObject target = null;
+            sbyte zoneIndex = -1;
+            if (zone != null && zone.Owner != null && !zone.Owner.IsDead)
+            {
+                target = zone.Owner.NetworkObject;
+                zoneIndex = (sbyte)zone.Index;
+                LocalHitMarker?.Invoke(zone.IsWeakspot ? HitMarkerType.Weakspot : HitMarkerType.Hit);
+            }
+
+            RpcShoot((byte)_localEquipped, origin, direction, end, target, zoneIndex);
+        }
+
+        private void FlashMuzzle()
+        {
+            if (_muzzleLight == null) return;
+            if (_muzzle != null)
+                _muzzleLight.transform.position = _muzzle.position;
+            _muzzleLight.enabled = true;
+            _muzzleLightUntil = Time.time + 0.04f;
+        }
+
+        private void BuildViewModel(WeaponDefinition definition)
+        {
+            if (_viewModelRoot == null)
+                return;
+            if (_viewModel != null)
+                Destroy(_viewModel);
+
+            if (definition.ViewModelPrefab != null)
+            {
+                _viewModel = Instantiate(definition.ViewModelPrefab, _viewModelRoot, false);
+            }
+            else
+            {
+                // Segnaposto greybox finché non arrivano i modelli realistici (M1.6).
+                _viewModel = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                Destroy(_viewModel.GetComponent<Collider>());
+                _viewModel.name = $"Placeholder_{definition.Id}";
+                _viewModel.transform.SetParent(_viewModelRoot, false);
+                _viewModel.transform.localScale = definition.PlaceholderSize;
+                _viewModel.transform.localPosition = new Vector3(0f, 0f, definition.PlaceholderSize.z * 0.5f);
+                var r = _viewModel.GetComponent<MeshRenderer>();
+                if (_placeholderMaterial != null) r.sharedMaterial = _placeholderMaterial;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            SetLayerRecursively(_viewModel, GameLayers.Player);
+
+            var muzzle = new GameObject("Muzzle").transform;
+            muzzle.SetParent(_viewModel.transform.parent, false);
+            muzzle.localPosition = new Vector3(0f, 0f, definition.PlaceholderSize.z + 0.02f);
+            muzzle.SetParent(_viewModel.transform, true);
+            _muzzle = muzzle;
+            // La luce resta figlia del root dell'arma (non del modello, che viene distrutto al cambio arma).
+            if (_muzzleLight != null)
+                _muzzleLight.enabled = false;
+        }
+
+        private static void SetLayerRecursively(GameObject go, int layer)
+        {
+            go.layer = layer;
+            foreach (Transform child in go.transform)
+                SetLayerRecursively(child.gameObject, layer);
+        }
+
+        private void UpdateViewModel(float dt)
+        {
+            if (_muzzleLight != null && _muzzleLight.enabled && Time.time >= _muzzleLightUntil)
+                _muzzleLight.enabled = false;
+            if (_viewModelRoot == null)
+                return;
+            _viewKick = Mathf.MoveTowards(_viewKick, 0f, dt * 12f);
+            Vector3 kick = new(0f, 0f, -0.04f * _viewKick);
+            _viewModelRoot.localPosition = Vector3.Lerp(_hipPosition, _adsPosition, _aim) + kick;
+        }
+
+        // ---------------------------------------------------------------- Server
+
+        [ServerRpc]
+        private void RpcEquip(byte index)
+        {
+            if (index >= _server.Length || _server[index] == null)
+                return;
+            _server[_serverEquipped]?.CancelReload();
+            _serverEquipped = index;
+        }
+
+        [ServerRpc]
+        private void RpcReload(byte index)
+        {
+            if (index >= _server.Length || _server[index] == null)
+                return;
+            _server[index].StartReload(Time.timeAsDouble);
+        }
+
+        [ServerRpc]
+        private void RpcShoot(byte weaponIndex, Vector3 origin, Vector3 direction, Vector3 end, NetworkObject target, sbyte zoneIndex)
+        {
+            ShotRejectReason reason = ServerProcessShot(weaponIndex, origin, direction, end, target, zoneIndex, out bool fired);
+
+            if (fired)
+                RpcShotFx(origin, end);
+
+            if (reason == ShotRejectReason.None)
+                return;
+
+            if ((reason == ShotRejectReason.NoAmmo || reason == ShotRejectReason.Reloading || reason == ShotRejectReason.NotEquipped)
+                && weaponIndex < _server.Length && _server[weaponIndex] != null)
+            {
+                WeaponState s = _server[weaponIndex];
+                RpcSyncWeapon(Owner, weaponIndex, (ushort)s.Ammo, s.IsReloading);
+            }
+
+            if (Time.time >= _nextRejectLogTime)
+            {
+                _nextRejectLogTime = Time.time + 2f;
+                Debug.Log($"[FpsWave][Server] Colpo del client {OwnerId} rifiutato: {reason}");
+            }
+        }
+
+        /// <summary>Validazione e applicazione del colpo. <paramref name="fired"/> = il colpo è stato sparato (munizione consumata).</summary>
+        private ShotRejectReason ServerProcessShot(byte weaponIndex, Vector3 origin, Vector3 direction, Vector3 end,
+            NetworkObject target, sbyte zoneIndex, out bool fired)
+        {
+            fired = false;
+            if (weaponIndex >= _server.Length || _server[weaponIndex] == null)
+                return ShotRejectReason.InvalidWeapon;
+            if (weaponIndex != _serverEquipped)
+                return ShotRejectReason.NotEquipped;
+
+            WeaponState state = _server[weaponIndex];
+            if (state.IsReloading)
+                return ShotRejectReason.Reloading;
+            if (state.Ammo <= 0)
+                return ShotRejectReason.NoAmmo;
+
+            FireRateLimiter limiter = _limiters[weaponIndex];
+            limiter.SetRate(state.Stats.Get(StatType.RoundsPerMinute) / 60f);
+            if (!limiter.TryConsume(Time.timeAsDouble))
+                return ShotRejectReason.FireRate;
+
+            state.TryConsumeRound();
+            fired = true;
+
+            if (_motor != null && !ShotValidation.IsOriginPlausible(origin, _motor.ServerEyePosition))
+                return ShotRejectReason.OriginTooFar;
+            if (!ShotValidation.IsWithinRange(origin, end, state.Stats.Get(StatType.Range)))
+                return ShotRejectReason.OutOfRange;
+
+            Vector3 toEnd = end - origin;
+            float distance = toEnd.magnitude;
+            if (distance > 0.01f && Vector3.Angle(direction, toEnd) > 3f)
+                return ShotRejectReason.TargetMismatch;
+
+            if (target == null)
+                return ShotRejectReason.None; // colpo a vuoto o su ambiente: solo effetti
+
+            if (!target.TryGetComponent(out Health health) || health.IsDead)
+                return ShotRejectReason.TargetMismatch;
+            HitZone zone = health.GetZone(zoneIndex);
+            if (zone == null)
+                return ShotRejectReason.TargetMismatch;
+
+            // Bersagli fermi per ora: la velocità del bersaglio entrerà in gioco con i nemici (M2).
+            Vector3 closest = zone.Collider.ClosestPoint(end);
+            if (!ShotValidation.IsTargetPlausible(end, closest, 0f, 0f))
+                return ShotRejectReason.TargetMismatch;
+
+            if (distance > 0.2f && Physics.Linecast(origin, end - toEnd / distance * 0.1f, GameLayers.LineOfSightMask, QueryTriggerInteraction.Ignore))
+                return ShotRejectReason.LineOfSightBlocked;
+
+            StatBlock stats = state.Stats;
+            bool crit = DamageCalculator.RollCritical(stats.Get(StatType.CritChance), UnityEngine.Random.value);
+            float damage = DamageCalculator.Compute(stats.Get(StatType.Damage), zone.DamageMultiplier, zone.IsWeakspot,
+                stats.Get(StatType.WeakspotMultiplier), crit, stats.Get(StatType.CritMultiplier));
+            bool killed = health.ApplyDamage(new DamageInfo(damage, crit, zone.IsWeakspot, OwnerId, end));
+
+            if (killed || crit)
+                RpcConfirmHit(Owner, killed, crit);
+            return ShotRejectReason.None;
+        }
+
+        // ---------------------------------------------------------------- RPC verso i client
+
+        [TargetRpc]
+        private void RpcSyncWeapon(NetworkConnection connection, byte weaponIndex, ushort ammo, bool reloading)
+        {
+            if (_local == null || weaponIndex >= _local.Length || _local[weaponIndex] == null)
+                return;
+            _local[weaponIndex].ForceState(ammo, reloading, Time.timeAsDouble);
+        }
+
+        [TargetRpc]
+        private void RpcConfirmHit(NetworkConnection connection, bool killed, bool critical)
+        {
+            LocalHitMarker?.Invoke(killed ? HitMarkerType.Kill : HitMarkerType.Critical);
+        }
+
+        [ObserversRpc(ExcludeOwner = true)]
+        private void RpcShotFx(Vector3 origin, Vector3 end)
+        {
+            if (_fx == null)
+                _fx = ShotFxPool.Get(_tracerMaterial, _impactMaterial);
+            // Per i player remoti il tracer parte poco sotto e davanti agli occhi, all'altezza dell'arma.
+            Vector3 start = origin + (end - origin).normalized * 0.6f + Vector3.down * 0.15f;
+            _fx.Tracer(start, end);
+        }
+
+#if UNITY_EDITOR
+        public void EditorSetup(WeaponDefinition[] loadout, int startingWeapon, PlayerInputReader input, PlayerLook look,
+            PlayerMotor motor, Transform viewModelRoot, Light muzzleLight, Material tracer, Material impact, Material placeholder)
+        {
+            _loadout = loadout;
+            _startingWeapon = startingWeapon;
+            _input = input;
+            _look = look;
+            _motor = motor;
+            _viewModelRoot = viewModelRoot;
+            _muzzleLight = muzzleLight;
+            _tracerMaterial = tracer;
+            _impactMaterial = impact;
+            _placeholderMaterial = placeholder;
+        }
+#endif
+    }
+}
