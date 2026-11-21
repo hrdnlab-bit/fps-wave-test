@@ -1,6 +1,7 @@
 using System;
 using FishNet.Connection;
 using FishNet.Object;
+using FishNet.Object.Synchronizing;
 using HrdnLab.FpsWave.Combat;
 using HrdnLab.FpsWave.Core;
 using HrdnLab.FpsWave.Player;
@@ -68,8 +69,23 @@ namespace HrdnLab.FpsWave.Weapons
         private ShotFxPool _fx;
         private float _nextRejectLogTime;
 
+        // Arma equipaggiata vista dagli altri client (per il corpo in terza persona). Il proprietario usa la propria.
+        private readonly SyncVar<sbyte> _observedEquipped = new(-1, new SyncTypeSettings(ReadPermission.ExcludeOwner));
+
         /// <summary>Solo player locale: un colpo ha toccato un bersaglio (predetto) o è stato confermato dal server (kill/critico).</summary>
         public event Action<HitMarkerType> LocalHitMarker;
+
+        /// <summary>Client non proprietari: questo player ha sparato (rinculo del corpo in terza persona).</summary>
+        public event Action ObserverShotFired;
+
+        /// <summary>Corpo in terza persona che fornisce la volata per i tracer visti dagli altri (opzionale).</summary>
+        public IThirdPersonMuzzle ThirdPersonMuzzleProvider { get; set; }
+
+        public int LoadoutCount => _loadout.Length;
+        public WeaponDefinition GetDefinition(int index) => index >= 0 && index < _loadout.Length ? _loadout[index] : null;
+
+        /// <summary>Arma equipaggiata: quella locale per il proprietario, quella replicata dal server per gli altri.</summary>
+        public int EquippedIndex => IsOwner ? _localEquipped : _observedEquipped.Value;
 
         /// <summary>
         /// Solo per chi ha sparato: colpo confermato dal server (punto colpito, danno arrotondato, tipo di colpo).
@@ -87,7 +103,6 @@ namespace HrdnLab.FpsWave.Weapons
         public bool UsesHeat => Current != null && Current.Definition.Feel.UsesHeat;
         /// <summary>Armi della dotazione e indice di quella impugnata (per la striscia delle armi nel HUD).</summary>
         public System.Collections.Generic.IReadOnlyList<WeaponDefinition> Loadout => _loadout;
-        public int EquippedIndex => _localEquipped;
         /// <summary>Mira con curva morbida (ease in/out) per posa dell'arma e FOV: entra e esce come nei Call of Duty.</summary>
         public float AimEased => _aim * _aim * (3f - 2f * _aim);
 
@@ -132,6 +147,12 @@ namespace HrdnLab.FpsWave.Weapons
             _serverEquipped = ClampToValidSlot(_startingWeapon);
             if (_feel == null)
                 _feel = GetComponent<WeaponFeelDriver>();
+        }
+
+        public override void OnStartServer()
+        {
+            base.OnStartServer();
+            _observedEquipped.Value = (sbyte)_serverEquipped;
         }
 
         public override void OnStartClient()
@@ -437,8 +458,10 @@ namespace HrdnLab.FpsWave.Weapons
         {
             if (index >= _server.Length || _server[index] == null)
                 return;
-            _server[_serverEquipped]?.CancelReload();
+            if (_serverEquipped >= 0)
+                _server[_serverEquipped]?.CancelReload();
             _serverEquipped = index;
+            _observedEquipped.Value = (sbyte)index;
         }
 
         [ServerRpc]
@@ -563,11 +586,13 @@ namespace HrdnLab.FpsWave.Weapons
         {
             if (_fx == null)
                 _fx = ShotFxPool.Get(_tracerMaterial, _impactMaterial);
-            // Per i player remoti il tracer parte poco sotto e davanti agli occhi, all'altezza dell'arma.
-            Vector3 start = origin + (end - origin).normalized * 0.6f + Vector3.down * 0.15f;
+            // Per i player remoti il tracer parte dalla volata dell'arma in terza persona, se c'è.
+            Transform muzzle = ThirdPersonMuzzleProvider?.WorldMuzzle;
+            Vector3 start = muzzle != null ? muzzle.position : origin + (end - origin).normalized * 0.6f + Vector3.down * 0.15f;
             Color energy = weaponIndex < _loadout.Length && _loadout[weaponIndex] != null
                 ? _loadout[weaponIndex].Feel.MuzzleColor : Color.white;
             _fx.Tracer(start, end, energy); // anche gli altri vedono il colore dell'arma
+            ObserverShotFired?.Invoke();
         }
 
 #if UNITY_EDITOR

@@ -41,6 +41,8 @@ namespace HrdnLab.FpsWave.Player
         public float FovMultiplier { get; set; } = 1f;
         public Camera Camera => _camera;
         public Transform CameraPivot => _cameraPivot;
+        /// <summary>Pitch effettivo della visuale (gradi, positivo = in basso), usato dal corpo in terza persona.</summary>
+        public float ViewPitch => Mathf.Clamp(_pitch - _recoilCurrent.x, _minPitch, _maxPitch);
 
         public override void OnStartClient()
         {

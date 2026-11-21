@@ -60,3 +60,9 @@ Co-op PvE tra amici: l'obiettivo è **reattività locale** e **economia autorevo
 - Interest management per distanza non ancora attivo (Greybox piccola: tutti vedono tutto); da aggiungere con la mappa vasta (M7).
 - Conferma colpo: `TargetRpc` a chi ha sparato per ogni colpo andato a segno (punto 12 byte + danno `ushort` + flag `byte` critico/testa/uccisione); alimenta i numeri di danno e l'hit marker confermato. Con il fucile a 600 colpi/min sono ~200 B/s nel caso peggiore.
 - `RpcShotFx` (tracciante per gli altri giocatori) porta l'indice dell'arma per il colore dell'energia (1 byte). Rinculo, molle, tremore e calore sono solo locali: nessun dato in rete. Protocollo di rete alla versione 2.
+
+## Corpo del player in terza persona (AIRO)
+- Nessun dato di animazione in rete: gli altri ricavano passo, strafe e corsa dalla posizione interpolata della `NetworkTransform`.
+- `PlayerCharacter`: `SyncVar<sbyte>` della pitch della visuale (gradi interi, solo agli altri, canale unreliable) e `SyncVar<byte>` dei flag (accovacciato, a terra; reliable). Il proprietario li invia con una ServerRpc unreliable a 10 Hz **solo quando cambiano**: ~2 byte di dati per invio, al massimo ~0.1 KB/s per giocatore.
+- `PlayerWeapons._observedEquipped` (`SyncVar<sbyte>`, escluso il proprietario): arma impugnata vista dagli altri, cambia solo al cambio arma. Il rinculo del corpo usa l'`ObserversRpc` di sparo già esistente (nessun messaggio nuovo).
+- I traccianti degli altri partono dalla volata dell'arma in terza persona (`IThirdPersonMuzzle`), solo lato client.

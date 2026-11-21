@@ -146,3 +146,10 @@ InitTestScene*.unity*
 
 # Marker di sincronizzazione della cartella Unity di Manuel (skill sync-collaboratore)
 .fpswave-sync.json
+
+# Mesh derivate generate da FpsWave/Setup/9 (dai modelli Fab e dal personaggio AIRO, fuori dal repo):
+# si rigenerano sul proprio PC, vedi docs/ASSETS.md.
+/[Aa]ssets/_Project/Art/Meshes/Weapons/*.asset
+/[Aa]ssets/_Project/Art/Meshes/Weapons/*.asset.meta
+/[Aa]ssets/_Project/Art/Characters/AIRO/*_FirstPerson.asset
+/[Aa]ssets/_Project/Art/Characters/AIRO/*_FirstPerson.asset.meta
