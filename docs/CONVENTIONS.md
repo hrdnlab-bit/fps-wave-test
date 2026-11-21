@@ -16,9 +16,10 @@
 - L'utente non deve fare commit manuali; se modifica qualcosa nell'Editor lo segnala, così l'AI risincronizza.
 
 ## 3. Verifica (ciclo obbligatorio)
-1. Compilazione: lettura dell'Editor.log (`%LOCALAPPDATA%\Unity\Editor\Editor.log`) e/o della Console tramite controllo dell'Editor: 0 errori.
-2. Test EditMode (Unity Test Framework) per la logica pura.
-3. Play Mode: host + client con Multiplayer Play Mode per le funzionalità di rete.
+1. Compilazione: lettura di `Logs/FpsWaveConsole.log` (mirror della Console scritto da `ConsoleLogMirror`, azzerato a ogni compilazione) e, se serve, della Console tramite controllo dell'Editor: 0 errori. L'accesso diretto all'Editor.log in AppData non è concesso.
+2. Test EditMode (Unity Test Framework, Window > General > Test Runner) per la logica pura.
+3. Play Mode: host + client con Multiplayer Play Mode per le funzionalità di rete; l'avvio automatico di `NetBootstrapMenu` collega i giocatori virtuali senza clic.
+4. Scene e configurazioni ripetitive si generano con strumenti Editor (menu `FpsWave/...`) invece che a mano: sono ripetibili e versionabili.
 4. Solo dopo: commit, push, aggiornamento dei documenti.
 
 ## 4. Struttura cartelle
