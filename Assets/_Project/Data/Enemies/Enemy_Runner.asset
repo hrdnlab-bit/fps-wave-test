@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 229cee6398f4c044ab72cdf240e18820, type: 3}
+  m_Name: Enemy_Runner
+  m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Enemies.EnemyDefinition
+  _id: runner
+  _displayName: Runner
+  _prefab: {fileID: 8837758116317699812, guid: 0b6a8ea1eb3ceed49929cf0cec07967d, type: 3}
+  _maxHealth: 60
+  _moveSpeed: 6
+  _acceleration: 30
+  _angularSpeed: 720
+  _radius: 0.35
+  _height: 1.8
+  _attackDamage: 6
+  _attackInterval: 1
+  _attackWindup: 0.35
+  _attackRange: 1.9
+  _stopDistance: 1.4
+  _spawnWeight: 1
+  _groupSize: {x: 2, y: 4}
+  _budgetCost: 1
+  _firstWave: 1
+  _poolPrewarm: 24

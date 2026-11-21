@@ -35,7 +35,7 @@ namespace HrdnLab.FpsWave.Editor
         // Parti del fucile da tenere nel modello in terza persona (il resto sono braccia e caricatore di scorta).
         private static readonly string[] RifleParts = { "Main", "Bolt", "BoltCatch", "Mag1", "Safety", "Trigger" };
 
-        [MenuItem("FpsWave/Setup/6. Build Player Character (AIRO)")]
+        [MenuItem("FpsWave/Setup/9. Build Player Character (AIRO)")]
         public static void BuildAll()
         {
             if (!System.IO.File.Exists(AiroFbx))

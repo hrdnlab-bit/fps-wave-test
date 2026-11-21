@@ -1,0 +1,462 @@
+/* ==========================================================================
+   FPS Wave - Menu "terminale di comando"
+   Palette diversa dal HUD: nero-blu profondo, accento ambra/arancio, testo avorio.
+   Stesso linguaggio sci-fi: maiuscolo spaziato, linee sottili, staffe agli angoli.
+   ========================================================================== */
+
+.menu {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    color: rgb(236, 228, 212);
+    font-size: 19px;
+    -unity-font: url("/Assets/ThirdParty/GoogleFonts/Rajdhani-SemiBold.ttf");
+    -unity-font-definition: initial;
+}
+.font-display {
+    -unity-font: url("/Assets/ThirdParty/GoogleFonts/Orbitron-Variable.ttf");
+    -unity-font-definition: initial;
+}
+.font-mono {
+    -unity-font: url("/Assets/ThirdParty/GoogleFonts/ShareTechMono-Regular.ttf");
+    -unity-font-definition: initial;
+}
+.font-bold {
+    -unity-font: url("/Assets/ThirdParty/GoogleFonts/Rajdhani-Bold.ttf");
+    -unity-font-definition: initial;
+}
+
+/* strati dello sfondo: immagine illuminata, trama esagonale, linee di scansione, vignetta */
+.menu-layer {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+}
+.menu-bg-image {
+    background-image: url("/Assets/ThirdParty/_Own/Hud/menu_background.png");
+    -unity-background-image-tint-color: rgb(255, 196, 150);
+}
+.menu-hex {
+    background-image: url("/Assets/ThirdParty/_Own/Hud/hex_tile.png");
+    background-repeat: repeat repeat;
+    background-size: 42px 72px;
+    -unity-background-image-tint-color: rgba(255, 138, 61, 0.05);
+}
+.menu-scan {
+    background-image: url("/Assets/ThirdParty/_Own/Hud/scanlines.png");
+    background-repeat: repeat repeat;
+    background-size: 4px 4px;
+    -unity-background-image-tint-color: rgba(0, 0, 0, 0.18);
+}
+.menu-vignette {
+    background-image: url("/Assets/ThirdParty/_Own/Hud/visor_vignette.png");
+    -unity-background-image-tint-color: rgba(0, 0, 0, 0.85);
+}
+.menu-ring {
+    position: absolute;
+    width: 760px;
+    height: 760px;
+    right: -120px;
+    top: 120px;
+    background-image: url("/Assets/ThirdParty/_Own/Hud/holo_ring.png");
+    -unity-background-image-tint-color: rgba(255, 170, 110, 0.09);
+}
+.menu--overlay .menu-bg-image { display: none; }
+.menu--overlay .menu-ring { display: none; }
+
+/* sfondo: pieno nel menu principale, velato in pausa */
+.menu-backdrop {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background-color: rgb(7, 9, 14);
+}
+.menu--overlay .menu-backdrop { background-color: rgba(7, 9, 14, 0.72); }
+
+.menu-grid-line {
+    position: absolute;
+    background-color: rgba(255, 138, 61, 0.05);
+}
+
+.menu-frame {
+    position: absolute;
+    left: 48px; top: 40px; right: 48px; bottom: 40px;
+    border-width: 1px;
+    border-color: rgba(255, 138, 61, 0.18);
+}
+.corner {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    border-color: rgb(255, 138, 61);
+}
+.corner--tl { left: -2px; top: -2px; border-top-width: 3px; border-left-width: 3px; }
+.corner--tr { right: -2px; top: -2px; border-top-width: 3px; border-right-width: 3px; }
+.corner--bl { left: -2px; bottom: -2px; border-bottom-width: 3px; border-left-width: 3px; }
+.corner--br { right: -2px; bottom: -2px; border-bottom-width: 3px; border-right-width: 3px; }
+
+/* --- intestazione e piè di pagina -------------------------------------------- */
+.menu-topbar {
+    position: absolute;
+    left: 80px; right: 80px; top: 58px;
+    flex-direction: row;
+    align-items: center;
+}
+.menu-topbar-text {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: rgba(255, 138, 61, 0.8);
+}
+.menu-spacer { flex-grow: 1; }
+
+.menu-footer {
+    position: absolute;
+    left: 80px; right: 80px; bottom: 56px;
+    flex-direction: row;
+    align-items: center;
+}
+.menu-footer-text {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: rgba(236, 228, 212, 0.45);
+}
+.status-dot {
+    width: 8px; height: 8px;
+    margin-right: 8px;
+    background-color: rgb(110, 220, 120);
+}
+.status-dot--off { background-color: rgb(220, 80, 70); }
+
+/* --- schermate --------------------------------------------------------------- */
+.screen {
+    position: absolute;
+    left: 120px; top: 140px; right: 120px; bottom: 120px;
+    flex-direction: row;
+}
+.screen-col {
+    width: 560px;
+    justify-content: center;
+}
+.screen-col--wide { flex-grow: 1; justify-content: flex-start; }
+.screen-side {
+    flex-grow: 1;
+    justify-content: center;
+    align-items: flex-end;
+    padding-left: 60px;
+}
+
+.title-kicker {
+    font-size: 14px;
+    letter-spacing: 8px;
+    color: rgb(255, 138, 61);
+    margin-bottom: 6px;
+}
+.title {
+    font-size: 104px;
+    -unity-font-style: bold;
+    letter-spacing: 8px;
+    -unity-font: url("/Assets/ThirdParty/GoogleFonts/Orbitron-Variable.ttf");
+    -unity-font-definition: initial;
+    color: rgb(245, 238, 224);
+    margin-left: -4px;
+}
+.title-sub {
+    font-size: 15px;
+    letter-spacing: 5px;
+    color: rgba(236, 228, 212, 0.6);
+    margin-top: -6px;
+    margin-bottom: 44px;
+}
+.screen-title {
+    font-size: 44px;
+    -unity-font: url("/Assets/ThirdParty/GoogleFonts/Orbitron-Variable.ttf");
+    -unity-font-definition: initial;
+    -unity-font-style: bold;
+    letter-spacing: 8px;
+    margin-bottom: 4px;
+}
+.screen-hint {
+    font-size: 14px;
+    letter-spacing: 3px;
+    color: rgba(236, 228, 212, 0.55);
+    margin-bottom: 30px;
+}
+
+/* --- pulsanti ---------------------------------------------------------------- */
+.menu-button {
+    height: 58px;
+    margin: 0 0 12px 0;
+    padding: 0 22px;
+    flex-direction: row;
+    align-items: center;
+    -unity-text-align: middle-left;
+    font-size: 20px;
+    letter-spacing: 6px;
+    -unity-font-style: bold;
+    color: rgb(236, 228, 212);
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("/Assets/ThirdParty/_Own/Hud/plate_notch_br_fill.png");
+    -unity-slice-left: 20; -unity-slice-right: 20; -unity-slice-top: 20; -unity-slice-bottom: 20;
+    -unity-background-image-tint-color: rgba(255, 138, 61, 0.1);
+    border-width: 0;
+    border-radius: 0;
+    -unity-font: url("/Assets/ThirdParty/GoogleFonts/Rajdhani-Bold.ttf");
+    -unity-font-definition: initial;
+    transition-property: -unity-background-image-tint-color, translate, color;
+    transition-duration: 0.12s;
+}
+.button-edge {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background-image: url("/Assets/ThirdParty/_Own/Hud/plate_notch_br_edge.png");
+    -unity-slice-left: 20; -unity-slice-right: 20; -unity-slice-top: 20; -unity-slice-bottom: 20;
+    -unity-background-image-tint-color: rgba(255, 138, 61, 0.45);
+}
+.menu-button:hover .button-edge { -unity-background-image-tint-color: rgb(255, 170, 100); }
+.menu-button--primary .button-edge { -unity-background-image-tint-color: rgb(255, 220, 180); }
+.menu-button:hover {
+    -unity-background-image-tint-color: rgba(255, 138, 61, 0.28);
+    color: rgb(255, 255, 255);
+    translate: 8px 0;
+}
+.menu-button:active { -unity-background-image-tint-color: rgba(255, 138, 61, 0.45); }
+.menu-button:disabled { color: rgba(236, 228, 212, 0.3); -unity-background-image-tint-color: rgba(255, 255, 255, 0.04); }
+.menu-button--primary {
+    -unity-background-image-tint-color: rgb(255, 138, 61);
+    color: rgb(12, 10, 8);
+}
+.menu-button--primary:hover { -unity-background-image-tint-color: rgb(255, 165, 95); color: rgb(0, 0, 0); }
+.menu-button--danger:hover { -unity-background-image-tint-color: rgba(220, 60, 50, 0.4); }
+.menu-button--danger:hover .button-edge { -unity-background-image-tint-color: rgb(255, 100, 80); }
+.menu-button--small {
+    height: 40px;
+    font-size: 15px;
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+}
+.button-index {
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: rgba(255, 138, 61, 0.9);
+    margin-right: 16px;
+}
+.menu-button--primary .button-index { color: rgba(12, 10, 8, 0.6); }
+
+/* --- schede (Steam / LAN, squadra) ------------------------------------------- */
+.card {
+    background-image: url("/Assets/ThirdParty/_Own/Hud/plate_notches_fill.png");
+    -unity-slice-left: 20; -unity-slice-right: 20; -unity-slice-top: 20; -unity-slice-bottom: 20;
+    -unity-background-image-tint-color: rgba(20, 14, 10, 0.82);
+    padding: 24px 28px;
+}
+.card-hex {
+    position: absolute;
+    left: 8px; top: 8px; right: 8px; bottom: 8px;
+    background-image: url("/Assets/ThirdParty/_Own/Hud/hex_tile.png");
+    background-repeat: repeat repeat;
+    background-size: 28px 48px;
+    -unity-background-image-tint-color: rgba(255, 138, 61, 0.05);
+}
+.card-edge {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background-image: url("/Assets/ThirdParty/_Own/Hud/plate_notches_edge.png");
+    -unity-slice-left: 20; -unity-slice-right: 20; -unity-slice-top: 20; -unity-slice-bottom: 20;
+    -unity-background-image-tint-color: rgba(255, 138, 61, 0.55);
+}
+/* solo dentro una riga di schede: larghezze uguali */
+.cards > .card {
+    flex-grow: 1;
+    flex-basis: 0;
+    margin-right: 28px;
+}
+.card-title {
+    font-size: 22px;
+    -unity-font: url("/Assets/ThirdParty/GoogleFonts/Orbitron-Variable.ttf");
+    -unity-font-definition: initial;
+    letter-spacing: 6px;
+    -unity-font-style: bold;
+}
+.card-text {
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: rgba(236, 228, 212, 0.6);
+    white-space: normal;
+    margin: 6px 0 18px 0;
+}
+.field-label {
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: rgb(255, 138, 61);
+    margin-bottom: 4px;
+}
+.card-row { flex-direction: row; align-items: center; }
+.cards { flex-direction: row; flex-grow: 1; }
+
+/* campi di testo */
+.menu-field { margin: 0 0 12px 0; }
+.menu-field .unity-base-text-field__input,
+.menu-field .unity-text-field__input {
+    height: 42px;
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: rgb(245, 238, 224);
+    background-color: rgba(0, 0, 0, 0.45);
+    border-width: 1px;
+    border-color: rgba(255, 138, 61, 0.35);
+    border-radius: 0;
+    padding-left: 12px;
+}
+.menu-field:focus .unity-base-text-field__input,
+.menu-field:focus .unity-text-field__input { border-color: rgb(255, 138, 61); }
+
+/* --- impostazioni ------------------------------------------------------------ */
+.settings-list { width: 860px; }
+.settings-section {
+    font-size: 13px;
+    letter-spacing: 6px;
+    color: rgb(255, 138, 61);
+    margin: 18px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(255, 138, 61, 0.25);
+}
+.setting-row {
+    flex-direction: row;
+    align-items: center;
+    height: 48px;
+    padding: 0 14px;
+    background-color: rgba(255, 255, 255, 0.025);
+    margin-bottom: 4px;
+}
+.setting-row:hover { background-color: rgba(255, 138, 61, 0.08); }
+.setting-name {
+    width: 300px;
+    font-size: 16px;
+    letter-spacing: 3px;
+}
+.setting-control { flex-grow: 1; margin: 0; }
+.setting-value {
+    width: 80px;
+    -unity-text-align: middle-right;
+    font-size: 16px;
+    color: rgb(255, 138, 61);
+}
+
+/* slider */
+.setting-control .unity-base-slider__tracker {
+    height: 4px;
+    margin-top: -2px;
+    background-color: rgba(255, 138, 61, 0.2);
+    border-width: 0;
+}
+.setting-control .unity-base-slider__dragger {
+    width: 14px;
+    height: 22px;
+    margin-top: -11px;
+    background-color: rgb(255, 138, 61);
+    border-width: 0;
+    border-radius: 0;
+}
+.setting-control .unity-base-slider__dragger-border { display: none; }
+
+/* toggle */
+.setting-control .unity-toggle__checkmark {
+    width: 22px;
+    height: 22px;
+    background-color: rgba(0, 0, 0, 0.45);
+    border-width: 1px;
+    border-color: rgba(255, 138, 61, 0.5);
+    border-radius: 0;
+    -unity-background-image-tint-color: rgb(255, 138, 61);
+}
+
+/* menu a tendina */
+.setting-control .unity-base-popup-field__input {
+    background-color: rgba(0, 0, 0, 0.45);
+    border-width: 1px;
+    border-color: rgba(255, 138, 61, 0.4);
+    border-radius: 0;
+    color: rgb(245, 238, 224);
+    height: 34px;
+    font-size: 16px;
+}
+
+/* --- squadra (pausa, host Steam) --------------------------------------------- */
+.lobby-code {
+    font-size: 30px;
+    -unity-font: url("/Assets/ThirdParty/GoogleFonts/ShareTechMono-Regular.ttf");
+    -unity-font-definition: initial;
+    letter-spacing: 3px;
+    -unity-font-style: bold;
+    color: rgb(255, 138, 61);
+    margin: 2px 0 12px 0;
+}
+.friends-list { height: 260px; margin-top: 8px; }
+.friend-row {
+    flex-direction: row;
+    align-items: center;
+    height: 40px;
+    padding: 0 10px;
+    margin-bottom: 3px;
+    background-color: rgba(255, 255, 255, 0.03);
+}
+.friend-name { flex-grow: 1; font-size: 15px; letter-spacing: 1px; }
+.friend-ingame { color: rgb(110, 220, 120); }
+.friend-invite {
+    height: 30px;
+    width: 96px;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: rgb(12, 10, 8);
+    background-color: rgb(255, 138, 61);
+    border-width: 0;
+    border-radius: 0;
+}
+.friend-invite:hover { background-color: rgb(255, 170, 110); }
+
+/* --- connessione ------------------------------------------------------------- */
+.connecting {
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+}
+.spinner {
+    width: 64px;
+    height: 64px;
+    border-width: 3px;
+    border-color: rgba(255, 138, 61, 0.15);
+    border-top-color: rgb(255, 138, 61);
+    border-radius: 32px;
+    margin-bottom: 26px;
+}
+.connecting-text {
+    font-size: 22px;
+    letter-spacing: 8px;
+}
+
+/* --- messaggio di errore ----------------------------------------------------- */
+.toast {
+    position: absolute;
+    left: 120px;
+    right: 120px;
+    bottom: 100px;
+    flex-direction: row;
+    align-items: center;
+    padding: 12px 18px;
+    background-color: rgba(120, 24, 20, 0.85);
+    border-left-width: 4px;
+    border-left-color: rgb(255, 90, 70);
+}
+.toast-text {
+    flex-grow: 1;
+    font-size: 15px;
+    white-space: normal;
+    color: rgb(255, 230, 220);
+}
+.toast-close {
+    width: 36px;
+    height: 32px;
+    font-size: 16px;
+    color: rgb(255, 230, 220);
+    background-color: rgba(0, 0, 0, 0.25);
+    border-width: 0;
+    border-radius: 0;
+}

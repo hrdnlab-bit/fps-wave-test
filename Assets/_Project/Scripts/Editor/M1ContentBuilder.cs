@@ -3,6 +3,7 @@ using FishNet.Managing;
 using FishNet.Object;
 using HrdnLab.FpsWave.Combat;
 using HrdnLab.FpsWave.Core;
+using HrdnLab.FpsWave.Enemies;
 using HrdnLab.FpsWave.Net;
 using HrdnLab.FpsWave.Player;
 using HrdnLab.FpsWave.UI;
@@ -41,20 +42,23 @@ namespace HrdnLab.FpsWave.Editor
             EnsureFolders();
             EnsureLayers();
             Materials mats = CreateMaterials();
-            WeaponDefinition rifle = CreateWeapon("AssaultRifle", "rifle_ar", "Fucile d'assalto (test)", WeaponSlot.Primary,
+            WeaponDefinition rifle = CreateWeapon("AssaultRifle", "rifle_ar", "Assault Rifle (test)", WeaponSlot.Primary,
                 damage: 18f, rpm: 600f, automatic: true, magazine: 30, reload: 2.2f, range: 120f,
                 hipSpread: 2.0f, adsSpread: 0.25f, spreadPerShot: 0.25f, maxBloom: 4f,
                 recoilPitch: 0.9f, recoilYaw: 0.35f, adsFov: 0.75f, adsTime: 0.22f, size: new Vector3(0.06f, 0.1f, 0.62f));
-            WeaponDefinition pistol = CreateWeapon("Pistol", "pistol_base", "Pistola", WeaponSlot.Secondary,
+            WeaponDefinition pistol = CreateWeapon("Pistol", "pistol_base", "Pistol", WeaponSlot.Secondary,
                 damage: 20f, rpm: 360f, automatic: false, magazine: 12, reload: 1.4f, range: 60f,
                 hipSpread: 1.2f, adsSpread: 0.3f, spreadPerShot: 0.6f, maxBloom: 3f,
                 recoilPitch: 1.6f, recoilYaw: 0.4f, adsFov: 0.85f, adsTime: 0.15f, size: new Vector3(0.05f, 0.11f, 0.22f));
 
             GameObject dummyPrefab = CreateDummyPrefab(mats);
             GameObject playerPrefab = CreatePlayerPrefab(mats, new[] { rifle, pistol });
-            PlayerCharacterBuilder.TryAttachToPlayer(); // corpo AIRO, se già costruito con Setup/6
+            PlayerCharacterBuilder.TryAttachToPlayer(); // corpo AIRO, se già costruito con Setup/9
             CreateGreyboxScene(mats, dummyPrefab);
+            EnemyContentBuilder.Build(); // nemici: catalogo dei tipi (schede + prefab), muri di copertura, nodi di spawn, EnemyDirector
             WireBootScene(playerPrefab.GetComponent<NetworkObject>());
+            UiBuilder.Build(); // HUD sul Player e menu di gioco nella scena Boot
+            WeaponFeelSetup.Apply(applyPresets: true); // sensazione delle armi: driver sul Player + profili di partenza
 
             EditorBuildSettings.scenes = new[]
             {
@@ -229,7 +233,8 @@ namespace HrdnLab.FpsWave.Editor
             var weapons = ObjectFactory.AddComponent<PlayerWeapons>(root);
             var health = ObjectFactory.AddComponent<Health>(root);
             var view = ObjectFactory.AddComponent<PlayerView>(root);
-            var hud = root.AddComponent<PlayerHud>();
+            var enemyTarget = ObjectFactory.AddComponent<EnemyTarget>(root);
+            var damageNumbers = root.AddComponent<DamageNumbers>();
 
             GameObject body = Primitive(PrimitiveType.Capsule, "Body", root.transform, new Vector3(0f, 0.9f, 0f),
                 new Vector3(0.7f, 0.9f, 0.7f), mats.PlayerBody);
@@ -263,9 +268,10 @@ namespace HrdnLab.FpsWave.Editor
             weapons.EditorSetup(loadout, startingWeapon: 1, input, look, motor, viewModelRoot, muzzleLight,
                 mats.Tracer, mats.Impact, mats.Placeholder);
             health.EditorSetup(100f, System.Array.Empty<HitZone>());
-            hud.EditorSetup(weapons, health);
+            enemyTarget.EditorSetup(motor);
+            damageNumbers.EditorSetup(weapons);
             view.EditorSetup(camera, listener, new Renderer[] { body.GetComponent<Renderer>() }, viewModelRoot.gameObject,
-                new Behaviour[] { hud });
+                System.Array.Empty<Behaviour>()); // HUD e lista owner-only: UiBuilder (Setup/7)
 
             SetLayerRecursively(root, GameLayers.Player);
             return SavePrefab(root, $"{PrefabsDir}/Player.prefab");

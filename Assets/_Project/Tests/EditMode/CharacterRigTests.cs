@@ -27,7 +27,7 @@ namespace HrdnLab.FpsWave.Tests
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterPrefab);
             if (prefab == null || prefab.GetComponentInChildren<SkinnedMeshRenderer>() == null)
-                Assert.Ignore("Prefab AIRO assente: esegui FpsWave/Setup/6 con i binari AIRO.");
+                Assert.Ignore("Prefab AIRO assente: esegui FpsWave/Setup/9 con i binari AIRO.");
             _root = Object.Instantiate(prefab);
             _rig = _root.GetComponent<CharacterRig>();
             Assert.IsNotNull(_rig, "CharacterRig mancante sul prefab");
@@ -131,7 +131,7 @@ namespace HrdnLab.FpsWave.Tests
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(weaponPath);
             if (prefab == null)
-                Assert.Ignore($"{weaponPath} assente: esegui FpsWave/Setup/6.");
+                Assert.Ignore($"{weaponPath} assente: esegui FpsWave/Setup/9.");
             var weapon = Object.Instantiate(prefab, _root.transform).GetComponent<WorldWeaponModel>();
             Assert.IsNotNull(weapon.GetComponent<MeshFilter>().sharedMesh, "mesh dell'arma mancante");
 

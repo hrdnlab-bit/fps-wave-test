@@ -31,6 +31,10 @@ namespace HrdnLab.FpsWave.Weapons
         [SerializeField, Min(0.01f)] private float _reloadClipLength = 1f;
         [SerializeField, Min(0.01f)] private float _reloadEmptyClipLength = 1f;
         [SerializeField, Min(0f)] private float _crossFade = 0.06f;
+        [Tooltip("Quanta parte della clip di sparo dell'asset si vede (s) prima di tornare a Idle: le clip dei pacchetti hanno un "
+                 + "calcio molto ampio, troncarle presto lo rende sobrio come nei Call of Duty. 0 = clip intera.")]
+        [SerializeField, Min(0f)] private float _fireClipHold = 0.045f;
+        [SerializeField, Min(0.01f)] private float _fireReturnFade = 0.09f;
 
         [Header("Allineamento alla camera")]
         [Tooltip("Radice del modello importato: viene spostata a ogni frame per tenere l'osso camera sulla camera del player.")]
@@ -47,8 +51,8 @@ namespace HrdnLab.FpsWave.Weapons
         [SerializeField] private Transform _slide;
         [SerializeField, Min(0f)] private float _slideTravel = 0.025f;
         [SerializeField, Min(0.01f)] private float _drawTime = 0.35f;
-        [SerializeField, Min(0f)] private float _fireKickPitch = 6f;
-        [SerializeField, Min(0f)] private float _fireKickBack = 0.03f;
+        [SerializeField, Min(0f)] private float _fireKickPitch = 1.2f;
+        [SerializeField, Min(0f)] private float _fireKickBack = 0.008f;
 
         private Vector3 _restPos;
         private Quaternion _restRot = Quaternion.identity;
@@ -58,6 +62,7 @@ namespace HrdnLab.FpsWave.Weapons
         private float _kick;
         private float _reloadElapsed = float.MaxValue;
         private float _reloadDuration = 1f;
+        private float _fireReturnAt = -1f;
 
         public Transform Muzzle => _muzzle;
 
@@ -81,6 +86,7 @@ namespace HrdnLab.FpsWave.Weapons
         public void PlayDraw()
         {
             if (IsProcedural) { _drawElapsed = 0f; _reloadElapsed = float.MaxValue; return; }
+            _fireReturnAt = -1f;
             Play(DrawHash, 0f);
         }
 
@@ -89,6 +95,8 @@ namespace HrdnLab.FpsWave.Weapons
         {
             if (IsProcedural) { _kick = 1f; return; }
             Play(FireHash, 0f);
+            if (_fireClipHold > 0f)
+                _fireReturnAt = Time.time + _fireClipHold;
         }
 
         /// <summary>Ricarica, con velocità adattata alla durata effettiva <paramref name="duration"/> in secondi.</summary>
@@ -99,6 +107,7 @@ namespace HrdnLab.FpsWave.Weapons
             if (IsProcedural) { _reloadElapsed = 0f; _reloadDuration = duration; return; }
             if (_animator == null)
                 return;
+            _fireReturnAt = -1f;
             float clip = empty ? _reloadEmptyClipLength : _reloadClipLength;
             _animator.SetFloat(ReloadSpeedHash, clip / duration);
             Play(empty ? ReloadEmptyHash : ReloadHash, _crossFade);
@@ -119,6 +128,11 @@ namespace HrdnLab.FpsWave.Weapons
             {
                 UpdateProcedural(Time.deltaTime);
                 return;
+            }
+            if (_fireReturnAt > 0f && Time.time >= _fireReturnAt)
+            {
+                _fireReturnAt = -1f;
+                Play(IdleHash, _fireReturnFade); // si vede solo l'inizio del calcio della clip
             }
             if (_rig == null || _cameraBone == null)
                 return;

@@ -57,8 +57,8 @@ MonoBehaviour:
   _slide: {fileID: 0}
   _slideTravel: 0.025
   _drawTime: 0.35
-  _fireKickPitch: 6
-  _fireKickBack: 0.03
+  _fireKickPitch: 1.2
+  _fireKickBack: 0.008
 --- !u!1 &7948429162110236638
 GameObject:
   m_ObjectHideFlags: 0

@@ -6,7 +6,7 @@ namespace HrdnLab.FpsWave.Weapons
     /// <summary>
     /// Modello dell'arma in terza persona (solo cosmetico, nessun componente di rete). L'origine è l'impugnatura:
     /// i bersagli delle mani indicano dove vanno i polsi (forward = direzione delle dita, up = normale del palmo).
-    /// Generato da <c>FpsWave/Setup/6</c> a partire dai modelli in prima persona.
+    /// Generato da <c>FpsWave/Setup/9</c> a partire dai modelli in prima persona.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class WorldWeaponModel : MonoBehaviour

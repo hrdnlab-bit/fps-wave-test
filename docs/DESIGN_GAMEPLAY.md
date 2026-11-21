@@ -23,10 +23,11 @@ Valori *(default)* = scelti dall'AI, da bilanciare con i playtest.
 - Categorie MVP: pistola, fucile d'assalto, shotgun. Dopo MVP: sniper, SMG, lanciagranate, armi sperimentali (energia) come drop rari.
 - Tutte hitscan nell'MVP; proiettili fisici solo per esplosivi ed energia (dopo MVP).
 - Statistiche: danno, cadenza, spread, rinculo (pattern + recupero), caricatore, ricarica, chance critico, moltiplicatore critico, moltiplicatore weakspot (testa 2x).
-- **ADS** (tasto destro): zoom leggero (FOV -15/-25% secondo l'arma), spread ridotto del 60%, rinculo ridotto del 30%, movimento al 60%, transizione 0.15-0.3 s per arma. Hip-fire comunque utilizzabile a corta distanza.
+- **Gunplay di riferimento: Call of Duty moderno.** **ADS** (tasto destro): zoom leggero (FOV -15/-20%), arma precisa (niente bloom), tutto il rinculo (salita che si compensa col mouse, parte che torna da sola lasciando il grilletto), movimento al 60%, transizione morbida 0.17-0.24 s. **Hip-fire**: la mira sale appena, la dispersione cresce sparando, muovendosi e in aria (cala accovacciati). **Sprint-to-fire**: sparare o mirare interrompe la corsa, 0.13-0.22 s per rialzare l'arma. **Flinch** quando si viene colpiti.
 - **Inizio partita: solo pistola.** La primaria (fucile d'assalto, shotgun, poi le altre) si compra allo shop dalla prima fase di preparazione; la pistola base deve quindi bastare per la wave 1 (TTK del Runner con la pistola ~0.6-0.9 s).
 - Inventario: 1 primaria + 1 secondaria (pistola) + granate (dopo MVP).
-- Feedback: rinculo camera, muzzle flash, tracer, decal di impatto, hit marker (bianco = colpo, rosso = kill, giallo = critico), suono di impatto distinto.
+- Feedback: rinculo camera, muzzle flash, tracer, decal di impatto (solo sull'ambiente; sui nemici uno schizzo breve), hit marker (bianco = colpo, rosso = kill, giallo = critico), **numeri di danno** sobri sul punto colpito (bianco normale, oro tenue per i colpi di precisione; solo per chi spara, confermati dal server), traccianti a scia che viaggiano alla velocità del proiettile (al tiratore 1 colpo su 3 delle automatiche), suono di impatto distinto.
+- **Sensazione delle armi** (uguale per tutte, ritoccabile per arma: `WeaponFeel` nella scheda dell'arma): rinculo che scatta e torna a molla con una parte permanente da compensare, schema orizzontale riconoscibile per arma, primo colpo più forte e crescita nella raffica, rinculo ridotto mirando (~35%) e accovacciati; arma in mano a molla (calcio, oscillazione che segue il mouse, passo, corsa, inclinazione laterale, atterraggio, respiro); tremore e punch del FOV sotto fuoco prolungato. Armi a energia (`UsesHeat`): colore dell'energia per luce e traccianti e calore cosmetico con barra nel HUD; le armi a proiettili usano colori caldi realistici e niente calore.
 - TTK target *(default)*: nemico base in 0.4-0.7 s col fucile d'assalto base, 0.6-0.9 s con la pistola base, alla wave 1.
 
 ## 4. Nemici
@@ -65,7 +66,7 @@ Valori *(default)* = scelti dall'AI, da bilanciare con i playtest.
 - Durante la preparazione si fa il preload degli asset della wave successiva.
 
 ## 7. UI/UX
-- HUD: salute/scudo, munizioni, wave e nemici rimasti, mutazioni attive, crediti di squadra, bussola con indicatori dei compagni e degli obiettivi, indicatore di compagno a terra.
-- Menu: upgrade, mod, shop, lobby Steam (inviti, join), impostazioni (grafica, audio, sensibilità, FOV, rimappatura).
+- HUD (fatto in parte, `SciFiHud`, stile minimale alla Crysis): salute/scudo, munizioni, wave e nemici rimasti, mutazioni attive, crediti di squadra, bussola con indicatori dei compagni e degli obiettivi, indicatore di compagno a terra.
+- Menu (stile "terminale" ambra, `GameMenu`): fatti principale, schieramento con lobby Steam (crea, codice, inviti) e LAN, pausa, impostazioni (sensibilità, FOV, volume, schermo intero, VSync, qualità, FPS, numeri di danno). Da fare: upgrade, mod, shop, rimappatura dei tasti.
 - Schermata di fine partita: wave raggiunta, record personale e di squadra, statistiche.
-- Lingue: IT ed EN.
+- Lingua del gioco: inglese (documenti e codice in italiano).

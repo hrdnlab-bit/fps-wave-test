@@ -10,4 +10,7 @@ Regole:
 
 | File o area | Chi | Branch | Dal | Note |
 |---|---|---|---|---|
-| `Assets/_Project/Prefabs/Player.prefab`, `Assets/_Project/Prefabs/Weapons/WM_*.prefab`, `Assets/_Project/Art/Characters/AIRO/**` | Manuel | `manuel/airo-character` | 2026-11-21 | Personaggio AIRO sul player, armi in terza persona |
+| Area interfaccia (`Scripts/UI/`) | Matteo | `matteo/m2-runner` | 2026-11-21 | HUD e menu nuovi; avvisare Manuel prima dell'overlay di debug (M0b) |
+| Area sensazione armi (`Scripts/Weapons/Feel/`) | Matteo | `matteo/m2-runner` | 2026-11-21 | nuova; tocca `PlayerWeapons`, `PlayerLook`, `ShotFxPool` (area di Manuel) |
+| Area nemici / spawn / wave (`Scripts/Enemies/`) | Matteo | `matteo/m2-runner` | 2026-11-21 | area dichiarata |
+| `Assets/_Project/Prefabs/Player.prefab`, `Assets/_Project/Prefabs/Weapons/WM_*.prefab`, `Assets/_Project/Art/Characters/AIRO/**`, `Assets/_Project/Data/Characters/**`, `Data/Weapons/*.asset` (solo il campo del modello in terza persona) | Manuel | `manuel/airo-character` | 2026-11-22 | Personaggio AIRO sul player, armi in terza persona |

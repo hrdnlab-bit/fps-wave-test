@@ -31,7 +31,7 @@ namespace HrdnLab.FpsWave.Player.Character
     /// Scheletro del personaggio AIRO animato via codice: gambe con IK sul ciclo del passo, crouch,
     /// busto e testa che seguono la mira, mani agganciate all'arma con IK a due ossa e dita chiuse.
     /// Nessun Animator: nessun dato di animazione passa in rete, tutto deriva da velocità, pitch e flag.
-    /// Le ossa sono assegnate dallo strumento <c>FpsWave/Setup/6</c>; le rotazioni sono applicate nello
+    /// Le ossa sono assegnate dallo strumento <c>FpsWave/Setup/9</c>; le rotazioni sono applicate nello
     /// spazio del personaggio, quindi non dipendono dagli assi locali delle ossa importate.
     /// </summary>
     [DisallowMultipleComponent]
@@ -62,7 +62,7 @@ namespace HrdnLab.FpsWave.Player.Character
         [SerializeField] private Transform[] _leftFingers = Array.Empty<Transform>();
         [SerializeField] private Transform[] _rightFingers = Array.Empty<Transform>();
         [SerializeField] private Renderer[] _renderers = Array.Empty<Renderer>();
-        [Tooltip("Corpo senza testa, collo e braccia per la prima persona (generato da Setup/6).")]
+        [Tooltip("Corpo senza testa, collo e braccia per la prima persona (generato da Setup/9).")]
         [SerializeField] private SkinnedMeshRenderer _body;
         [SerializeField] private Mesh _firstPersonMesh;
 
