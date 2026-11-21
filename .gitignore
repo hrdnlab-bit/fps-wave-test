@@ -143,3 +143,6 @@ InitTestScene*.unity*
 /[Aa]ssets/[Tt]hird[Pp]arty/**/*.[zZ][iI][pP]
 /[Aa]ssets/[Tt]hird[Pp]arty/**/*.[tT][tT][fF]
 /[Aa]ssets/[Tt]hird[Pp]arty/**/*.[oO][tT][fF]
+
+# Marker di sincronizzazione della cartella Unity di Manuel (skill sync-collaboratore)
+.fpswave-sync.json

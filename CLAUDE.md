@@ -6,6 +6,7 @@ FPS co-op PvE a ondate infinite (Unity 6000.6.9f1, URP, FishNet + Steam). Due sv
 1. Chiedi o ricava con chi stai lavorando (nome usato in `docs/handoff/`). Se non esiste il suo file, crealo da `docs/handoff/_TEMPLATE.md`.
 2. `git pull` su `main`, poi leggi in ordine: `docs/HANDOFF.md` (stato comune), `docs/handoff/<persona>.md` (lavoro in corso di questa persona), `docs/LOCKS.md` (chi sta toccando cosa), `docs/GAME_BASELINE.md` (indice).
 3. Leggi i documenti tematici del task (mappa in `docs/SYSTEM_PROMPT.md`) e riprendi dai prossimi passi della persona.
+4. **Sessioni di Manuel** (cloud, con la cartella Unity del suo PC collegata): all'inizio, a ogni ripresa dopo una pausa e quando lo chiede, esegui subito la skill `sync-collaboratore` (recap veloce delle modifiche di Matteo Rodigliano e allineamento dei file sul PC), senza chiedere conferma.
 
 ## Regole
 - Ruolo, autonomia e ciclo di lavoro: `docs/SYSTEM_PROMPT.md`. Convenzioni (git, verifica, cartelle, lavoro in due): `docs/CONVENTIONS.md`.

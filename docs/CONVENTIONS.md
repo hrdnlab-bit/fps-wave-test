@@ -25,6 +25,7 @@
 - Divisione per aree per ridurre i conflitti (es. uno armi/rete, l'altro nemici/mappa); le aree attive si dichiarano in `LOCKS.md`.
 - Dopo un `git pull` che porta modifiche a `Packages/` o `ProjectSettings/`, riaprire Unity prima di lavorare. Dopo modifiche agli strumenti `FpsWave/Setup`, rieseguire lo strumento interessato.
 - Asset binari nuovi: registrarli in `ASSETS.md` con il link alla fonte e, se servono conversioni, aggiornare `tools/setup-fab-assets.ps1`, così l'altro li rimette a posto sul suo PC.
+- Sessioni di Manuel: la cartella Unity sul suo PC non è un clone; la skill `sync-collaboratore` (in `.claude/skills/`) la allinea a `main` a ogni ripresa, con recap delle modifiche del collaboratore. Il commit allineato è in `.fpswave-sync.json` nella cartella del progetto sul PC.
 - Merge delle scene: driver `unityyamlmerge` già indicato in `.gitattributes`; ognuno lo configura sul proprio PC (comando in `GUIDA_COLLABORATORE.md`).
 
 ## 3. Verifica (ciclo obbligatorio)
