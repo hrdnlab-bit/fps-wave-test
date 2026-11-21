@@ -10,4 +10,4 @@ Regole:
 
 | File o area | Chi | Branch | Dal | Note |
 |---|---|---|---|---|
-| - | - | - | - | - |
+| `Assets/_Project/Prefabs/Player.prefab`, `Assets/_Project/Prefabs/Weapons/WM_*.prefab`, `Assets/_Project/Art/Characters/AIRO/**` | Manuel | `manuel/airo-character` | 2026-11-21 | Personaggio AIRO sul player, armi in terza persona |
