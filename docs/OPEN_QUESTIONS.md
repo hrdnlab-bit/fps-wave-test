@@ -13,5 +13,5 @@
 | 9 | Nome definitivo del gioco | - | Aperta |
 | 10 | App ID Steam proprio per il rilascio | Rilascio | Aperta |
 | 11 | Gestione asset pesanti | M1 | Risolta: fuori dal repo, `.meta` nel repo, backup su Google Drive, build zippata per l'amico |
-| 13 | M1.6 asset realistici armi + braccia FPS: login dell'utente su Fab/Unity Asset Store e scelta del pacchetto | M1.6 | Chiesta all'utente |
+| 13 | M1.6 asset realistici armi + braccia FPS: login dell'utente su Fab/Unity Asset Store e scelta del pacchetto | M1.6 | Risolta 2026-11-21: Fab nel browser dell'app, login dell'utente, CC-BY accettati |
 | 12 | Creare la cartella Google Drive `FpsWaveTest_Assets` per il backup degli asset | M1 | Da fare (utente o AI via browser) |

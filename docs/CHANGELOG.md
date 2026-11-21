@@ -15,6 +15,7 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni sema
 - Tasto di sviluppo Home per riallineare la visuale.
 
 ### Fixed
+- Multiplayer Play Mode: il Play parte sempre dalla scena Boot (anche nei giocatori virtuali, che entravano con Greybox aperta e non si collegavano) e all'uscita dal Play client e server vengono chiusi esplicitamente (col domain reload disattivato il server Tugboat restava vivo e la porta 7770 risultava occupata). Il menu di sviluppo segnala la porta occupata invece di lasciare un client orfano.
 - Intervallo di sparo calcolato in double (evitava un colpo per errore di arrotondamento float).
 
 
