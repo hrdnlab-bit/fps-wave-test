@@ -85,3 +85,4 @@ Formato: data | decisione | motivo | alternative scartate | chi.
 - Traccianti: scia che viaggia alla velocità del proiettile, al tiratore solo 1 colpo su 3 delle automatiche; numeri di danno a due toni (bianco / oro tenue di precisione). Riferimento: sparatutto AAA, niente colori accesi.
 - Rinculo: tap più morbido della raffica (FirstShotMultiplier < 1), variazione casuale verticale e laterale moderata.
 - Fuoco da fianco: niente salita della mira, si paga in dispersione (bloom che cresce fino al massimo e cala dopo 0.2 s); mirando il rinculo alla Siege. Scelta di Matteo: separa bene "spray da vicino" e "tiro controllato".
+- Riferimento per il gunplay: Call of Duty moderno (richiesta di Matteo), al posto di Siege: recoil reset parziale, sprint-to-fire, dispersione da fianco legata a movimento e salto, ADS preciso, flinch. Il suono (spari, hitmarker) manca ancora ed è la parte che pesa di più sulla sensazione: da aggiungere con asset CC0/royalty free.

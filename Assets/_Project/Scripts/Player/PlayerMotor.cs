@@ -49,6 +49,8 @@ namespace HrdnLab.FpsWave.Player
 
         /// <summary>Moltiplicatore applicato da altri sistemi (ADS, debuff). 1 = normale.</summary>
         public float SpeedMultiplier { get; set; } = 1f;
+        /// <summary>Corsa impedita dall'arma (si spara o si mira): come nei Call of Duty, premere il grilletto interrompe lo sprint.</summary>
+        public bool SprintBlocked { get; set; }
         public bool IsGrounded => _controller != null && _controller.isGrounded;
         public bool IsSprinting { get; private set; }
         public bool IsCrouching => _isCrouching;
@@ -97,7 +99,7 @@ namespace HrdnLab.FpsWave.Player
             bool wantsCrouch = _input != null && _input.CrouchHeld;
             UpdateCrouch(wantsCrouch, dt);
 
-            IsSprinting = !_isCrouching && _input != null && _input.SprintHeld && move.y > 0.1f && SpeedMultiplier >= 0.99f;
+            IsSprinting = !_isCrouching && _input != null && _input.SprintHeld && move.y > 0.1f && SpeedMultiplier >= 0.99f && !SprintBlocked;
             float targetSpeed = _isCrouching ? _crouchSpeed : IsSprinting ? _sprintSpeed : _walkSpeed;
             targetSpeed *= SpeedMultiplier;
 

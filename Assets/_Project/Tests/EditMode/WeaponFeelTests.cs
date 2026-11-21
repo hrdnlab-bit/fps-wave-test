@@ -47,12 +47,14 @@ namespace HrdnLab.FpsWave.Tests
         }
 
         [Test]
-        public void Presets_KeepMostRecoilInTheAim_AndAViewModelThatBarelyMoves()
+        public void Presets_PartialRecoilReset_LowHipClimb_AndAViewModelThatBarelyMoves()
         {
             foreach (WeaponFeel feel in new[] { WeaponFeel.AutomaticPreset(), WeaponFeel.SemiAutoPreset() })
             {
-                // Stile Rainbow Six Siege: i proiettili vanno dove sale la mira e la mira non torna da sola.
-                Assert.That(feel.PermanentFraction, Is.GreaterThanOrEqualTo(0.75f));
+                // Stile Call of Duty moderno: parte della salita resta (si compensa col mouse), parte torna da sola lasciando il grilletto.
+                Assert.That(feel.PermanentFraction, Is.InRange(0.3f, 0.7f));
+                // Da fianco la mira quasi non sale: si paga in dispersione.
+                Assert.That(feel.HipRecoilMultiplier, Is.LessThan(0.25f));
                 // L'arma in mano non deve coprire il bersaglio: calcio verso l'alto di pochi gradi.
                 Assert.That(Mathf.Abs(feel.KickRotation.x * feel.ViewKickScale), Is.LessThan(3f));
             }

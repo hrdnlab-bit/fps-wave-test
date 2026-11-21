@@ -15,6 +15,13 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni sema
 - **Maneggio dell'arma più realistico e morbido**: oscillazione del mouse su una molla (si assesta con un rimbalzo minimo), inerzia del corpo (l'arma pesa partendo, frenando e cambiando direzione), passo sincronizzato con la distanza percorsa e più ampio in corsa, transizioni smorzate di corsa e accovacciamento (nuova posa accovacciati), arma che si abbassa allo stacco del salto, sale in caduta e affonda all'atterraggio.
 - **Movimento dell'arma più lento e morbido (rif. Call of Duty)**: passo a ritmo umano (~2 passi/s camminando, ~2.7 correndo, prima ~5.6), ondeggio più piccolo e senza spigoli, transizioni di corsa (0.24 s) e accovacciamento (0.2 s) più lente, oscillazione del mouse e inclinazioni più morbide.
 - **Calcio visivo dello sparo ridotto**: calcio dell'arma dimezzato (circa 0.3° sul fucile), rinculo della camera da fianco 0.12-0.18, tremore e punch del FOV dimezzati, calcio procedurale dei view model 6° → 2.5°.
+- **Gunplay stile Call of Duty moderno**:
+  - rinculo: primo colpo morbido, salita che cresce nella raffica con schema riconoscibile per arma, lasciando il grilletto la mira torna in parte da sola (parte permanente 0.55 automatiche, 0.4 semi);
+  - dispersione da fianco che cresce sparando, muovendosi (+50% a piena velocità) e in aria (+90%), cala accovacciati; mirando niente bloom e dispersione quasi nulla (ADS spread 0.04 fucile, 0.08 pistola);
+  - sprint-to-fire: sparare o mirare interrompe la corsa (`PlayerMotor.SprintBlocked`) e dopo la corsa serve un attimo prima del primo colpo (`WeaponDefinition.SprintToFireTime`: 0.22 s fucile, 0.13 s pistola); il colpo della semiautomatica premuto in quel momento parte appena l'arma è pronta;
+  - mira con curva morbida (ease in/out) per posa dell'arma e FOV; tempi ADS 0.24 s fucile, 0.17 s pistola; FOV in mira del fucile 0.8;
+  - flinch: un colpo subito sposta un po' la visuale (torna da sola) e fa tremare la camera.
+- **Sobbalzo visivo dello sparo ancora ridotto**: calcio dell'arma 0.25x (automatiche) / 0.35x (semi), tremore e punch del FOV ridotti ancora di più, calcio procedurale 1.2°; la clip di sparo del pacchetto M4 (calcio molto ampio) si vede solo per 45 ms e poi sfuma su Idle (`WeaponViewModel._fireClipHold`).
 - **Gioco in inglese**: HUD, menu, messaggi Steam/rete, nomi delle armi e overlay di debug (vedi `CONVENTIONS.md`).
 - **Arma più vicina alla camera** e un filo più bassa da fianco (4.5 cm più vicina, 1.2 cm più bassa; in mira non cambia).
 - Nuovo script `tools/setup-ui-assets.ps1` (asset dell'interfaccia fuori dal repo, come quelli Fab).

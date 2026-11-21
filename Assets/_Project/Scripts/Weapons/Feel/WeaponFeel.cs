@@ -46,7 +46,7 @@ namespace HrdnLab.FpsWave.Weapons
 
         [Header("Arma in mano: calcio a molla")]
         [Tooltip("Scala di tutto il calcio del view model (0 se l'asset anima già il suo rinculo).")]
-        [Min(0f)] public float ViewKickScale = 0.45f;
+        [Min(0f)] public float ViewKickScale = 0.25f;
         [Tooltip("Spostamento per colpo (m): x laterale, y alto, z indietro (negativo).")]
         public Vector3 KickPosition = new(0.0006f, 0.0012f, -0.012f);
         [Tooltip("Rotazione per colpo (gradi): x alza la volata (negativo), y laterale, z rollio.")]
@@ -73,9 +73,9 @@ namespace HrdnLab.FpsWave.Weapons
 
         [Header("Camera")]
         [Tooltip("Tremore aggiunto a ogni colpo (0-1, cresce con il fuoco prolungato).")]
-        [Range(0f, 1f)] public float ShakePerShot = 0.012f;
+        [Range(0f, 1f)] public float ShakePerShot = 0.005f;
         [Tooltip("Allargamento istantaneo del FOV a ogni colpo (frazione).")]
-        [Range(0f, 0.1f)] public float FovPunch = 0.002f;
+        [Range(0f, 0.1f)] public float FovPunch = 0.001f;
 
         [Header("Sci-fi: energia e calore (cosmetici)")]
         [Tooltip("Arma a energia: accumula calore (barra nel HUD, luce che vira al caldo, tremolio). Le armi a proiettili non ne hanno.")]
@@ -96,30 +96,30 @@ namespace HrdnLab.FpsWave.Weapons
         [Min(0f)] public float MuzzleLightIntensity = 5f;
 
         /// <summary>
-        /// Profilo di base per un'arma automatica (fucili, mitragliette), alla Rainbow Six Siege: ogni colpo alza la mira e
-        /// lì restano anche i proiettili (rinculo quasi tutto permanente, da compensare col mouse), deriva laterale riconoscibile,
-        /// arma in mano che si muove poco così la mira resta sempre visibile.
+        /// Profilo di base per un'arma automatica (fucili, mitragliette), alla Call of Duty moderno: primo colpo morbido, salita
+        /// che cresce nella raffica con uno schema riconoscibile per arma, i proiettili vanno dove punta la mira, e lasciando
+        /// il grilletto la mira torna in parte da sola (recoil reset); arma in mano che si muove poco.
         /// </summary>
         public static WeaponFeel AutomaticPreset() => new()
         {
-            VerticalMultiplier = 1.5f, HorizontalMultiplier = 1f, VerticalRandomness = 0.15f,
-            FirstShotMultiplier = 0.75f, RampShots = 6, RampMultiplier = 1.3f, PatternStrength = 0.5f, HorizontalRandomness = 0.6f,
+            VerticalMultiplier = 1.4f, HorizontalMultiplier = 0.9f, VerticalRandomness = 0.1f,
+            FirstShotMultiplier = 0.8f, RampShots = 8, RampMultiplier = 1.35f, PatternStrength = 0.6f, HorizontalRandomness = 0.4f,
             HipRecoilMultiplier = 0.12f, AdsMultiplier = 1f,
-            Snappiness = 24f, ReturnSpeed = 9f, PermanentFraction = 0.85f, BurstResetTime = 0.3f,
-            ViewKickScale = 0.45f, KickPosition = new Vector3(0.0006f, 0.0012f, -0.012f), KickRotation = new Vector3(-0.6f, 0.25f, 0.4f),
-            ShakePerShot = 0.012f, FovPunch = 0.002f, HeatPerShot = 0.035f, HeatDecay = 0.45f,
+            Snappiness = 18f, ReturnSpeed = 5f, PermanentFraction = 0.55f, BurstResetTime = 0.3f,
+            ViewKickScale = 0.25f, KickPosition = new Vector3(0.0006f, 0.0012f, -0.012f), KickRotation = new Vector3(-0.6f, 0.25f, 0.4f),
+            ShakePerShot = 0.005f, FovPunch = 0.001f, HeatPerShot = 0.035f, HeatDecay = 0.45f,
             EnergyColor = new Color(0.35f, 0.85f, 1f),
         };
 
         /// <summary>Profilo di base per un'arma semi-automatica (pistole, fucili di precisione): salto secco della mira, arma stabile.</summary>
         public static WeaponFeel SemiAutoPreset() => new()
         {
-            VerticalMultiplier = 1.1f, HorizontalMultiplier = 0.9f, VerticalRandomness = 0.2f,
-            FirstShotMultiplier = 1f, RampShots = 4, RampMultiplier = 1.15f, PatternStrength = 0.3f, HorizontalRandomness = 0.7f,
+            VerticalMultiplier = 1.1f, HorizontalMultiplier = 0.8f, VerticalRandomness = 0.15f,
+            FirstShotMultiplier = 1f, RampShots = 4, RampMultiplier = 1.15f, PatternStrength = 0.3f, HorizontalRandomness = 0.6f,
             HipRecoilMultiplier = 0.18f, AdsMultiplier = 1f,
-            Snappiness = 26f, ReturnSpeed = 10f, PermanentFraction = 0.8f, BurstResetTime = 0.45f,
-            ViewKickScale = 0.6f, KickPosition = new Vector3(0.001f, 0.002f, -0.018f), KickRotation = new Vector3(-1.4f, 0.4f, 0.7f),
-            ShakePerShot = 0.02f, FovPunch = 0.003f, HeatPerShot = 0.09f, HeatDecay = 0.7f,
+            Snappiness = 22f, ReturnSpeed = 7f, PermanentFraction = 0.4f, BurstResetTime = 0.45f,
+            ViewKickScale = 0.35f, KickPosition = new Vector3(0.001f, 0.002f, -0.018f), KickRotation = new Vector3(-1.4f, 0.4f, 0.7f),
+            ShakePerShot = 0.008f, FovPunch = 0.0015f, HeatPerShot = 0.09f, HeatDecay = 0.7f,
             EnergyColor = new Color(0.55f, 0.75f, 1f),
         };
     }

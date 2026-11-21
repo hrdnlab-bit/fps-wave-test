@@ -629,6 +629,8 @@ MonoBehaviour:
   _look: {fileID: 5320469534409359688}
   _motor: {fileID: 6190854792051640263}
   _input: {fileID: 7806041162086333259}
+  _health: {fileID: 0}
+  _flinchDegrees: 1.2
   _hipOffset: {x: 0, y: -0.012, z: -0.045}
   _pivot: {x: 0.12, y: -0.17, z: 0.32}
   _sprintPosition: {x: 0.04, y: -0.07, z: -0.04}

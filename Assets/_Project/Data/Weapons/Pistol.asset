@@ -22,7 +22,7 @@ MonoBehaviour:
   _reloadTime: 1.4
   _range: 60
   _hipSpread: 1.2
-  _adsSpread: 0.3
+  _adsSpread: 0.08
   _spreadPerShot: 0.6
   _maxBloom: 3
   _bloomRecoveryPerSecond: 8
@@ -30,7 +30,8 @@ MonoBehaviour:
   _recoilYaw: 0.4
   _recoilRecoveryPerSecond: 10
   _adsFovMultiplier: 0.85
-  _adsTime: 0.15
+  _adsTime: 0.17
+  _sprintToFireTime: 0.13
   _critChance: 0.05
   _critMultiplier: 1.5
   _weakspotMultiplier: 2
@@ -41,21 +42,21 @@ MonoBehaviour:
   _viewAdsOffset: {x: 0, y: 0, z: 0.24}
   _feel:
     VerticalMultiplier: 1.1
-    HorizontalMultiplier: 0.9
+    HorizontalMultiplier: 0.8
     FirstShotMultiplier: 1
     RampShots: 4
     RampMultiplier: 1.15
     PatternStrength: 0.3
-    HorizontalRandomness: 0.7
-    VerticalRandomness: 0.2
-    Snappiness: 26
-    ReturnSpeed: 10
-    PermanentFraction: 0.8
+    HorizontalRandomness: 0.6
+    VerticalRandomness: 0.15
+    Snappiness: 22
+    ReturnSpeed: 7
+    PermanentFraction: 0.4
     BurstResetTime: 0.45
     HipRecoilMultiplier: 0.18
     AdsMultiplier: 1
     CrouchMultiplier: 0.8
-    ViewKickScale: 0.6
+    ViewKickScale: 0.35
     KickPosition: {x: 0.001, y: 0.002, z: -0.018}
     KickRotation: {x: -1.4, y: 0.4, z: 0.7}
     KickRandomness: 0.35
@@ -70,8 +71,8 @@ MonoBehaviour:
     StrafeTilt: 2.5
     SprintPose: 1
     IdleBreath: 1
-    ShakePerShot: 0.02
-    FovPunch: 0.003
+    ShakePerShot: 0.008
+    FovPunch: 0.0015
     UsesHeat: 0
     BallisticColor: {r: 1, g: 0.8, b: 0.55, a: 1}
     EnergyColor: {r: 0.55, g: 0.75, b: 1, a: 1}

@@ -23,6 +23,11 @@ namespace HrdnLab.FpsWave.Weapons
         [SerializeField] private PlayerLook _look;
         [SerializeField] private PlayerMotor _motor;
         [SerializeField] private PlayerInputReader _input;
+        [SerializeField] private HrdnLab.FpsWave.Combat.Health _health;
+
+        [Header("Colpi subiti (flinch)")]
+        [Tooltip("Sobbalzo della visuale quando si viene colpiti (gradi), come il flinch dei Call of Duty. Ridotto mirando.")]
+        [SerializeField, Min(0f)] private float _flinchDegrees = 1.2f;
 
         [Header("Posizione e perno")]
         [Tooltip("Spostamento della posa da fianco (m, spazio camera): z negativo = arma più vicina, y negativo = più in basso. Mirando sparisce.")]
@@ -78,6 +83,30 @@ namespace HrdnLab.FpsWave.Weapons
             if (_look == null) _look = GetComponent<PlayerLook>();
             if (_motor == null) _motor = GetComponent<PlayerMotor>();
             if (_input == null) _input = GetComponent<PlayerInputReader>();
+            if (_health == null) _health = GetComponent<HrdnLab.FpsWave.Combat.Health>();
+        }
+
+        private void OnEnable()
+        {
+            if (_health != null)
+                _health.ClientHealthChanged += HandleHealthChanged;
+        }
+
+        private void OnDisable()
+        {
+            if (_health != null)
+                _health.ClientHealthChanged -= HandleHealthChanged;
+        }
+
+        /// <summary>Flinch: un colpo subito sposta un po' la visuale (torna da sola) e fa tremare la camera.</summary>
+        private void HandleHealthChanged(float previous, float next)
+        {
+            if (next >= previous || next <= 0f || _look == null || !_look.enabled)
+                return;
+            float size = _flinchDegrees * Mathf.Clamp(0.6f + (previous - next) / 25f, 0.6f, 1.6f);
+            var kick = new Vector2(Random.Range(0.4f, 1f), Random.Range(-1f, 1f)) * size;
+            _look.AddRecoilKick(kick, 0f, 30f, 7f);
+            _look.AddTrauma(0.12f);
         }
 
         /// <summary>Cambio arma: nuovo profilo, raffica e calore azzerati, l'arma entra dal basso.</summary>

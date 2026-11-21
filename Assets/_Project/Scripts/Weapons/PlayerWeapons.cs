@@ -55,6 +55,9 @@ namespace HrdnLab.FpsWave.Weapons
         private FireRateLimiter[] _limiters;
         private int _localEquipped = -1;
         private int _localTracerCounter;
+        private float _lastSprintTime = -10f;
+        private bool _queuedSemiShot;
+        private float _queuedSemiShotTime;
         private int _serverEquipped;
         private float _aim;
         private float _muzzleLightUntil;
@@ -85,6 +88,8 @@ namespace HrdnLab.FpsWave.Weapons
         /// <summary>Armi della dotazione e indice di quella impugnata (per la striscia delle armi nel HUD).</summary>
         public System.Collections.Generic.IReadOnlyList<WeaponDefinition> Loadout => _loadout;
         public int EquippedIndex => _localEquipped;
+        /// <summary>Mira con curva morbida (ease in/out) per posa dell'arma e FOV: entra e esce come nei Call of Duty.</summary>
+        public float AimEased => _aim * _aim * (3f - 2f * _aim);
 
         /// <summary>Dispersione attuale in gradi (per il mirino dell'HUD).</summary>
         public float CurrentSpread
@@ -93,8 +98,21 @@ namespace HrdnLab.FpsWave.Weapons
             {
                 WeaponState s = Current;
                 if (s == null) return 0f;
-                float baseSpread = Mathf.Lerp(s.Stats.Get(StatType.HipSpread), s.Stats.Get(StatType.AdsSpread), _aim);
-                return baseSpread + s.Bloom * Mathf.Lerp(1f, 0.2f, _aim); // da fianco il bloom pesa tutto, mirando quasi nulla (lì c'è il rinculo)
+                float hip = s.Stats.Get(StatType.HipSpread);
+                float baseSpread = Mathf.Lerp(hip, s.Stats.Get(StatType.AdsSpread), _aim);
+                // Come nei Call of Duty: da fianco la dispersione cresce sparando (bloom), muovendosi e in aria, cala
+                // accovacciati; mirando l'arma è precisa (niente bloom) e si gestisce solo il rinculo.
+                float hipWeight = 1f - _aim;
+                float movement = 0f;
+                if (_motor != null)
+                {
+                    Vector3 v = _motor.Velocity;
+                    float moving = Mathf.Clamp01(new Vector2(v.x, v.z).magnitude / 4.5f);
+                    movement = hip * (0.5f * moving + (_motor.IsGrounded ? 0f : 0.9f));
+                    if (_motor.IsCrouching)
+                        baseSpread *= Mathf.Lerp(1f, 0.85f, hipWeight);
+                }
+                return baseSpread + (s.Bloom + movement) * hipWeight;
             }
         }
 
@@ -174,14 +192,42 @@ namespace HrdnLab.FpsWave.Weapons
             if (_input.ReloadPressed)
                 RequestReload(state, now);
 
+            // Sprint e arma, come nei Call of Duty: sparare o mirare interrompe la corsa, e dopo la corsa
+            // serve un attimo (sprint-to-fire) perché l'arma torni in posizione prima del primo colpo.
+            if (_motor != null)
+            {
+                _motor.SprintBlocked = _input.FireHeld || _input.AimHeld;
+                if (_motor.IsSprinting)
+                    _lastSprintTime = Time.time;
+            }
+            bool sprintRecovered = Time.time - _lastSprintTime >= state.Definition.SprintToFireTime;
+
             bool wantsAim = _input.AimHeld && !state.IsReloading && !(_motor != null && _motor.IsSprinting);
             _aim = Mathf.MoveTowards(_aim, wantsAim ? 1f : 0f, dt / state.Definition.AdsTime);
-            if (_look != null) _look.FovMultiplier = Mathf.Lerp(1f, state.Definition.AdsFovMultiplier, _aim);
+            float aimEased = AimEased;
+            if (_look != null) _look.FovMultiplier = Mathf.Lerp(1f, state.Definition.AdsFovMultiplier, aimEased);
             if (_motor != null) _motor.SpeedMultiplier = Mathf.Lerp(1f, _adsMoveMultiplier, _aim);
 
-            bool trigger = state.Definition.Automatic ? _input.FireHeld : _input.FirePressed;
-            if (!trigger)
+            bool trigger;
+            if (state.Definition.Automatic)
+            {
+                trigger = _input.FireHeld;
+            }
+            else
+            {
+                // Il colpo premuto durante il rialzo dell'arma non va perso: parte appena l'arma è pronta.
+                if (_input.FirePressed)
+                {
+                    _queuedSemiShot = true;
+                    _queuedSemiShotTime = Time.time;
+                }
+                if (_queuedSemiShot && Time.time - _queuedSemiShotTime > 0.35f)
+                    _queuedSemiShot = false; // premuto troppo prima: non spara in ritardo
+                trigger = _queuedSemiShot;
+            }
+            if (!trigger || !sprintRecovered)
                 return;
+            _queuedSemiShot = false;
 
             if (state.Ammo <= 0 && !state.IsReloading)
             {
@@ -374,7 +420,7 @@ namespace HrdnLab.FpsWave.Weapons
             WeaponDefinition def = _loadout[_localEquipped];
             Vector3 hip = def.OverrideViewOffsets ? def.ViewHipOffset : _hipPosition;
             Vector3 ads = def.OverrideViewOffsets ? def.ViewAdsOffset : _adsPosition;
-            Vector3 basePosition = Vector3.Lerp(hip, ads, _aim);
+            Vector3 basePosition = Vector3.Lerp(hip, ads, AimEased);
             if (_feel != null)
             {
                 _feel.ApplyViewModel(_viewModelRoot, basePosition, _aim, dt);

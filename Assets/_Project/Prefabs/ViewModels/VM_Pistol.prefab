@@ -88,8 +88,8 @@ MonoBehaviour:
   _slide: {fileID: 732533559080775524}
   _slideTravel: 0.021884538
   _drawTime: 0.35
-  _fireKickPitch: 2.5
-  _fireKickBack: 0.014
+  _fireKickPitch: 1.2
+  _fireKickBack: 0.008
 --- !u!1001 &944697896024797807
 PrefabInstance:
   m_ObjectHideFlags: 0
