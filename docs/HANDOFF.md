@@ -9,6 +9,7 @@ Ultimo aggiornamento: 2026-11-21 (versione 0.2.0)
 - `C:\Users\manue\My project` contiene un ALTRO gioco (SABBIA): non toccarlo.
 - Ultimi commit su `main`: `391a153` (codice lobby, inviti dal gioco, DX11), `eccc40f` (Steam + Multipass), `41cbef3` (pistola), `69771bf` (M4).
 - Tag git: il push dei tag dall'ambiente AI è bloccato (403); le versioni sono in `CHANGELOG.md`.
+- **Lavoro in due** (dal 2026-11-21): questo file contiene lo stato comune; il lavoro in corso di ciascuno è in `docs/handoff/<persona>.md`, i lock su scene e prefab in `docs/LOCKS.md`, il setup di un PC nuovo in `docs/GUIDA_COLLABORATORE.md`, le istruzioni per Claude in `CLAUDE.md` (radice del repo).
 
 ## Come si prova
 1. Scena qualsiasi -> Play (parte sempre da `Boot`): l'Editor fa da **Host LAN** e carica `Greybox`. Uscire con **Ctrl+P**.

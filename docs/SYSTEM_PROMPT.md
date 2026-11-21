@@ -30,6 +30,11 @@ Nel Progetto claude.ai `SYSTEM_PROMPT.md`, `GAME_BASELINE.md` e `SKILLS.md` stan
 | `HANDOFF.md` | Stato corrente per riprendere tra chat |
 | `CHANGELOG.md` | Modifiche per versione |
 | `SKILLS.md` | Skill in uso |
+| `LOCKS.md` | Chi sta modificando scene, prefab e asset condivisi |
+| `handoff/<persona>.md` | Lavoro in corso di ciascuno sviluppatore |
+| `GUIDA_COLLABORATORE.md` | Setup del PC e flusso di lavoro per un nuovo sviluppatore |
+
+Nella radice del repo: `CLAUDE.md` (istruzioni lette da ogni sessione Claude Code), `.claude/skills/` (skill del progetto), `tools/` (script per il PC).
 
 Regola: ogni informazione vive in **un solo** documento; gli altri rimandano. I documenti esistono in due copie: repo (`docs/`, fonte di verità) e Progetto claude.ai (copia sincronizzata). Quando ne modifichi uno, aggiorni entrambe nello stesso passaggio.
 

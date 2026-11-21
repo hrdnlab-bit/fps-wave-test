@@ -11,6 +11,8 @@ Principio: solo le skill che servono davvero a questo gioco. Ogni skill aggiunge
 | `frontend-design` | Disponibile nell'ambiente | Design di HUD e menu (adattato a Unity UI Toolkit) |
 | `skill-creator` | Disponibile nell'ambiente | Creare o modificare le skill sopra |
 
+Le tre skill personalizzate sono anche nel repo, in `.claude/skills/`: le sessioni Claude Code di chiunque cloni il progetto le caricano automaticamente. La copia nel repo è quella di riferimento per il lavoro in due (contiene le regole su branch, lock e handoff per persona).
+
 ## Non installate (e perché)
 | Skill | Motivo |
 |---|---|
