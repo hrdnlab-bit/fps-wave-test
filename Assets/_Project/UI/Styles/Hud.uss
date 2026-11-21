@@ -1,0 +1,264 @@
+/* ==========================================================================
+   FPS Wave - HUD "visore da combattimento"
+   Palette: ciano freddo su vetro scuro, ambra per gli avvisi, rosso per il pericolo.
+   Riferimento 1920x1080 (PanelSettings: Scale With Screen Size).
+   ========================================================================== */
+
+.hud {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    color: rgb(170, 240, 255);
+    font-size: 16px;
+    -unity-font-style: bold;
+}
+
+/* --- pannelli in vetro con angoli a staffa ---------------------------------- */
+.hud-panel {
+    position: absolute;
+    background-color: rgba(3, 18, 26, 0.55);
+    border-left-width: 2px;
+    border-left-color: rgba(79, 227, 255, 0.9);
+    padding: 12px 18px 14px 16px;
+}
+
+.corner {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-color: rgba(79, 227, 255, 0.85);
+}
+.corner--tl { left: -1px; top: -1px; border-top-width: 2px; border-left-width: 2px; }
+.corner--tr { right: -1px; top: -1px; border-top-width: 2px; border-right-width: 2px; }
+.corner--bl { left: -1px; bottom: -1px; border-bottom-width: 2px; border-left-width: 2px; }
+.corner--br { right: -1px; bottom: -1px; border-bottom-width: 2px; border-right-width: 2px; }
+
+.hud-caption {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: rgba(120, 220, 245, 0.75);
+}
+
+.hud-row { flex-direction: row; align-items: flex-end; }
+.hud-spacer { flex-grow: 1; }
+
+/* --- in alto a sinistra: telemetria ----------------------------------------- */
+.hud-status {
+    position: absolute;
+    left: 28px;
+    top: 24px;
+}
+.hud-status-line {
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: rgba(120, 220, 245, 0.8);
+    margin-bottom: 2px;
+}
+.hud-status-line--accent { color: rgb(79, 227, 255); }
+
+/* --- in alto al centro: striscia missione ----------------------------------- */
+.hud-mission {
+    position: absolute;
+    top: 22px;
+    left: 0;
+    right: 0;
+    align-items: center;
+}
+.hud-mission-strip {
+    flex-direction: row;
+    align-items: center;
+    padding: 4px 18px;
+    background-color: rgba(3, 18, 26, 0.45);
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-color: rgba(79, 227, 255, 0.45);
+}
+.hud-mission-tag {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: rgb(3, 18, 26);
+    background-color: rgb(79, 227, 255);
+    padding: 1px 6px;
+    margin-right: 10px;
+}
+.hud-mission-text {
+    font-size: 14px;
+    letter-spacing: 4px;
+}
+
+/* --- in basso a sinistra: integrità ------------------------------------------ */
+.hud-vitals {
+    left: 28px;
+    bottom: 28px;
+    width: 400px;
+}
+.hud-big-number {
+    font-size: 52px;
+    color: rgb(225, 252, 255);
+    -unity-text-align: lower-left;
+    margin: -6px 0 -4px 0;
+}
+.hud-big-unit {
+    font-size: 15px;
+    letter-spacing: 2px;
+    color: rgba(120, 220, 245, 0.75);
+    margin-left: 6px;
+    margin-bottom: 9px;
+}
+.hud-segments {
+    flex-direction: row;
+    height: 12px;
+    margin-top: 6px;
+}
+.segment {
+    flex-grow: 1;
+    margin-right: 3px;
+    background-color: rgba(79, 227, 255, 0.12);
+    transition-property: background-color;
+    transition-duration: 0.12s;
+}
+.segment--on { background-color: rgb(79, 227, 255); }
+
+.hud-vitals--warn .segment--on { background-color: rgb(255, 184, 64); }
+.hud-vitals--warn { border-left-color: rgb(255, 184, 64); }
+.hud-vitals--critical .segment--on { background-color: rgb(255, 64, 64); }
+.hud-vitals--critical { border-left-color: rgb(255, 64, 64); }
+.hud-vitals--critical .hud-big-number { color: rgb(255, 110, 100); }
+
+.hud-alert {
+    margin-top: 8px;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: rgb(255, 90, 80);
+}
+
+/* --- in basso a destra: arma ------------------------------------------------- */
+.hud-weapon {
+    right: 28px;
+    bottom: 28px;
+    width: 400px;
+    border-left-width: 0;
+    border-right-width: 2px;
+    border-right-color: rgba(79, 227, 255, 0.9);
+    align-items: flex-end;
+}
+.hud-weapon-header { flex-direction: row; align-items: center; }
+.hud-slot {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: rgb(3, 18, 26);
+    background-color: rgba(79, 227, 255, 0.9);
+    padding: 1px 6px;
+    margin-left: 10px;
+}
+.hud-weapon-name {
+    font-size: 15px;
+    letter-spacing: 4px;
+}
+.hud-ammo-row { flex-direction: row; align-items: flex-end; }
+.hud-ammo {
+    font-size: 64px;
+    color: rgb(225, 252, 255);
+    margin: -8px 0 -6px 0;
+}
+.hud-ammo--low { color: rgb(255, 184, 64); }
+.hud-ammo--empty { color: rgb(255, 80, 70); }
+.hud-ammo-max {
+    font-size: 22px;
+    color: rgba(120, 220, 245, 0.7);
+    margin-left: 6px;
+    margin-bottom: 10px;
+}
+.hud-pips {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    width: 360px;
+    margin-top: 6px;
+}
+.pip {
+    width: 6px;
+    height: 14px;
+    margin-left: 3px;
+    margin-top: 3px;
+    background-color: rgb(79, 227, 255);
+}
+.pip--spent { background-color: rgba(79, 227, 255, 0.14); }
+
+.hud-reload {
+    margin-top: 8px;
+    width: 360px;
+    align-items: flex-end;
+}
+.hud-reload-label {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: rgb(255, 184, 64);
+}
+.hud-reload-track {
+    width: 100%;
+    height: 4px;
+    margin-top: 4px;
+    background-color: rgba(255, 184, 64, 0.2);
+}
+.hud-reload-fill {
+    height: 100%;
+    width: 0%;
+    background-color: rgb(255, 184, 64);
+}
+
+/* --- mirino ------------------------------------------------------------------ */
+.crosshair {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+}
+.ch-line {
+    position: absolute;
+    background-color: rgba(200, 250, 255, 0.95);
+}
+.ch-line--v { width: 2px; height: 11px; left: -1px; top: -5px; }
+.ch-line--h { width: 11px; height: 2px; left: -5px; top: -1px; }
+.ch-dot {
+    position: absolute;
+    width: 3px; height: 3px;
+    left: -1px; top: -1px;
+    background-color: rgb(79, 227, 255);
+}
+
+/* hit marker: quattro tacche diagonali */
+.hitmarker {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    opacity: 0;
+}
+.hm-tick {
+    position: absolute;
+    width: 10px;
+    height: 2px;
+    left: -5px;
+    top: -1px;
+    background-color: rgb(255, 255, 255);
+}
+.hitmarker--weak .hm-tick { background-color: rgb(255, 189, 51); }
+.hitmarker--crit .hm-tick { background-color: rgb(255, 236, 38); }
+.hitmarker--kill .hm-tick { background-color: rgb(255, 72, 56); width: 14px; left: -7px; }
+
+/* --- bordo rosso quando si subisce danno ------------------------------------- */
+.hud-damage {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    border-width: 56px;
+    border-color: rgba(255, 30, 20, 0.3);
+    opacity: 0;
+}
+.hud-scanline {
+    position: absolute;
+    left: 0; right: 0;
+    height: 1px;
+    background-color: rgba(79, 227, 255, 0.06);
+}

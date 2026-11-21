@@ -65,7 +65,7 @@ Valori *(default)* = scelti dall'AI, da bilanciare con i playtest.
 - Durante la preparazione si fa il preload degli asset della wave successiva.
 
 ## 7. UI/UX
-- HUD: salute/scudo, munizioni, wave e nemici rimasti, mutazioni attive, crediti di squadra, bussola con indicatori dei compagni e degli obiettivi, indicatore di compagno a terra.
-- Menu: upgrade, mod, shop, lobby Steam (inviti, join), impostazioni (grafica, audio, sensibilità, FOV, rimappatura).
+- HUD (fatto in parte, `SciFiHud`, stile "visore" ciano): salute/scudo, munizioni, wave e nemici rimasti, mutazioni attive, crediti di squadra, bussola con indicatori dei compagni e degli obiettivi, indicatore di compagno a terra.
+- Menu (stile "terminale" ambra, `GameMenu`): fatti principale, schieramento con lobby Steam (crea, codice, inviti) e LAN, pausa, impostazioni (sensibilità, FOV, volume, schermo intero, VSync, qualità, FPS, numeri di danno). Da fare: upgrade, mod, shop, rimappatura dei tasti.
 - Schermata di fine partita: wave raggiunta, record personale e di squadra, statistiche.
 - Lingue: IT ed EN.

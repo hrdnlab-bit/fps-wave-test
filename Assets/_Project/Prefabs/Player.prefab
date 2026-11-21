@@ -237,9 +237,10 @@ GameObject:
   - component: {fileID: 4251965635168637423}
   - component: {fileID: 6349178083940523481}
   - component: {fileID: 6877239407612744869}
-  - component: {fileID: 7516362521724315046}
   - component: {fileID: 5509995605537476103}
   - component: {fileID: 6903490536038743217}
+  - component: {fileID: 8125962987711106856}
+  - component: {fileID: 4719806347758195179}
   m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
@@ -408,7 +409,6 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 139051151714448617}
   _networkObjectCache: {fileID: 0}
-  _mouseSensitivity: 0.12
   _stickSensitivity: 180
 --- !u!114 &6190854792051640263
 MonoBehaviour:
@@ -459,7 +459,6 @@ MonoBehaviour:
   _input: {fileID: 7806041162086333259}
   _cameraPivot: {fileID: 3022871114441330496}
   _camera: {fileID: 2245450761733437994}
-  _baseFov: 90
   _minPitch: -85
   _maxPitch: 85
   _fovLerpSpeed: 14
@@ -532,22 +531,8 @@ MonoBehaviour:
   - {fileID: 8404568349160679370}
   _firstPersonRoot: {fileID: 393611717940168811}
   _ownerOnlyBehaviours:
-  - {fileID: 7516362521724315046}
---- !u!114 &7516362521724315046
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3842048281382028655}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1bdbd4abaa223c54aba05cad2143ca8f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.UI.PlayerHud
-  _weapons: {fileID: 4251965635168637423}
-  _health: {fileID: 6349178083940523481}
-  _hitMarkerDuration: 0.18
+  - {fileID: 8125962987711106856}
+  - {fileID: 4719806347758195179}
 --- !u!114 &5509995605537476103
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -580,11 +565,51 @@ MonoBehaviour:
   m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.UI.DamageNumbers
   _weapons: {fileID: 4251965635168637423}
   _lifetime: 0.9
+  _risePixels: 70
   _fontSize: 28
   _normalColor: {r: 1, g: 1, b: 1, a: 1}
   _weakspotColor: {r: 1, g: 0.74, b: 0.2, a: 1}
   _criticalColor: {r: 1, g: 0.93, b: 0.15, a: 1}
   _killColor: {r: 1, g: 0.32, b: 0.22, a: 1}
+--- !u!114 &8125962987711106856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3842048281382028655}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.UIElements.UIDocument
+  m_PanelSettings: {fileID: 11400000, guid: 97ca6f5567cc06744ba96dd89277b34b, type: 2}
+  m_ParentUI: {fileID: 0}
+  sourceAsset: {fileID: 0}
+  m_SortingOrder: 0
+  m_Position: 0
+  m_WorldSpaceSizeMode: 1
+  m_WorldSpaceWidth: 1920
+  m_WorldSpaceHeight: 1080
+  m_PivotReferenceSize: 0
+  m_Pivot: 0
+  m_WorldSpaceCollider: {fileID: 0}
+--- !u!114 &4719806347758195179
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3842048281382028655}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1591df5c677e25d4dbcf6796352099aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.UI.SciFiHud
+  _weapons: {fileID: 4251965635168637423}
+  _health: {fileID: 6349178083940523481}
+  _styleSheet: {fileID: 7433441132597879392, guid: f6c2a8beaeb2f22449f3ec3c2fcebfb8, type: 3}
+  _hitMarkerDuration: 0.18
 --- !u!1 &8751762922156321670
 GameObject:
   m_ObjectHideFlags: 0

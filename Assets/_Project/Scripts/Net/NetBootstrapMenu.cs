@@ -21,6 +21,8 @@ namespace HrdnLab.FpsWave.Net
         [Tooltip("Solo nell'Editor: l'istanza principale avvia l'Host LAN e i giocatori virtuali di Multiplayer Play Mode si collegano da soli.")]
         [SerializeField] private bool _autoStartInEditor = true;
         [SerializeField, Min(1)] private int _autoJoinAttempts = 10;
+        [Tooltip("Pannello OnGUI di sviluppo. Spento quando c'è il menu di gioco (GameMenu), che usa le stesse funzioni.")]
+        [SerializeField] private bool _drawDebugGui = true;
 
         private static readonly WaitForSecondsRealtime RetryDelay = new(2f);
 
@@ -112,6 +114,42 @@ namespace HrdnLab.FpsWave.Net
                 _steam.JoinHostRequested -= HandleJoinSteamHost;
                 _steam.Error -= HandleSteamError;
             }
+        }
+
+        // ---------------------------------------------------------------- API per il menu di gioco (GameMenu)
+
+        public SteamService Steam => _steam;
+        public NetMode Mode => _mode;
+        public string LastError => _lastError;
+        public string Address { get => _address; set => _address = string.IsNullOrWhiteSpace(value) ? "localhost" : value.Trim(); }
+        public bool IsServer => _networkManager != null && _networkManager.ServerManager.Started;
+        public bool IsClientConnected => _clientState == LocalConnectionState.Started;
+        public bool IsIdle => _serverState == LocalConnectionState.Stopped && _clientState == LocalConnectionState.Stopped && !_hostStarting;
+        public bool IsConnecting => !IsIdle && !IsClientConnected;
+        public int ConnectedPlayers => IsServer ? _networkManager.ServerManager.Clients.Count : 0;
+        public bool IsSteamHost => _mode == NetMode.Steam && _steam != null && _steam.InLobby && IsServer;
+        public bool DrawDebugGui { get => _drawDebugGui; set => _drawDebugGui = value; }
+
+        public void ClearError() => _lastError = null;
+
+        /// <summary>Entra nella lobby Steam di un amico con il codice che ti ha mandato.</summary>
+        public void JoinSteamByCode(string code)
+        {
+            _lastError = null;
+            if (_steam == null || !SteamService.IsReady)
+            {
+                _lastError = $"Steam non disponibile. {SteamService.Status}";
+                return;
+            }
+            if (!_steam.JoinLobbyByCode(code))
+                _lastError ??= "Codice lobby non valido.";
+        }
+
+        /// <summary>Si collega a un Host in rete locale all'indirizzo indicato.</summary>
+        public void JoinLan(string address)
+        {
+            Address = address;
+            JoinLan();
         }
 
         // ---------------------------------------------------------------- Stato
@@ -232,7 +270,7 @@ namespace HrdnLab.FpsWave.Net
 
         private void OnGUI()
         {
-            if (_networkManager == null || !OwnsManager)
+            if (_networkManager == null || !OwnsManager || !_drawDebugGui)
                 return;
 
             _labelStyle ??= new GUIStyle(GUI.skin.label) { fontSize = 16 };

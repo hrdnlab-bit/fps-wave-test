@@ -56,6 +56,7 @@ namespace HrdnLab.FpsWave.Editor
             CreateGreyboxScene(mats, dummyPrefab);
             EnemyContentBuilder.Build(); // nemici: catalogo dei tipi (schede + prefab), muri di copertura, nodi di spawn, EnemyDirector
             WireBootScene(playerPrefab.GetComponent<NetworkObject>());
+            UiBuilder.Build(); // HUD sul Player e menu di gioco nella scena Boot
 
             EditorBuildSettings.scenes = new[]
             {
@@ -230,7 +231,6 @@ namespace HrdnLab.FpsWave.Editor
             var weapons = ObjectFactory.AddComponent<PlayerWeapons>(root);
             var health = ObjectFactory.AddComponent<Health>(root);
             var view = ObjectFactory.AddComponent<PlayerView>(root);
-            var hud = root.AddComponent<PlayerHud>();
             var enemyTarget = ObjectFactory.AddComponent<EnemyTarget>(root);
             var damageNumbers = root.AddComponent<DamageNumbers>();
 
@@ -266,11 +266,10 @@ namespace HrdnLab.FpsWave.Editor
             weapons.EditorSetup(loadout, startingWeapon: 1, input, look, motor, viewModelRoot, muzzleLight,
                 mats.Tracer, mats.Impact, mats.Placeholder);
             health.EditorSetup(100f, System.Array.Empty<HitZone>());
-            hud.EditorSetup(weapons, health);
             enemyTarget.EditorSetup(motor);
             damageNumbers.EditorSetup(weapons);
             view.EditorSetup(camera, listener, new Renderer[] { body.GetComponent<Renderer>() }, viewModelRoot.gameObject,
-                new Behaviour[] { hud });
+                System.Array.Empty<Behaviour>()); // HUD e lista owner-only: UiBuilder (Setup/7)
 
             SetLayerRecursively(root, GameLayers.Player);
             return SavePrefab(root, $"{PrefabsDir}/Player.prefab");

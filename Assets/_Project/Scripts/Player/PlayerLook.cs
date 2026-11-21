@@ -1,4 +1,5 @@
 using FishNet.Object;
+using HrdnLab.FpsWave.Core;
 using UnityEngine;
 
 namespace HrdnLab.FpsWave.Player
@@ -12,7 +13,6 @@ namespace HrdnLab.FpsWave.Player
         [SerializeField] private PlayerInputReader _input;
         [SerializeField] private Transform _cameraPivot;
         [SerializeField] private Camera _camera;
-        [SerializeField, Range(60f, 120f)] private float _baseFov = 90f;
         [SerializeField] private float _minPitch = -85f;
         [SerializeField] private float _maxPitch = 85f;
         [SerializeField] private float _fovLerpSpeed = 14f;
@@ -39,7 +39,7 @@ namespace HrdnLab.FpsWave.Player
             _yaw = transform.eulerAngles.y;
             _spawnYaw = _yaw;
             if (_camera != null)
-                _camera.fieldOfView = _baseFov;
+                _camera.fieldOfView = GameSettings.FieldOfView;
         }
 
         /// <summary>Applica un calcio di rinculo (gradi). Il pitch si recupera, lo yaw resta.</summary>
@@ -74,7 +74,7 @@ namespace HrdnLab.FpsWave.Player
 
             if (_camera != null)
             {
-                float targetFov = _baseFov * FovMultiplier;
+                float targetFov = GameSettings.FieldOfView * FovMultiplier; // FOV scelto nelle impostazioni
                 _camera.fieldOfView = Mathf.Lerp(_camera.fieldOfView, targetFov, 1f - Mathf.Exp(-_fovLerpSpeed * Time.deltaTime));
             }
         }

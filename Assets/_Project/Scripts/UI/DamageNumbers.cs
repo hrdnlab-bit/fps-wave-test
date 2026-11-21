@@ -1,3 +1,4 @@
+using HrdnLab.FpsWave.Core;
 using HrdnLab.FpsWave.Weapons;
 using UnityEngine;
 
@@ -60,7 +61,7 @@ namespace HrdnLab.FpsWave.UI
 
         private void HandleHitConfirmed(Vector3 point, ushort damage, HitFlags flags)
         {
-            if (damage == 0)
+            if (damage == 0 || !GameSettings.ShowDamageNumbers)
                 return;
             ref Entry e = ref _entries[_next];
             _next = (_next + 1) % Capacity;
