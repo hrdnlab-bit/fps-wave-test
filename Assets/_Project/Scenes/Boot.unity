@@ -131,6 +131,8 @@ GameObject:
   - component: {fileID: 196454858}
   - component: {fileID: 196454857}
   - component: {fileID: 196454856}
+  - component: {fileID: 196454861}
+  - component: {fileID: 196454860}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -153,6 +155,8 @@ MonoBehaviour:
   _networkManager: {fileID: 196454858}
   _address: localhost
   _port: 7770
+  _autoStartInEditor: 1
+  _autoJoinAttempts: 10
 --- !u!114 &196454857
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -208,6 +212,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &196454860
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 196454855}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 549e2bd2fcc6be64bb865fac548ec08c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Net.PlayerSpawnService
+  _networkManager: {fileID: 196454858}
+  _playerPrefab: {fileID: 139051151714448617, guid: 1bf0db1c304e2014c82241ec9d414846, type: 3}
+--- !u!114 &196454861
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 196454855}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4d458c71d6dc254ca566f3596613be3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Net.GameSession
+  _networkManager: {fileID: 196454858}
+  _gameplayScene: Greybox
+  _menuScene: Boot
 --- !u!1 &1026207276
 GameObject:
   m_ObjectHideFlags: 0

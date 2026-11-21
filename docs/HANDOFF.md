@@ -3,49 +3,44 @@
 Ultimo aggiornamento: 2026-11-21
 
 ## Stato attuale
-- **M0a completata** (setup + rete locale), tag `v0.1.0`. Prossima milestone: **M1** (player + armi).
-- Progetto Unity: `C:\Users\manue\FpsWaveTest` (Universal 3D, Unity 6000.6.9f1), collegato alla sessione AI.
-- Repo: `hrdnlab-bit/fps-wave-test`, branch `main`. Clone di lavoro dell'AI: `/home/claude/fps-wave-test`.
+- **M0a completata** (setup + rete locale, versione 0.1.0).
+- **M1 in corso**: nucleo di gameplay fatto e verificato (M1.1-M1.5); manca **M1.6 asset realistici** (serve il login dell'utente su Fab/Asset Store).
+- Progetto Unity: `C:\Users\manue\FpsWaveTest` (Unity 6000.6.9f1, URP). Repo: `hrdnlab-bit/fps-wave-test`, branch `main` (merge di `feature/m1-player-weapons`).
 - `C:\Users\manue\My project` contiene un ALTRO gioco (SABBIA): non toccarlo.
-- Pacchetti: FishNet 4.7.4 (git, versione bloccata in `packages-lock.json`), Multiplayer Play Mode 3.0.0, Test Framework 1.8.0, URP 17.6, Input System 1.20.1.
+- Tag git: il push dei tag dall'ambiente AI è bloccato (403); le versioni sono tracciate in `CHANGELOG.md`. Il tag `v0.1.0` NON esiste su GitHub.
 
 ## Come si prova
-1. Aprire la scena `Assets/_Project/Scenes/Boot.unity` (è la prima della build).
-2. Window > Multiplayer > Multiplayer Play Mode: attivare Player 2-4.
-3. Play: l'istanza principale avvia l'Host, i giocatori virtuali si collegano da soli; il menu in alto a sinistra mostra "Giocatori connessi: N".
-4. Senza giocatori virtuali: Play e basta (Host da solo). Per disattivare l'avvio automatico: componente `NetBootstrapMenu` sul NetworkManager, `Auto Start In Editor`.
+1. Scena `Assets/_Project/Scenes/Boot.unity` -> Play: l'istanza principale fa da Host e carica la mappa `Greybox`.
+2. Controlli: WASD, mouse, Shift sprint, Ctrl/C crouch, Spazio salto, tasto sinistro spara, tasto destro mira (ADS), R ricarica, 1 fucile (test), 2 pistola, Esc libera il cursore, Home (solo sviluppo) riallinea la visuale.
+3. Poligono davanti allo spawn: bersagli a 10/20/35/50 m (diventano rossi con i danni, scuri da morti, si rigenerano dopo 3 s), muro per il test della linea di vista, cover, rampa + piattaforma, tunnel basso per il crouch.
+4. Multiplayer: Window > Multiplayer > Multiplayer Play Mode, attivare Player 2-4, poi Play (join automatico).
+5. Se si rigenera il contenuto (`FpsWave/Setup/3. Build M1 Content`), **disattivare prima i giocatori virtuali**: bloccano `DefaultPrefabObjects.asset` (errore "Accesso negato").
 
-## Script e strumenti chiave
-| File | Ruolo |
+## Script chiave (M1)
+| Area | File |
 |---|---|
-| `Scripts/Core/GameInfo.cs` | Versione e `ProtocolVersion` (da incrementare a ogni modifica di rete incompatibile) |
-| `Scripts/Net/NetBootstrapMenu.cs` | Menu di sviluppo Host/Join (OnGUI) + avvio automatico in Editor per MPPM |
-| `Scripts/Editor/ProjectSetupTools.cs` | Menu `FpsWave/Setup`: crea la scena Boot, rimuove i residui del template |
-| `Scripts/Editor/ConsoleLogMirror.cs` | Copia la Console in `Logs/FpsWaveConsole.log` (letto dall'AI per la verifica) |
-| `Tests/EditMode/` | Test di logica pura (2/2 verdi) |
+| Statistiche | `Scripts/Stats/` (StatType, StatModifier, Stat, StatBlock) |
+| Combattimento | `Scripts/Combat/` (Health SyncVar server, HitZone, DamageCalculator, TrainingDummy) |
+| Player | `Scripts/Player/` (FpsInput, PlayerInputReader, PlayerMotor, PlayerLook, PlayerView, PlayerSpawnPoint) |
+| Armi | `Scripts/Weapons/` (WeaponDefinition SO, WeaponState, FireRateLimiter, ShotValidation, PlayerWeapons, ShotFxPool) |
+| Sessione | `Scripts/Net/` (GameSession: carica Greybox; PlayerSpawnService; NetBootstrapMenu) |
+| UI | `Scripts/UI/PlayerHud.cs` (temporaneo, OnGUI) |
+| Editor | `Scripts/Editor/M1ContentBuilder.cs` (genera layer, materiali, armi, prefab, Greybox con SceneId stabili, collega Boot) |
+| Dati | `Data/Weapons/Pistol.asset`, `AssaultRifle.asset` |
 
-## Commit recenti (M0a)
-- `chore(deps): add FishNet, Multiplayer Play Mode and Test Framework`
-- `net: add Boot scene with NetworkManager, Tugboat and dev host/join menu`
-- `chore(editor): add setup tools, console log mirror and remove template leftovers`
-- `test: add EditMode test assembly with GameInfo tests`
-- `chore: add Unity meta files for project folders`
-
-## Verifica fatta
-- Compilazione: 0 errori.
-- Test EditMode: 2/2.
-- Play Mode: Host + 3 giocatori virtuali connessi (4 totali) via Tugboat, nessun errore nel log.
+## Verifica fatta (M1)
+- Compilazione 0 errori; test EditMode **25/25**.
+- Host da solo: caricamento Greybox, spawn, HUD; pistola 12 -> 9 colpi con danno replicato sul bersaglio; fucile ~13 colpi in 1.2 s (600 RPM), bersaglio abbattuto, ricarica 17 -> 30; nessun colpo rifiutato dal server.
+- Host + Player 2 (MPPM): connessione, due player spawnati, 0 errori su entrambe le istanze.
+- Non verificato a mano: sparo del client remoto (le finestre dei giocatori virtuali non sono controllabili da remoto) -> da provare dall'utente.
 
 ## Problemi aperti / note
-- Il controllo remoto non riesce a portare in primo piano le finestre dei giocatori virtuali: per questo l'avvio è automatico. Per vederle, l'utente può usare "Focus on Player" dal menu ⋮ di Multiplayer Play Mode.
-- Il push LFS dall'ambiente AI non funziona: asset binari fuori dal repo (vedi `ASSETS.md`).
-- Restano nel template `Mobile_Renderer`/`Mobile_RPAsset` (usati dai livelli di qualità Mobile): innocui, da valutare in M8.
-- Cartella Google Drive `FpsWaveTest_Assets` per il backup degli asset: da creare (`OPEN_QUESTIONS.md` #12).
+- Il primo frame dopo lo spawn può muovere la visuale se il mouse si muove (cursore bloccato subito): accettabile.
+- Scena "Untitled" vuota nella gerarchia dopo il caricamento globale di FishNet: innocua.
+- HUD e menu in OnGUI (temporanei, allocano poco ma non zero): da sostituire con UI Toolkit (M0b/M5).
+- Asset: vedi `OPEN_QUESTIONS.md` #13 (login e scelta del pacchetto armi/braccia).
 
-## Prossimi passi (M1)
-1. Sistema Stat/Modifier (logica pura + test EditMode).
-2. Mappa greybox (generata da strumento Editor, come la scena Boot).
-3. Player FPS replicato: movimento client-authoritative (camminata, sprint, crouch, salto), camera, Input System, spawn del player per ogni connessione.
-4. Pistola hitscan con validazione server + fucile d'assalto di test, ADS, rinculo, hit marker, bersagli con salute.
-5. Overlay FPS/RTT minimo.
-6. Asset: pistola + braccia FPS realistiche (prima ricerca su Fab/Asset Store gratuiti; l'utente deve fare il login).
+## Prossimi passi
+1. M1.6: asset realistici di pistola, fucile, braccia FPS e suoni (serve login utente; vedi opzioni in `ASSETS.md`).
+2. Chiudere M1 (versione 0.2.0) dopo il test dello sparo da client remoto.
+3. M0b: Steam (Steamworks.NET + FishySteamworks), lobby, controllo versione al join, overlay debug completo, console comandi.

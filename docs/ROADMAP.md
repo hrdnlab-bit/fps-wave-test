@@ -16,16 +16,16 @@ Ogni milestone è giocabile e testata in multiplayer (host + client). Percorso s
 | M8 | Polish | Art pass, audio, VFX, Spitter/Stalker/Drone/Elite, altri boss e mutazioni, ottimizzazione, soak test endless, bilanciamento, impostazioni, IT/EN | Sessione di 60+ minuti entro budget |
 
 ## Task di M0a
-**M0a completata il 2026-11-21 (tag `v0.1.0`).**
+**M0a completata il 2026-11-21 (versione 0.1.0; tag git non pubblicato, vedi HANDOFF).**
 1. M0a.1 Setup repo: `.gitignore`, LFS, struttura cartelle, asmdef, `docs/`, primo commit. **(fatto)**
 2. M0a.2 Pacchetti: FishNet, Unity Test Framework, Multiplayer Play Mode; pulizia del template. **(fatto)**
 3. M0a.3 Scena Boot + NetworkManager + menu Host/Join (Tugboat), avvio automatico in Editor. **(fatto)**
 4. M0a.4 Test con 4 istanze, commit, merge, tag `v0.1.0`. **(fatto)**
 
 ## Task di M1
-1. M1.1 Sistema Stat/Modifier + test.
-2. M1.2 Mappa greybox.
-3. M1.3 Player FPS replicato (movimento, camera, input, spawn per connessione).
-4. M1.4 Pistola hitscan validata dal server + fucile di test, ADS, feedback, bersagli.
-5. M1.5 Overlay FPS/RTT.
-6. M1.6 Asset realistici: pistola, fucile, braccia FPS, suoni.
+1. M1.1 Sistema Stat/Modifier + test. **(fatto)**
+2. M1.2 Mappa greybox (generata da `FpsWave/Setup/3. Build M1 Content`). **(fatto)**
+3. M1.3 Player FPS replicato (movimento, camera, input, spawn per connessione). **(fatto)**
+4. M1.4 Pistola hitscan validata dal server + fucile di test, ADS, feedback, bersagli. **(fatto)**
+5. M1.5 Overlay FPS/RTT (nell'HUD). **(fatto)**
+6. M1.6 Asset realistici: pistola, fucile, braccia FPS, suoni. **(in attesa del login utente)**

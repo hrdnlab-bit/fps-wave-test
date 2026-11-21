@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce0352d74dd723f4aa3f7b2f2ac770ab, type: 3}
+  m_Name: AssaultRifle
+  m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Weapons.WeaponDefinition
+  _id: rifle_ar
+  _displayName: Fucile d'assalto (test)
+  _slot: 0
+  _damage: 18
+  _roundsPerMinute: 600
+  _automatic: 1
+  _magazineSize: 30
+  _reloadTime: 2.2
+  _range: 120
+  _hipSpread: 2
+  _adsSpread: 0.25
+  _spreadPerShot: 0.25
+  _maxBloom: 4
+  _bloomRecoveryPerSecond: 8
+  _recoilPitch: 0.9
+  _recoilYaw: 0.35
+  _recoilRecoveryPerSecond: 10
+  _adsFovMultiplier: 0.75
+  _adsTime: 0.22
+  _critChance: 0.05
+  _critMultiplier: 1.5
+  _weakspotMultiplier: 2
+  _viewModelPrefab: {fileID: 0}
+  _placeholderSize: {x: 0.06, y: 0.1, z: 0.62}
