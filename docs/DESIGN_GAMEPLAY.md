@@ -26,7 +26,7 @@ Valori *(default)* = scelti dall'AI, da bilanciare con i playtest.
 - **ADS** (tasto destro): zoom leggero (FOV -15/-25% secondo l'arma), spread ridotto del 60%, rinculo ridotto del 30%, movimento al 60%, transizione 0.15-0.3 s per arma. Hip-fire comunque utilizzabile a corta distanza.
 - **Inizio partita: solo pistola.** La primaria (fucile d'assalto, shotgun, poi le altre) si compra allo shop dalla prima fase di preparazione; la pistola base deve quindi bastare per la wave 1 (TTK del Runner con la pistola ~0.6-0.9 s).
 - Inventario: 1 primaria + 1 secondaria (pistola) + granate (dopo MVP).
-- Feedback: rinculo camera, muzzle flash, tracer, decal di impatto, hit marker (bianco = colpo, rosso = kill, giallo = critico), suono di impatto distinto.
+- Feedback: rinculo camera, muzzle flash, tracer, decal di impatto (solo sull'ambiente; sui nemici uno schizzo breve), hit marker (bianco = colpo, rosso = kill, giallo = critico), **numeri di danno** sul punto colpito (bianco normale, oro testa, giallo con "!" critico, rosso uccisione; solo per chi spara, confermati dal server), suono di impatto distinto.
 - TTK target *(default)*: nemico base in 0.4-0.7 s col fucile d'assalto base, 0.6-0.9 s con la pistola base, alla wave 1.
 
 ## 4. Nemici

@@ -74,6 +74,12 @@ namespace HrdnLab.FpsWave.Combat
         [Server]
         public void ResetHealth() => _current.Value = _maxHealth;
 
+        /// <summary>
+        /// Imposta la salute massima da una scheda dati (es. <c>EnemyDefinition</c>). Va chiamato su tutti i peer
+        /// prima dello spawn (Awake): il massimo non è replicato, solo la salute corrente.
+        /// </summary>
+        public void SetMaxHealth(float maxHealth) => _maxHealth = Mathf.Max(1f, maxHealth);
+
 #if UNITY_EDITOR
         public void EditorSetup(float maxHealth, HitZone[] zones)
         {

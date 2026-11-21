@@ -54,7 +54,7 @@ namespace HrdnLab.FpsWave.Editor
             GameObject dummyPrefab = CreateDummyPrefab(mats);
             GameObject playerPrefab = CreatePlayerPrefab(mats, new[] { rifle, pistol });
             CreateGreyboxScene(mats, dummyPrefab);
-            M2EnemyBuilder.Build(); // nemici M2: prefab Runner, muri di copertura, nodi di spawn, EnemyDirector
+            EnemyContentBuilder.Build(); // nemici: catalogo dei tipi (schede + prefab), muri di copertura, nodi di spawn, EnemyDirector
             WireBootScene(playerPrefab.GetComponent<NetworkObject>());
 
             EditorBuildSettings.scenes = new[]
@@ -232,6 +232,7 @@ namespace HrdnLab.FpsWave.Editor
             var view = ObjectFactory.AddComponent<PlayerView>(root);
             var hud = root.AddComponent<PlayerHud>();
             var enemyTarget = ObjectFactory.AddComponent<EnemyTarget>(root);
+            var damageNumbers = root.AddComponent<DamageNumbers>();
 
             GameObject body = Primitive(PrimitiveType.Capsule, "Body", root.transform, new Vector3(0f, 0.9f, 0f),
                 new Vector3(0.7f, 0.9f, 0.7f), mats.PlayerBody);
@@ -267,6 +268,7 @@ namespace HrdnLab.FpsWave.Editor
             health.EditorSetup(100f, System.Array.Empty<HitZone>());
             hud.EditorSetup(weapons, health);
             enemyTarget.EditorSetup(motor);
+            damageNumbers.EditorSetup(weapons);
             view.EditorSetup(camera, listener, new Renderer[] { body.GetComponent<Renderer>() }, viewModelRoot.gameObject,
                 new Behaviour[] { hud });
 

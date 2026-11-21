@@ -17,7 +17,8 @@ namespace HrdnLab.FpsWave.Enemies
     }
 
     /// <summary>
-    /// Nemico corpo a corpo (Runner). L'AI esiste solo sul server: NavMeshAgent attivo solo lì,
+    /// Nemico corpo a corpo generico: le statistiche del tipo (Runner, Brute...) vengono da <see cref="EnemyDefinition"/>.
+    /// L'AI esiste solo sul server: NavMeshAgent attivo solo lì,
     /// posizione e yaw replicati da un NetworkTransform server-authoritative, i client interpolano.
     /// Non ha un Update proprio: <see cref="EnemyDirector"/> chiama <see cref="ServerThink"/> a frequenza ridotta
     /// (più spesso da vicino, meno da lontano), così il costo resta piatto anche con 40 nemici.
@@ -37,19 +38,8 @@ namespace HrdnLab.FpsWave.Enemies
         private const float WaitRingMargin = 1.3f;
         private const float CloseDistance = 4f;
 
-        [Header("Movimento")]
-        [SerializeField, Min(0.1f)] private float _moveSpeed = 6f;
-        [SerializeField, Min(0.1f)] private float _acceleration = 30f;
-        [SerializeField, Min(1f)] private float _angularSpeed = 720f;
-        [SerializeField, Min(0.1f)] private float _radius = 0.35f;
-        [SerializeField, Min(0.5f)] private float _height = 1.8f;
-
-        [Header("Attacco")]
-        [SerializeField, Min(0.5f)] private float _attackRange = 1.9f;
-        [SerializeField, Min(0.3f)] private float _stopDistance = 1.4f;
-        [SerializeField, Min(0f)] private float _attackDamage = 6f;
-        [SerializeField, Min(0.1f)] private float _attackInterval = 1f;
-        [SerializeField, Min(0f)] private float _attackWindup = 0.35f;
+        [Tooltip("Tipo di nemico: salute, movimento, attacco e spawn (Assets/_Project/Data/Enemies).")]
+        [SerializeField] private EnemyDefinition _definition;
 
         [Header("Ritmo dell'AI")]
         [SerializeField, Min(0.05f)] private float _thinkIntervalNear = 0.2f;
@@ -62,6 +52,7 @@ namespace HrdnLab.FpsWave.Enemies
 
         private NavMeshAgent _agent;
         private Health _health;
+        private Collider[] _hitboxes = System.Array.Empty<Collider>();
         private EnemyTarget _target;
         private EnemyTarget _slotTarget;
         private EnemyState _state;
@@ -78,6 +69,7 @@ namespace HrdnLab.FpsWave.Enemies
         /// <summary>Client: il nemico ha colpito (evento cosmetico per l'affondo).</summary>
         public event Action ClientAttacked;
 
+        public EnemyDefinition Definition => _definition;
         public EnemyState State => _state;
         public EnemyTarget Target => _target;
         public bool IsDead => _state == EnemyState.Dead;
@@ -91,18 +83,55 @@ namespace HrdnLab.FpsWave.Enemies
             _agent = GetComponent<NavMeshAgent>();
             _health = GetComponent<Health>();
             _agent.enabled = false; // solo il server lo attiva
+            if (_definition != null)
+                _health.SetMaxHealth(_definition.MaxHealth); // su tutti i peer, prima dello spawn
+            else
+                Debug.LogError($"[FpsWave] {name}: EnemyDefinition non assegnata.", this);
+
+            _hitboxes = new Collider[_health.HitZoneCount];
+            for (int i = 0; i < _hitboxes.Length; i++)
+                _hitboxes[i] = _health.GetZone(i) != null ? _health.GetZone(i).Collider : null;
+
             _health.ServerDied += HandleServerDied;
+            _health.ClientHealthChanged += HandleClientHealthChanged;
         }
 
         private void OnDestroy()
         {
             if (_health != null)
+            {
                 _health.ServerDied -= HandleServerDied;
+                _health.ClientHealthChanged -= HandleClientHealthChanged;
+            }
+        }
+
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+            SetHitboxesEnabled(!_health.IsDead);
+        }
+
+        /// <summary>
+        /// Da morto il nemico non è più colpibile: i colpi passano oltre e i segni d'impatto finiscono sull'ambiente,
+        /// non a mezz'aria dove c'era la hitbox mentre il modello cade.
+        /// </summary>
+        private void SetHitboxesEnabled(bool enabled)
+        {
+            for (int i = 0; i < _hitboxes.Length; i++)
+                if (_hitboxes[i] != null)
+                    _hitboxes[i].enabled = enabled;
+        }
+
+        private void HandleClientHealthChanged(float previous, float next)
+        {
+            if (next <= 0f)
+                SetHitboxesEnabled(false);
         }
 
         public override void OnStartServer()
         {
             base.OnStartServer();
+            SetHitboxesEnabled(true);
             ApplyAgentSettings();
             _agent.enabled = true;
             _agent.Warp(transform.position);
@@ -145,12 +174,12 @@ namespace HrdnLab.FpsWave.Enemies
 
         private void ApplyAgentSettings()
         {
-            _agent.speed = _moveSpeed;
-            _agent.acceleration = _acceleration;
-            _agent.angularSpeed = _angularSpeed;
-            _agent.radius = _radius;
-            _agent.height = _height;
-            _agent.stoppingDistance = _stopDistance;
+            _agent.speed = _definition.MoveSpeed;
+            _agent.acceleration = _definition.Acceleration;
+            _agent.angularSpeed = _definition.AngularSpeed;
+            _agent.radius = _definition.Radius;
+            _agent.height = _definition.Height;
+            _agent.stoppingDistance = _definition.StopDistance;
             // Frenata attiva: senza, tra due "pensieri" il nemico supera la distanza di arresto ed entra nel player
             // (la camera finisce dentro la sua hitbox e i raycast partiti da dentro un collider non lo colpiscono).
             _agent.autoBraking = true;
@@ -205,13 +234,13 @@ namespace HrdnLab.FpsWave.Enemies
             delta.y = 0f;
             float distance = delta.magnitude;
 
-            float reach = _state == EnemyState.Attack ? _attackRange + AttackExitMargin : _attackRange;
+            float reach = _state == EnemyState.Attack ? _definition.AttackRange + AttackExitMargin : _definition.AttackRange;
             bool closeEnough = distance <= reach && heightDelta < MaxAttackHeightDelta;
             if (closeEnough && _slotTarget != _target && !TryTakeSlot(_target))
             {
                 // Tutti i posti di attacco occupati: si aspetta appena fuori portata, rivolti al player.
                 closeEnough = false;
-                if (distance <= _attackRange + WaitRingMargin)
+                if (distance <= _definition.AttackRange + WaitRingMargin)
                 {
                     HoldPosition(delta, distance);
                     _nextThink = now + _thinkIntervalNear;
@@ -225,20 +254,20 @@ namespace HrdnLab.FpsWave.Enemies
                     _state = EnemyState.Attack;
                     _agent.isStopped = true;
                     _agent.velocity = Vector3.zero;
-                    _nextAttack = Mathf.Max(_nextAttack, now + _attackWindup);
+                    _nextAttack = Mathf.Max(_nextAttack, now + _definition.AttackWindup);
                 }
                 if (distance > 0.01f)
                     transform.rotation = Quaternion.LookRotation(delta / distance, Vector3.up);
                 if (now >= _nextAttack)
                 {
-                    _nextAttack = now + _attackInterval;
+                    _nextAttack = now + _definition.AttackInterval;
                     TryHit(position, _target);
                 }
                 _stuckTime = 0f;
             }
             else
             {
-                if (distance > _attackRange + AttackExitMargin)
+                if (distance > _definition.AttackRange + AttackExitMargin)
                     ReleaseSlot();
                 if (_state != EnemyState.Chase)
                 {
@@ -333,7 +362,7 @@ namespace HrdnLab.FpsWave.Enemies
             Vector3 to = target.Position + Vector3.up * 1.2f;
             if (Physics.Linecast(from, to, GameLayers.LineOfSightMask, QueryTriggerInteraction.Ignore))
                 return; // un muro in mezzo: niente colpi attraverso la geometria
-            target.Health.ApplyDamage(new DamageInfo(_attackDamage, false, false, -1, to));
+            target.Health.ApplyDamage(new DamageInfo(_definition.AttackDamage, false, false, -1, to));
             RpcAttacked();
         }
 
@@ -343,6 +372,7 @@ namespace HrdnLab.FpsWave.Enemies
         private void HandleServerDied(Health health, DamageInfo info)
         {
             ReleaseSlot();
+            SetHitboxesEnabled(false);
             _state = EnemyState.Dead;
             _target = null;
             if (_agent.enabled && _agent.isOnNavMesh)
@@ -354,13 +384,7 @@ namespace HrdnLab.FpsWave.Enemies
         }
 
 #if UNITY_EDITOR
-        public void EditorSetup(float moveSpeed, float attackDamage, float attackInterval, float attackRange)
-        {
-            _moveSpeed = moveSpeed;
-            _attackDamage = attackDamage;
-            _attackInterval = attackInterval;
-            _attackRange = attackRange;
-        }
+        public void EditorSetup(EnemyDefinition definition) => _definition = definition;
 #endif
     }
 }

@@ -58,3 +58,4 @@ Co-op PvE tra amici: l'obiettivo è **reattività locale** e **economia autorevo
 - Animazione procedurale calcolata sui client dalla posizione interpolata: nessun dato in più in rete.
 - Validazione colpi: tolleranza + velocità del bersaglio * 0.35 s (`IMovingTarget`).
 - Interest management per distanza non ancora attivo (Greybox piccola: tutti vedono tutto); da aggiungere con la mappa vasta (M7).
+- Conferma colpo: `TargetRpc` a chi ha sparato per ogni colpo andato a segno (punto 12 byte + danno `ushort` + flag `byte` critico/testa/uccisione); alimenta i numeri di danno e l'hit marker confermato. Con il fucile a 600 colpi/min sono ~200 B/s nel caso peggiore.

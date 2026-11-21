@@ -65,6 +65,12 @@ namespace HrdnLab.FpsWave.Weapons
         /// <summary>Solo player locale: un colpo ha toccato un bersaglio (predetto) o è stato confermato dal server (kill/critico).</summary>
         public event Action<HitMarkerType> LocalHitMarker;
 
+        /// <summary>
+        /// Solo per chi ha sparato: colpo confermato dal server (punto colpito, danno arrotondato, tipo di colpo).
+        /// Usato dai numeri di danno (<c>UI.DamageNumbers</c>).
+        /// </summary>
+        public event Action<Vector3, ushort, HitFlags> LocalHitConfirmed;
+
         public WeaponState Current => _local != null && _localEquipped >= 0 ? _local[_localEquipped] : null;
         public float AimAmount => _aim;
         public Camera ViewCamera => _look != null ? _look.Camera : null;
@@ -239,7 +245,13 @@ namespace HrdnLab.FpsWave.Weapons
             Vector3 muzzle = _muzzle != null ? _muzzle.position : origin;
             _fx?.Tracer(muzzle, end);
             if (hitSomething)
-                _fx?.Impact(hit.point, hit.normal);
+            {
+                // Sui personaggi niente segno permanente: resterebbe sospeso in aria quando il nemico si muove o sparisce.
+                if (zone != null)
+                    _fx?.FleshImpact(hit.point, hit.normal);
+                else
+                    _fx?.Impact(hit.point, hit.normal);
+            }
             FlashMuzzle();
             float recoilScale = Mathf.Lerp(1f, _adsRecoilMultiplier, _aim);
             _look?.AddRecoil(state.Stats.Get(StatType.RecoilPitch) * recoilScale,
@@ -439,8 +451,8 @@ namespace HrdnLab.FpsWave.Weapons
                 stats.Get(StatType.WeakspotMultiplier), crit, stats.Get(StatType.CritMultiplier));
             bool killed = health.ApplyDamage(new DamageInfo(damage, crit, zone.IsWeakspot, OwnerId, end));
 
-            if (killed || crit)
-                RpcConfirmHit(Owner, killed, crit);
+            // Conferma per ogni colpo andato a segno (≈20 byte): numeri di danno e, per kill/critico, l'hit marker confermato.
+            RpcConfirmHit(Owner, end, HitConfirm.PackDamage(damage), (byte)HitConfirm.MakeFlags(crit, zone.IsWeakspot, killed));
             return ShotRejectReason.None;
         }
 
@@ -455,9 +467,14 @@ namespace HrdnLab.FpsWave.Weapons
         }
 
         [TargetRpc]
-        private void RpcConfirmHit(NetworkConnection connection, bool killed, bool critical)
+        private void RpcConfirmHit(NetworkConnection connection, Vector3 point, ushort damage, byte flagBits)
         {
-            LocalHitMarker?.Invoke(killed ? HitMarkerType.Kill : HitMarkerType.Critical);
+            var flags = (HitFlags)flagBits;
+            if (HitConfirm.Has(flags, HitFlags.Kill))
+                LocalHitMarker?.Invoke(HitMarkerType.Kill);
+            else if (HitConfirm.Has(flags, HitFlags.Critical))
+                LocalHitMarker?.Invoke(HitMarkerType.Critical);
+            LocalHitConfirmed?.Invoke(point, damage, flags);
         }
 
         [ObserversRpc(ExcludeOwner = true)]

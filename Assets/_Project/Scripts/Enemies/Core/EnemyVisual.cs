@@ -109,13 +109,14 @@ namespace HrdnLab.FpsWave.Enemies
             if (_model == null)
                 return;
             float run = Mathf.Clamp01(_speed / Mathf.Max(0.1f, _runSpeedForFullCycle));
-            float bob = Mathf.Abs(Mathf.Sin(_phase)) * 0.09f * run;
-            float sway = Mathf.Sin(_phase) * 6f * run;
-            float lean = 14f * run + 25f * _lunge;
+            // Movimenti contenuti: le hitbox restano ferme (uguali sul server), il corpo visibile non deve allontanarsene.
+            float bob = Mathf.Abs(Mathf.Sin(_phase)) * 0.05f * run;
+            float sway = Mathf.Sin(_phase) * 4f * run;
+            float lean = 7f * run + 14f * _lunge;
             Quaternion alive = Quaternion.Euler(lean, 0f, sway);
             Quaternion dead = Quaternion.Euler(-88f, 0f, 0f);
             _model.localRotation = Quaternion.Slerp(alive, dead, _deathBlend);
-            _model.localPosition = new Vector3(0f, bob * (1f - _deathBlend) + 0.25f * _deathBlend, 0.35f * _lunge);
+            _model.localPosition = new Vector3(0f, bob * (1f - _deathBlend) + 0.25f * _deathBlend, 0.08f * _lunge);
         }
 
         private void ApplyColor()
@@ -132,10 +133,12 @@ namespace HrdnLab.FpsWave.Enemies
         }
 
 #if UNITY_EDITOR
-        public void EditorSetup(Transform model, Renderer[] renderers)
+        public void EditorSetup(Transform model, Renderer[] renderers, Color aliveColor, float runSpeedForFullCycle)
         {
             _model = model;
             _renderers = renderers;
+            _aliveColor = aliveColor;
+            _runSpeedForFullCycle = runSpeedForFullCycle;
         }
 #endif
     }

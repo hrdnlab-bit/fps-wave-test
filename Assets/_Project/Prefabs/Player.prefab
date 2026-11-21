@@ -239,6 +239,7 @@ GameObject:
   - component: {fileID: 6877239407612744869}
   - component: {fileID: 7516362521724315046}
   - component: {fileID: 5509995605537476103}
+  - component: {fileID: 6903490536038743217}
   m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
@@ -563,7 +564,27 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 139051151714448617}
   _networkObjectCache: {fileID: 0}
   _autoReviveDelay: 5
+  _maxAttackers: 3
   _motor: {fileID: 6190854792051640263}
+--- !u!114 &6903490536038743217
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3842048281382028655}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: befd504ef05ba944d9895099e369dc3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.UI.DamageNumbers
+  _weapons: {fileID: 4251965635168637423}
+  _lifetime: 0.9
+  _fontSize: 28
+  _normalColor: {r: 1, g: 1, b: 1, a: 1}
+  _weakspotColor: {r: 1, g: 0.74, b: 0.2, a: 1}
+  _criticalColor: {r: 1, g: 0.93, b: 0.15, a: 1}
+  _killColor: {r: 1, g: 0.32, b: 0.22, a: 1}
 --- !u!1 &8751762922156321670
 GameObject:
   m_ObjectHideFlags: 0

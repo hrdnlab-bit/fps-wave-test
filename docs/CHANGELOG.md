@@ -9,11 +9,18 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni sema
 - Pool di rete per i nemici (despawn al pool, cache iniziale di 24), NetworkTransform server-authoritative a 15 Hz con solo posizione + yaw.
 - Grafica procedurale del Runner sui client (corsa, affondo, colore per la salute, posa a terra) senza dati di rete aggiuntivi; hitbox separate dal modello animato.
 - Greybox: 16 muri di copertura alti 4 m e 102 nodi di spawn ai lati dei ripari.
-- Strumento `FpsWave/Setup/6. Build Enemies (M2)` (richiamato anche da `Setup/3`).
-- Test EditMode della selezione dei punti di spawn e della tolleranza sui bersagli in movimento (43/43).
+- **Tipi di nemico guidati dai dati**: ogni tipo ha la sua scheda `EnemyDefinition` (`Data/Enemies/`: salute, movimento, attacco, peso di spawn, gruppo, costo, wave d'ingresso) e il suo prefab (`Prefabs/Enemies/`); il director sceglie il tipo di ogni gruppo in base al peso. Catalogo unico dei tipi in `EnemyContentBuilder` (una voce = un nemico). Codice in `Scripts/Enemies/Core` e `Scripts/Enemies/Spawning`.
+- **Numeri di danno**: il server conferma ogni colpo a chi ha sparato (punto, danno, critico/testa/uccisione) e il client mostra numeri che si gonfiano, salgono e svaniscono; bianco normale, oro testa, giallo con "!" critico, rosso uccisione. Funzionano anche sui bersagli del poligono.
+- Strumento `FpsWave/Setup/6. Build Enemies` (richiamato anche da `Setup/3`).
+- Test EditMode della selezione dei punti di spawn, della scelta del tipo, della conferma colpo e delle curve dei numeri di danno (50/50).
+
+### Fixed
+- Il segno nero del proiettile restava sospeso in aria dopo la morte del nemico: sui personaggi ora c'è uno schizzo rosso che sparisce in 0.14 s (nessun segno permanente) e da morto il nemico non è più colpibile (hitbox spente), così i colpi finiscono sull'ambiente.
 
 ### Changed
 - Validazione dei colpi: tolleranza sul bersaglio allargata di velocità * 0.35 s per i bersagli in movimento (`IMovingTarget`), necessaria per colpire i nemici che corrono.
+- Conferma colpo dal server a ogni colpo andato a segno (prima solo per kill e critici), ~20 byte per colpo.
+- Animazione del Runner più contenuta (inclinazione e affondo ridotti) perché il corpo visibile resti vicino alle hitbox.
 - Player: componente `EnemyTarget` (registro dei bersagli dei nemici). TEMPORANEO: dopo la morte il player torna in vita sul posto dopo 5 s, finché non arrivano "a terra" e rianimazione.
 
 ## [0.2.0] - 2026-11-21

@@ -95,6 +95,31 @@ namespace HrdnLab.FpsWave.Enemies
             return count - 1;
         }
 
+        /// <summary>
+        /// Scelta pesata "pura" (per i tipi di nemico): un peso 0 non viene mai scelto; -1 se tutti i pesi sono 0.
+        /// </summary>
+        public static int PickByWeight(float[] weights, int count, float roll01)
+        {
+            float total = 0f;
+            for (int i = 0; i < count; i++)
+                total += Mathf.Max(0f, weights[i]);
+            if (total <= 0f)
+                return -1;
+            float r = Mathf.Clamp01(roll01) * total;
+            int last = -1;
+            for (int i = 0; i < count; i++)
+            {
+                float w = Mathf.Max(0f, weights[i]);
+                if (w <= 0f)
+                    continue;
+                last = i;
+                r -= w;
+                if (r < 0f)
+                    return i;
+            }
+            return last;
+        }
+
         /// <summary>Quanti nemici vivi tenere in campo (test M2, prima che M3 introduca le wave).</summary>
         public static int TargetAlive(int alivePlayers, int baseAlive, int perPlayer, int hardCap)
         {

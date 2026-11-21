@@ -18,7 +18,7 @@ Ultimo aggiornamento: 2026-11-21 (versione 0.2.0)
 3. Steam in Editor: nel menu "Disconnetti" -> "Host Steam (crea lobby)". In Editor l'overlay di Steam non compare.
 4. Controlli: WASD, mouse, Shift sprint, Ctrl/C crouch, Spazio salto, sinistro spara, destro mira, R ricarica, 1 fucile, 2 pistola, Esc libera il cursore, Home (sviluppo) riallinea la visuale.
 5. Build per l'amico: `FpsWave/Build/Windows + Zip (test con amici)` -> `Build/FpsWaveTest_0.2.0_win64.zip` (~66 MB). Istruzioni in `LEGGIMI.txt` dentro lo zip.
-6. Nemici (M2): `FpsWave/Setup/6. Build Enemies (M2)` rigenera prefab `Enemy_Runner`, muri, nodi di spawn ed EnemyDirector nella Greybox (lo richiama anche `Setup/3`). In Play: **F8** sull'Host attiva/disattiva gli spawn; il player morto torna in vita dopo 5 s (temporaneo).
+6. Nemici (M2): `FpsWave/Setup/6. Build Enemies` rigenera, dal catalogo in `EnemyContentBuilder`, le schede `Data/Enemies/` e i prefab `Prefabs/Enemies/`, più muri, nodi di spawn ed EnemyDirector nella Greybox (lo richiama anche `Setup/3`). Le statistiche di un tipo si ritoccano nella sua scheda. In Play: **F8** sull'Host attiva/disattiva gli spawn; il player morto torna in vita dopo 5 s (temporaneo).
 7. Rigenerazione contenuti (disattivare prima i giocatori virtuali): `Setup/3` (mappa, player, armi), poi `Setup/4` (view model armi; la pistola viene copiata da `Download/FPS Guns 4K - Pistol 2` se non è già nel progetto), `Setup/5` (Steam/Multipass).
 
 ## Script chiave
@@ -28,7 +28,8 @@ Ultimo aggiornamento: 2026-11-21 (versione 0.2.0)
 | Combattimento | `Scripts/Combat/` (Health, HitZone, DamageInfo, TrainingDummy) |
 | Player | `Scripts/Player/` (FpsInput, PlayerInputReader, PlayerMotor, PlayerLook, PlayerView, PlayerSpawnPoint) |
 | Armi | `Scripts/Weapons/` (WeaponDefinition, WeaponState, FireRateLimiter, ShotValidation, PlayerWeapons, ShotFxPool, WeaponViewModel) |
-| Nemici | `Scripts/Enemies/` (EnemyDirector: NavMesh runtime, spawn, AI a turno; EnemyAgent: Runner; EnemyTarget: registro dei player; EnemyVisual; SpawnScoring; EnemySpawnNode) |
+| Nemici | `Scripts/Enemies/Core/` (EnemyDefinition: scheda del tipo; EnemyAgent: AI corpo a corpo; EnemyTarget: registro dei player; EnemyVisual) e `Scripts/Enemies/Spawning/` (EnemyDirector: NavMesh runtime, spawn, AI a turno; SpawnScoring; EnemySpawnNode). Dati in `Data/Enemies/`, prefab in `Prefabs/Enemies/` |
+| Numeri di danno | `Scripts/UI/DamageNumbers.cs`, conferma colpo in `Weapons/HitConfirm.cs` + `PlayerWeapons.RpcConfirmHit` |
 | Rete | `Scripts/Net/` (NetBootstrapMenu: menu LAN/Steam; NetTransports: Multipass; SteamService: Steam, lobby, inviti; GameSession; PlayerSpawnService; EditorInstanceInfo) |
 | Editor | `Scripts/Editor/` (M1ContentBuilder `Setup/3`, WeaponViewModelBuilder `Setup/4`, SteamSetupTools `Setup/5`, BuildTools `Build/...`, PlayModeNetworkGuard, ConsoleLogMirror) |
 | Terze parti | `Assets/ThirdParty/FishySteamworks/` (codice, nel repo), `Assets/ThirdParty/Fab/M4Animations/` e `Fab/Pistol2/` (binari solo sul PC) |

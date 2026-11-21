@@ -10,6 +10,8 @@ namespace HrdnLab.FpsWave.Weapons
     {
         private const int TracerCount = 24;
         private const int ImpactCount = 48;
+        private const int FleshCount = 16;
+        private const float FleshLifetime = 0.14f;
         private const float TracerLifetime = 0.06f;
         private const float ImpactLifetime = 8f;
 
@@ -21,6 +23,10 @@ namespace HrdnLab.FpsWave.Weapons
         private float[] _impactExpiry;
         private int _nextTracer;
         private int _nextImpact;
+        private Transform[] _flesh;
+        private float[] _fleshExpiry;
+        private int _nextFlesh;
+        private Material _fleshMaterial;
 
         /// <summary>Restituisce il pool della scena corrente, creandolo al primo uso.</summary>
         public static ShotFxPool Get(Material tracerMaterial, Material impactMaterial)
@@ -68,10 +74,30 @@ namespace HrdnLab.FpsWave.Weapons
                 quad.SetActive(false);
                 _impacts[i] = quad.transform;
             }
+
+            // Colpo sui personaggi: schizzo rosso che si allarga e sparisce in un attimo (nessun segno permanente).
+            _fleshMaterial = new Material(impactMaterial);
+            _fleshMaterial.SetColor("_BaseColor", new Color(0.7f, 0.04f, 0.02f));
+            _flesh = new Transform[FleshCount];
+            _fleshExpiry = new float[FleshCount];
+            for (int i = 0; i < FleshCount; i++)
+            {
+                var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                Destroy(quad.GetComponent<Collider>());
+                quad.name = "FleshHit";
+                quad.transform.SetParent(transform, false);
+                var r = quad.GetComponent<MeshRenderer>();
+                r.sharedMaterial = _fleshMaterial;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                quad.SetActive(false);
+                _flesh[i] = quad.transform;
+            }
         }
 
         private void OnDestroy()
         {
+            if (_fleshMaterial != null)
+                Destroy(_fleshMaterial);
             if (_instance == this)
                 _instance = null;
         }
@@ -96,9 +122,34 @@ namespace HrdnLab.FpsWave.Weapons
             t.gameObject.SetActive(true);
         }
 
+        /// <summary>Colpo su un personaggio: effetto brevissimo, mai lasciato in scena.</summary>
+        public void FleshImpact(Vector3 point, Vector3 normal)
+        {
+            Transform t = _flesh[_nextFlesh];
+            _fleshExpiry[_nextFlesh] = Time.time + FleshLifetime;
+            _nextFlesh = (_nextFlesh + 1) % FleshCount;
+            t.SetPositionAndRotation(point + normal * 0.02f, Quaternion.LookRotation(-normal) * Quaternion.Euler(0f, 0f, Random.value * 360f));
+            t.localScale = Vector3.one * 0.06f;
+            t.gameObject.SetActive(true);
+        }
+
         private void Update()
         {
             float now = Time.time;
+            for (int i = 0; i < FleshCount; i++)
+            {
+                if (_fleshExpiry[i] <= 0f)
+                    continue;
+                float remaining = _fleshExpiry[i] - now;
+                if (remaining <= 0f)
+                {
+                    _fleshExpiry[i] = 0f;
+                    _flesh[i].gameObject.SetActive(false);
+                    continue;
+                }
+                float k = 1f - remaining / FleshLifetime; // 0 -> 1
+                _flesh[i].localScale = Vector3.one * Mathf.Lerp(0.06f, 0.2f, k);
+            }
             for (int i = 0; i < TracerCount; i++)
             {
                 if (_tracers[i].enabled && now >= _tracerExpiry[i])

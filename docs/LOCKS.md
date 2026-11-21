@@ -11,7 +11,8 @@ Regole:
 | File o area | Chi | Branch | Dal | Note |
 |---|---|---|---|---|
 | `Assets/_Project/Scenes/Greybox.unity` | Matteo | `matteo/m2-runner` | 2026-11-21 | muri di copertura, nodi di spawn, EnemyDirector |
-| `Assets/_Project/Prefabs/Player.prefab` | Matteo | `matteo/m2-runner` | 2026-11-21 | aggiunto EnemyTarget |
-| `Assets/_Project/Prefabs/Enemy_Runner.prefab` | Matteo | `matteo/m2-runner` | 2026-11-21 | nuovo |
+| `Assets/_Project/Prefabs/Player.prefab` | Matteo | `matteo/m2-runner` | 2026-11-21 | aggiunti EnemyTarget e DamageNumbers |
+| `Assets/_Project/Prefabs/Enemies/**` | Matteo | `matteo/m2-runner` | 2026-11-21 | prefab dei nemici (generati da Setup/6) |
+| `Assets/_Project/Data/Enemies/**` | Matteo | `matteo/m2-runner` | 2026-11-21 | schede dei tipi di nemico |
 | `Assets/DefaultPrefabObjects.asset` | Matteo | `matteo/m2-runner` | 2026-11-21 | registrato Enemy_Runner |
 | Area nemici / spawn / wave (`Scripts/Enemies/`) | Matteo | `matteo/m2-runner` | 2026-11-21 | area dichiarata |

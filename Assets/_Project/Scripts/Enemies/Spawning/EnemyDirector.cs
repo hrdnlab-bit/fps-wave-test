@@ -27,18 +27,18 @@ namespace HrdnLab.FpsWave.Enemies
             public Vector3 Position;
             public Quaternion Rotation;
             public EnemyTarget Target;
+            public NetworkObject Prefab;
         }
 
-        [Header("Nemici")]
-        [SerializeField] private NetworkObject _runnerPrefab;
-        [SerializeField, Min(0)] private int _prewarmCount = 24;
+        [Header("Tipi di nemico (Assets/_Project/Data/Enemies)")]
+        [Tooltip("Tipi che il director può spawnare; per ogni gruppo ne sceglie uno in base a SpawnWeight.")]
+        [SerializeField] private EnemyDefinition[] _enemyTypes = System.Array.Empty<EnemyDefinition>();
 
         [Header("Quantità (test M2, sostituito dalle wave in M3)")]
         [SerializeField] private bool _spawningEnabled = true;
         [SerializeField, Min(0)] private int _baseAlive = 4;
         [SerializeField, Min(0)] private int _alivePerPlayer = 4;
         [SerializeField, Min(1)] private int _hardCap = 40;
-        [SerializeField] private Vector2Int _groupSize = new(2, 4);
         [SerializeField, Min(0f)] private float _startDelay = 4f;
         [SerializeField, Min(0.1f)] private float _groupCooldown = 2.5f;
         [SerializeField, Min(0.1f)] private float _tickInterval = 0.5f;
@@ -80,6 +80,7 @@ namespace HrdnLab.FpsWave.Enemies
         private readonly int[] _topIds = new int[SpawnScoring.TopCount];
         private readonly float[] _topScores = new float[SpawnScoring.TopCount];
         private int[] _pressure = new int[8];
+        private float[] _typeWeights = System.Array.Empty<float>();
 
         private float _nextTick;
         private float _nextGroup;
@@ -103,9 +104,9 @@ namespace HrdnLab.FpsWave.Enemies
                 enabled = false; // client puro: niente director, niente NavMesh
                 return;
             }
-            if (_runnerPrefab == null)
+            if (!HasSpawnableType())
             {
-                Debug.LogError("[FpsWave] EnemyDirector: prefab del Runner non assegnato (eseguire FpsWave/Setup/6).");
+                Debug.LogError("[FpsWave] EnemyDirector: nessun tipo di nemico con prefab assegnato (eseguire FpsWave/Setup/6).");
                 enabled = false;
                 return;
             }
@@ -113,12 +114,17 @@ namespace HrdnLab.FpsWave.Enemies
             _path = new NavMeshPath();
             BuildNavMesh();
             InitNodes();
-            if (_prewarmCount > 0)
-                _networkManager.CacheObjects(_runnerPrefab, _prewarmCount, asServer: true);
+            _typeWeights = new float[_enemyTypes.Length];
+            for (int i = 0; i < _enemyTypes.Length; i++)
+            {
+                EnemyDefinition type = _enemyTypes[i];
+                if (type != null && type.Prefab != null && type.PoolPrewarm > 0)
+                    _networkManager.CacheObjects(type.Prefab, type.PoolPrewarm, asServer: true);
+            }
 
             _nextTick = Time.time + _startDelay;
             _nextGroup = _nextTick;
-            Debug.Log($"[FpsWave][Server] EnemyDirector pronto: {_nodePositions.Length} nodi di spawn, F8 attiva/disattiva gli spawn.");
+            Debug.Log($"[FpsWave][Server] EnemyDirector pronto: {_enemyTypes.Length} tipi di nemico, {_nodePositions.Length} nodi di spawn, F8 attiva/disattiva gli spawn.");
         }
 
         private void OnDestroy()
@@ -310,10 +316,11 @@ namespace HrdnLab.FpsWave.Enemies
                 return;
 
             EnemyTarget victim = LeastPressuredPlayer(targets);
-            if (victim == null)
+            EnemyDefinition type = PickEnemyType();
+            if (victim == null || type == null)
                 return;
-            int size = Mathf.Min(Random.Range(_groupSize.x, _groupSize.y + 1), wanted - planned);
-            _nextGroup = TryQueueGroup(victim, size, targets, now) ? now + _groupCooldown : now + _tickInterval;
+            int size = Mathf.Min(Random.Range(type.GroupMin, type.GroupMax + 1), wanted - planned);
+            _nextGroup = TryQueueGroup(type, victim, size, targets, now) ? now + _groupCooldown : now + _tickInterval;
         }
 
         /// <summary>Pressione per giocatore = nemici che lo stanno inseguendo; i nuovi gruppi vanno a chi ne ha meno.</summary>
@@ -349,7 +356,27 @@ namespace HrdnLab.FpsWave.Enemies
             return best;
         }
 
-        private bool TryQueueGroup(EnemyTarget victim, int size, List<EnemyTarget> targets, float now)
+        /// <summary>Un tipo per gruppo (gruppi omogenei, più credibili), scelto a caso in base a SpawnWeight.</summary>
+        private EnemyDefinition PickEnemyType()
+        {
+            for (int i = 0; i < _enemyTypes.Length; i++)
+            {
+                EnemyDefinition type = _enemyTypes[i];
+                _typeWeights[i] = type != null && type.Prefab != null ? type.SpawnWeight : 0f;
+            }
+            int index = SpawnScoring.PickByWeight(_typeWeights, _typeWeights.Length, Random.value);
+            return index >= 0 ? _enemyTypes[index] : null;
+        }
+
+        private bool HasSpawnableType()
+        {
+            for (int i = 0; i < _enemyTypes.Length; i++)
+                if (_enemyTypes[i] != null && _enemyTypes[i].Prefab != null && _enemyTypes[i].SpawnWeight > 0f)
+                    return true;
+            return false;
+        }
+
+        private bool TryQueueGroup(EnemyDefinition type, EnemyTarget victim, int size, List<EnemyTarget> targets, float now)
         {
             if (size <= 0)
                 return false;
@@ -380,7 +407,7 @@ namespace HrdnLab.FpsWave.Enemies
                     if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, 1.2f, NavMesh.AllAreas))
                         p = hit.position;
                 }
-                _pending.Enqueue(new PendingSpawn { Position = p, Rotation = rotation, Target = victim });
+                _pending.Enqueue(new PendingSpawn { Position = p, Rotation = rotation, Target = victim, Prefab = type.Prefab });
             }
             _nodeLastUsed[node] = now;
             return true;
@@ -446,7 +473,7 @@ namespace HrdnLab.FpsWave.Enemies
                 PendingSpawn request = _pending.Dequeue();
                 if (request.Target == null || !request.Target.IsAlive)
                     continue; // il bersaglio è morto o uscito: il tick successivo riprogramma
-                NetworkObject nob = _networkManager.GetPooledInstantiated(_runnerPrefab, request.Position, request.Rotation, asServer: true);
+                NetworkObject nob = _networkManager.GetPooledInstantiated(request.Prefab, request.Position, request.Rotation, asServer: true);
                 if (nob == null)
                     break;
                 _networkManager.ServerManager.Spawn(nob, null, gameObject.scene);
@@ -569,9 +596,9 @@ namespace HrdnLab.FpsWave.Enemies
         }
 
 #if UNITY_EDITOR
-        public void EditorSetup(NetworkObject runnerPrefab, Vector3 navMeshCenter, Vector3 navMeshSize)
+        public void EditorSetup(EnemyDefinition[] enemyTypes, Vector3 navMeshCenter, Vector3 navMeshSize)
         {
-            _runnerPrefab = runnerPrefab;
+            _enemyTypes = enemyTypes;
             _navMeshCenter = navMeshCenter;
             _navMeshSize = navMeshSize;
         }
