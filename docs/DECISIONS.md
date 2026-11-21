@@ -84,3 +84,4 @@ Formato: data | decisione | motivo | alternative scartate | chi.
 - Tutto il testo del gioco in inglese (richiesta di Matteo); documenti e commenti restano in italiano.
 - Traccianti: scia che viaggia alla velocità del proiettile, al tiratore solo 1 colpo su 3 delle automatiche; numeri di danno a due toni (bianco / oro tenue di precisione). Riferimento: sparatutto AAA, niente colori accesi.
 - Rinculo: tap più morbido della raffica (FirstShotMultiplier < 1), variazione casuale verticale e laterale moderata.
+- Fuoco da fianco: niente salita della mira, si paga in dispersione (bloom che cresce fino al massimo e cala dopo 0.2 s); mirando il rinculo alla Siege. Scelta di Matteo: separa bene "spray da vicino" e "tiro controllato".

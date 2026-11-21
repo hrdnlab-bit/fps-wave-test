@@ -17,23 +17,23 @@ namespace HrdnLab.FpsWave.Tests
         }
 
         [Test]
-        public void Kick_IsReducedWhenAimingAndCrouching()
+        public void Kick_HipfireBarelyClimbs_AdsIsFull_CrouchReduces()
         {
-            var feel = new WeaponFeel { AdsMultiplier = 0.5f, CrouchMultiplier = 0.8f, HorizontalRandomness = 0f, PatternStrength = 0f, VerticalMultiplier = 1f };
+            var feel = new WeaponFeel { HipRecoilMultiplier = 0.2f, AdsMultiplier = 1f, CrouchMultiplier = 0.8f, HorizontalRandomness = 0f, PatternStrength = 0f, VerticalMultiplier = 1f };
             Vector2 hip = RecoilMath.Kick(feel, 1f, 0.3f, 3, 42, 0f, false, 0.5f);
             Vector2 ads = RecoilMath.Kick(feel, 1f, 0.3f, 3, 42, 1f, false, 0.5f);
             Vector2 adsCrouch = RecoilMath.Kick(feel, 1f, 0.3f, 3, 42, 1f, true, 0.5f);
-            Assert.That(ads.x, Is.EqualTo(hip.x * 0.5f).Within(1e-4f));
-            Assert.That(adsCrouch.x, Is.EqualTo(hip.x * 0.4f).Within(1e-4f));
+            Assert.That(hip.x, Is.EqualTo(ads.x * 0.2f).Within(1e-4f));
+            Assert.That(adsCrouch.x, Is.EqualTo(ads.x * 0.8f).Within(1e-4f));
         }
 
         [Test]
         public void VerticalRandomness_VariesTheClimbWithinItsRange()
         {
             var feel = new WeaponFeel { VerticalMultiplier = 1f, FirstShotMultiplier = 1f, VerticalRandomness = 0.2f };
-            float low = RecoilMath.Kick(feel, 1f, 0f, 0, 1, 0f, false, 0.5f, 0f).x;
-            float mid = RecoilMath.Kick(feel, 1f, 0f, 0, 1, 0f, false, 0.5f, 0.5f).x;
-            float high = RecoilMath.Kick(feel, 1f, 0f, 0, 1, 0f, false, 0.5f, 1f).x;
+            float low = RecoilMath.Kick(feel, 1f, 0f, 0, 1, 1f, false, 0.5f, 0f).x;
+            float mid = RecoilMath.Kick(feel, 1f, 0f, 0, 1, 1f, false, 0.5f, 0.5f).x;
+            float high = RecoilMath.Kick(feel, 1f, 0f, 0, 1, 1f, false, 0.5f, 1f).x;
             Assert.That(low, Is.EqualTo(0.8f).Within(1e-4f));
             Assert.That(mid, Is.EqualTo(1f).Within(1e-4f));
             Assert.That(high, Is.EqualTo(1.2f).Within(1e-4f));

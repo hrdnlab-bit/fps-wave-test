@@ -10,6 +10,10 @@ namespace HrdnLab.FpsWave.Weapons
     {
         private double _nextShotTime;
         private double _reloadEndTime;
+        private double _lastShotTime = double.MinValue;
+
+        /// <summary>Pausa senza sparare prima che il bloom inizi a calare: sparando di continuo la precisione peggiora fino al massimo.</summary>
+        public const float BloomRecoveryDelay = 0.2f;
 
         public WeaponDefinition Definition { get; }
         public StatBlock Stats { get; }
@@ -37,7 +41,7 @@ namespace HrdnLab.FpsWave.Weapons
                 IsReloading = false;
                 Ammo = MagazineSize;
             }
-            if (Bloom > 0f)
+            if (Bloom > 0f && now - _lastShotTime >= BloomRecoveryDelay)
             {
                 Bloom -= bloomRecoveryPerSecond * deltaTime;
                 if (Bloom < 0f) Bloom = 0f;
@@ -50,6 +54,7 @@ namespace HrdnLab.FpsWave.Weapons
         public void RegisterShot(double now, float maxBloom)
         {
             Ammo--;
+            _lastShotTime = now;
             // Se il colpo arriva in ritardo (frame lento), non si "recupera" cadenza oltre un intervallo.
             double baseTime = now - _nextShotTime > ShotInterval ? now : _nextShotTime;
             _nextShotTime = baseTime + ShotInterval;

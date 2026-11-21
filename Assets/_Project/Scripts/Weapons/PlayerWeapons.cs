@@ -94,7 +94,7 @@ namespace HrdnLab.FpsWave.Weapons
                 WeaponState s = Current;
                 if (s == null) return 0f;
                 float baseSpread = Mathf.Lerp(s.Stats.Get(StatType.HipSpread), s.Stats.Get(StatType.AdsSpread), _aim);
-                return baseSpread + s.Bloom * Mathf.Lerp(1f, 0.5f, _aim);
+                return baseSpread + s.Bloom * Mathf.Lerp(1f, 0.2f, _aim); // da fianco il bloom pesa tutto, mirando quasi nulla (lì c'è il rinculo)
             }
         }
 

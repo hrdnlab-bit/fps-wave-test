@@ -52,7 +52,8 @@ MonoBehaviour:
     ReturnSpeed: 9
     PermanentFraction: 0.85
     BurstResetTime: 0.3
-    AdsMultiplier: 0.65
+    HipRecoilMultiplier: 0.2
+    AdsMultiplier: 1
     CrouchMultiplier: 0.8
     ViewKickScale: 0.6
     KickPosition: {x: 0.001, y: 0.002, z: -0.022}

@@ -34,6 +34,10 @@ namespace HrdnLab.FpsWave.Weapons
         [SerializeField] private Vector3 _sprintPosition = new(0.04f, -0.07f, -0.04f);
         [SerializeField] private Vector3 _sprintRotation = new(10f, -24f, 10f);
 
+        [Header("Posa accovacciati")]
+        [SerializeField] private Vector3 _crouchPosition = new(-0.008f, -0.014f, 0.006f);
+        [SerializeField] private Vector3 _crouchRotation = new(0f, 0f, 4f);
+
         [Header("Estrazione")]
         [SerializeField] private Vector3 _drawPosition = new(0f, -0.14f, -0.06f);
         [SerializeField] private Vector3 _drawRotation = new(28f, -12f, 8f);
@@ -42,10 +46,16 @@ namespace HrdnLab.FpsWave.Weapons
         private int _seed;
         private Spring3 _posSpring;
         private Spring3 _rotSpring;
-        private Vector3 _sway;
+        private Spring3 _swaySpring;
+        private Vector3 _prevLocalVelocity;
+        private Vector3 _inertia;
         private float _bobPhase;
         private float _bobWeight;
         private float _sprint;
+        private float _sprintVelocity;
+        private float _crouch;
+        private float _crouchVelocity;
+        private float _air;
         private float _tilt;
         private bool _wasGrounded = true;
         private float _fallSpeed;
@@ -97,7 +107,8 @@ namespace HrdnLab.FpsWave.Weapons
                 _shotIndex, _seed, aim, crouching, Random.value, Random.value);
             if (_look != null)
             {
-                _look.AddRecoilKick(kick, _feel.PermanentFraction, _feel.Snappiness, _feel.ReturnSpeed);
+                // Da fianco il piccolo calcio torna tutto da solo (la mira non sale); mirando resta la parte permanente da compensare.
+                _look.AddRecoilKick(kick, _feel.PermanentFraction * aim, _feel.Snappiness, _feel.ReturnSpeed);
                 _look.AddTrauma(_feel.ShakePerShot * Mathf.Lerp(1f, 0.5f, aim));
                 _look.AddFovPunch(_feel.FovPunch * Mathf.Lerp(1f, 0.4f, aim));
             }
@@ -145,7 +156,15 @@ namespace HrdnLab.FpsWave.Weapons
 
         public bool MuzzleFlashOver => Time.time - _flashTime >= MuzzleFlashTime;
 
-        /// <summary>Posa finale della radice del view model: base (anca/mira) + tutti gli effetti.</summary>
+        /// <summary>
+        /// Posa finale della radice del view model: base (anca/mira) + tutti gli effetti, pensati per sembrare un'arma
+        /// tenuta da una persona e non incollata alla camera:
+        /// - oscillazione del mouse su una molla (l'arma resta indietro e si assesta con un piccolo rimbalzo);
+        /// - inerzia del corpo: partendo, frenando o cambiando direzione l'arma "pesa" e si inclina;
+        /// - passo sincronizzato con la distanza percorsa (non col tempo), più ampio e veloce in corsa;
+        /// - corsa e accovacciamento con transizioni smorzate (niente scatti), salto e atterraggio con molla;
+        /// - respiro da fermi, tremolio a calore alto (solo armi a energia). Mirando quasi tutto si ferma.
+        /// </summary>
         public void ApplyViewModel(Transform root, Vector3 basePosition, float aim, float dt)
         {
             if (root == null || dt <= 0f)
@@ -153,39 +172,67 @@ namespace HrdnLab.FpsWave.Weapons
 
             _posSpring.Update(dt, _feel.PositionStiffness, _feel.PositionDamping);
             _rotSpring.Update(dt, _feel.RotationStiffness, _feel.RotationDamping);
-            float steady = Mathf.Lerp(1f, 0.15f, aim); // mirando quasi tutto si ferma
+            float steady = Mathf.Lerp(1f, 0.12f, aim); // mirando quasi tutto si ferma
 
-            // Oscillazione: l'arma resta indietro rispetto alla rotazione della visuale.
+            // Oscillazione del mouse: bersaglio proporzionale alla velocità di rotazione, inseguito da una molla
+            // appena sotto lo smorzamento critico (si assesta con un rimbalzo minimo, come un'arma con un po' di peso).
             Vector2 look = _input != null ? _input.LookDelta : Vector2.zero;
             Vector2 lookSpeed = look / dt; // gradi al secondo
-            float k = _feel.SwayAmount * 0.012f;
+            float k = _feel.SwayAmount * 0.01f;
+            float max = _feel.SwayMax;
             var swayTarget = new Vector3(
-                Mathf.Clamp(lookSpeed.y * k, -_feel.SwayMax, _feel.SwayMax),
-                Mathf.Clamp(-lookSpeed.x * k, -_feel.SwayMax, _feel.SwayMax),
-                Mathf.Clamp(-lookSpeed.x * k * 0.6f, -_feel.SwayMax, _feel.SwayMax)) * steady;
-            _sway = Vector3.Lerp(_sway, swayTarget, RecoilMath.ExpBlend(_feel.SwaySmoothing, dt));
-            var swayPos = new Vector3(-_sway.y, _sway.x, 0f) * 0.0025f;
+                Mathf.Clamp(lookSpeed.y * k, -max, max),
+                Mathf.Clamp(-lookSpeed.x * k, -max, max),
+                Mathf.Clamp(-lookSpeed.x * k * 0.8f, -max, max)) * steady;
+            float swayStiffness = _feel.SwaySmoothing * _feel.SwaySmoothing * 1.6f;
+            _swaySpring.Update(dt, swayStiffness, 2f * Mathf.Sqrt(swayStiffness) * 0.8f, swayTarget);
+            Vector3 sway = _swaySpring.Value;
+            var swayPos = new Vector3(-sway.y, sway.x, 0f) * 0.0022f;
 
-            // Passo, corsa, inclinazione
+            // Movimento del corpo
             Vector3 velocity = _motor != null ? _motor.Velocity : Vector3.zero;
             Vector3 flat = new(velocity.x, 0f, velocity.z);
             float speed = flat.magnitude;
             bool grounded = _motor == null || _motor.IsGrounded;
             bool sprinting = _motor != null && _motor.IsSprinting && aim < 0.1f && speed > 1f;
-            _sprint = Mathf.Lerp(_sprint, sprinting ? 1f : 0f, RecoilMath.ExpBlend(8f, dt));
-            _bobWeight = Mathf.Lerp(_bobWeight, grounded ? Mathf.Clamp01(speed / 5f) : 0f, RecoilMath.ExpBlend(10f, dt));
-            _bobPhase += dt * Mathf.Lerp(7.5f, 11f, _sprint) * Mathf.Clamp(speed / 5f, 0.6f, 1.6f);
-            float amp = _feel.BobAmount * _bobWeight * steady * Mathf.Lerp(1f, 1.8f, _sprint);
-            var bobPos = new Vector3(Mathf.Cos(_bobPhase) * 0.012f, Mathf.Sin(_bobPhase * 2f) * 0.008f, 0f) * amp;
-            var bobRot = new Vector3(Mathf.Sin(_bobPhase * 2f) * 0.8f, Mathf.Cos(_bobPhase) * 0.6f, Mathf.Cos(_bobPhase) * 1.1f) * amp;
-
+            bool crouching = _motor != null && _motor.IsCrouching;
             Vector3 localVelocity = transform.InverseTransformDirection(flat);
-            float strafe = Mathf.Clamp(localVelocity.x / 5f, -1f, 1f);
-            _tilt = Mathf.Lerp(_tilt, -strafe * _feel.StrafeTilt * steady, RecoilMath.ExpBlend(8f, dt));
 
-            // Atterraggio: affondo proporzionale alla velocità di caduta.
+            // Inerzia: l'arma reagisce all'accelerazione (resta indietro partendo, va avanti frenando, si inclina sterzando).
+            Vector3 accel = (localVelocity - _prevLocalVelocity) / dt;
+            _prevLocalVelocity = localVelocity;
+            _inertia = Vector3.Lerp(_inertia, accel, RecoilMath.ExpBlend(9f, dt));
+            var inertiaPos = new Vector3(
+                Mathf.Clamp(-_inertia.x * 0.0011f, -0.012f, 0.012f), 0f,
+                Mathf.Clamp(-_inertia.z * 0.0009f, -0.012f, 0.012f)) * steady;
+            var inertiaRot = new Vector3(Mathf.Clamp(_inertia.z * 0.08f, -2f, 2f), 0f, Mathf.Clamp(_inertia.x * 0.22f, -3f, 3f)) * steady;
+
+            // Corsa e accovacciamento: transizioni smorzate.
+            _sprint = Mathf.SmoothDamp(_sprint, sprinting ? 1f : 0f, ref _sprintVelocity, 0.14f, Mathf.Infinity, dt);
+            _crouch = Mathf.SmoothDamp(_crouch, crouching ? 1f : 0f, ref _crouchVelocity, 0.12f, Mathf.Infinity, dt);
+
+            // Passo: la fase avanza con la distanza percorsa (un passo ogni ~0.8 m camminando, ~1.1 m correndo).
+            _bobWeight = Mathf.Lerp(_bobWeight, grounded ? Mathf.Clamp01(speed / 4.5f) : 0f, RecoilMath.ExpBlend(8f, dt));
+            float stepLength = Mathf.Lerp(0.8f, 1.1f, _sprint);
+            _bobPhase = (_bobPhase + speed * dt / stepLength * Mathf.PI) % (Mathf.PI * 2f);
+            float amp = _feel.BobAmount * _bobWeight * steady;
+            float big = 1f + 1.3f * _sprint;
+            float s1 = Mathf.Sin(_bobPhase);
+            float step = Mathf.Abs(s1); // 0 sul piede, 1 a metà passo: due "affondi" per ciclo
+            var bobPos = new Vector3(s1 * 0.009f * big, (0.5f - step) * 0.012f * big, 0f) * amp;
+            var bobRot = new Vector3(step * 1.1f * big, s1 * 0.7f * big, s1 * 1.3f * big) * amp;
+
+            float strafe = Mathf.Clamp(localVelocity.x / 5f, -1f, 1f);
+            _tilt = Mathf.Lerp(_tilt, -strafe * _feel.StrafeTilt * steady, RecoilMath.ExpBlend(7f, dt));
+
+            // Salto e caduta: l'arma si abbassa allo stacco, sale leggermente mentre si cade, affonda all'atterraggio.
             if (!grounded)
                 _fallSpeed = Mathf.Min(_fallSpeed, velocity.y);
+            if (!grounded && _wasGrounded && velocity.y > 1f)
+            {
+                _posSpring.AddImpulse(new Vector3(0f, -0.025f, -0.01f) * Mathf.Sqrt(_feel.PositionStiffness));
+                _rotSpring.AddImpulse(new Vector3(3f, 0f, 0f) * Mathf.Sqrt(_feel.RotationStiffness));
+            }
             if (grounded && !_wasGrounded)
             {
                 float impact = Mathf.Clamp01(-_fallSpeed / 10f);
@@ -194,6 +241,10 @@ namespace HrdnLab.FpsWave.Weapons
                 _fallSpeed = 0f;
             }
             _wasGrounded = grounded;
+            float airTarget = grounded ? 0f : Mathf.Clamp(-velocity.y * 0.003f, -0.015f, 0.02f);
+            _air = Mathf.Lerp(_air, airTarget, RecoilMath.ExpBlend(6f, dt));
+            var airPos = new Vector3(0f, _air, 0f) * steady;
+            var airRot = new Vector3(-_air * 120f, 0f, 0f) * steady;
 
             // Respiro da fermi
             _breath += dt;
@@ -201,12 +252,13 @@ namespace HrdnLab.FpsWave.Weapons
             var breathPos = new Vector3(0f, Mathf.Sin(_breath * 1.6f) * 0.0025f, 0f) * idle;
             var breathRot = new Vector3(Mathf.Sin(_breath * 1.6f + 0.6f) * 0.35f, Mathf.Cos(_breath * 0.9f) * 0.25f, 0f) * idle;
 
-            // Posa di corsa
+            // Pose di corsa e accovacciati
             float pose = _sprint * _feel.SprintPose;
-            Vector3 sprintPos = _sprintPosition * pose;
-            Vector3 sprintRot = _sprintRotation * pose;
+            float crouchPose = _crouch * (1f - aim);
+            Vector3 posePos = _sprintPosition * pose + _crouchPosition * crouchPose;
+            Vector3 poseRot = _sprintRotation * pose + _crouchRotation * crouchPose;
 
-            // Calore alto: leggero tremolio dell'arma.
+            // Calore alto (solo armi a energia): leggero tremolio dell'arma.
             UpdateHeat(dt);
             float hot = Mathf.Clamp01((_heat - 0.7f) / 0.3f);
             Vector3 jitter = Vector3.zero;
@@ -216,8 +268,9 @@ namespace HrdnLab.FpsWave.Weapons
                 jitter = new Vector3(Mathf.PerlinNoise(t, 1.3f) - 0.5f, Mathf.PerlinNoise(2.7f, t) - 0.5f, 0f) * (0.5f * hot);
             }
 
-            Vector3 position = basePosition + _hipOffset * (1f - aim) + _posSpring.Value + swayPos + bobPos + breathPos + sprintPos;
-            Quaternion rotation = Quaternion.Euler(_rotSpring.Value + _sway + bobRot + breathRot + sprintRot + new Vector3(0f, 0f, _tilt) + jitter);
+            Vector3 position = basePosition + _hipOffset * (1f - aim) + _posSpring.Value + swayPos + inertiaPos + bobPos + airPos + breathPos + posePos;
+            Quaternion rotation = Quaternion.Euler(_rotSpring.Value + sway + inertiaRot + bobRot + airRot + breathRot + poseRot
+                                                   + new Vector3(0f, 0f, _tilt) + jitter);
             // Rotazione attorno all'impugnatura: il punto del perno resta fermo, l'arma "scalcia" invece di salire tutta.
             Vector3 pivot = Vector3.Lerp(_pivot, basePosition, aim);
             root.localPosition = position + (pivot - basePosition) - rotation * (pivot - basePosition);

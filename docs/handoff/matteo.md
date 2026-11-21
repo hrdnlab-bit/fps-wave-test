@@ -20,7 +20,7 @@ Ultimo aggiornamento: 2026-11-21
 
 ## Verifiche
 - Compilazione: 0 errori (`Logs/FpsWaveConsole.log`); restano solo gli avvisi già noti di API deprecate in `NetBootstrapMenu`/`PlayerSpawnService`.
-- Test EditMode: 63/63.
+- Test EditMode: 64/64.
 - Play Mode solo Host (Editor): spawn fuori vista, inseguimento, attacco con max 3 attaccanti, kill con la pistola (3 colpi) accettata dal server, rimpiazzo automatico. NavMesh in 12-14 ms. Numeri di danno visibili (bianco, poi rosso grande all'uccisione), corpo che cade senza segni sospesi. Nessun errore in console.
 - Play Mode host + client (MPPM): **da fare**.
 

@@ -21,7 +21,7 @@ namespace HrdnLab.FpsWave.Weapons
             float randomSigned = random01 * 2f - 1f;
             float horizontal = baseYaw * feel.HorizontalMultiplier * (pattern * feel.PatternStrength + randomSigned * feel.HorizontalRandomness);
 
-            float stance = Mathf.Lerp(1f, feel.AdsMultiplier, Mathf.Clamp01(aim01)) * (crouching ? feel.CrouchMultiplier : 1f);
+            float stance = Mathf.Lerp(feel.HipRecoilMultiplier, feel.AdsMultiplier, Mathf.Clamp01(aim01)) * (crouching ? feel.CrouchMultiplier : 1f);
             return new Vector2(vertical, horizontal) * stance;
         }
 
@@ -85,6 +85,21 @@ namespace HrdnLab.FpsWave.Weapons
             for (int i = 0; i < steps; i++)
             {
                 Vector3 accel = -stiffness * Value - damping * Velocity;
+                Velocity += accel * h;
+                Value += Velocity * h;
+            }
+        }
+
+        /// <summary>Molla verso un bersaglio (per oscillazioni che seguono un valore che cambia, es. la velocità del mouse).</summary>
+        public void Update(float dt, float stiffness, float damping, Vector3 target)
+        {
+            int steps = Mathf.Min(MaxSteps, Mathf.CeilToInt(Mathf.Max(0f, dt) / Step));
+            if (steps <= 0)
+                return;
+            float h = dt / steps;
+            for (int i = 0; i < steps; i++)
+            {
+                Vector3 accel = -stiffness * (Value - target) - damping * Velocity;
                 Velocity += accel * h;
                 Value += Velocity * h;
             }

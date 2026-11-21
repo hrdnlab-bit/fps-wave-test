@@ -38,7 +38,10 @@ namespace HrdnLab.FpsWave.Weapons
         [Range(0f, 1f)] public float PermanentFraction = 0.85f;
         [Tooltip("Pausa senza sparare dopo la quale la raffica ricomincia da capo.")]
         [Min(0.05f)] public float BurstResetTime = 0.35f;
-        [Range(0f, 1.5f)] public float AdsMultiplier = 0.65f;
+        [Tooltip("Rinculo della camera sparando da fianco (x). Basso: da fianco la mira quasi non sale, ma la precisione peggiora col bloom.")]
+        [Range(0f, 1.5f)] public float HipRecoilMultiplier = 0.2f;
+        [Tooltip("Rinculo della camera mirando (x): qui si gestisce la salita col mouse, come in Siege.")]
+        [Range(0f, 1.5f)] public float AdsMultiplier = 1f;
         [Range(0f, 1.5f)] public float CrouchMultiplier = 0.8f;
 
         [Header("Arma in mano: calcio a molla")]
@@ -101,6 +104,7 @@ namespace HrdnLab.FpsWave.Weapons
         {
             VerticalMultiplier = 1.5f, HorizontalMultiplier = 1f, VerticalRandomness = 0.15f,
             FirstShotMultiplier = 0.75f, RampShots = 6, RampMultiplier = 1.3f, PatternStrength = 0.5f, HorizontalRandomness = 0.6f,
+            HipRecoilMultiplier = 0.2f, AdsMultiplier = 1f,
             Snappiness = 24f, ReturnSpeed = 9f, PermanentFraction = 0.85f, BurstResetTime = 0.3f,
             ViewKickScale = 0.6f, KickPosition = new Vector3(0.001f, 0.002f, -0.022f), KickRotation = new Vector3(-1.2f, 0.4f, 0.8f),
             ShakePerShot = 0.025f, FovPunch = 0.004f, HeatPerShot = 0.035f, HeatDecay = 0.45f,
@@ -112,6 +116,7 @@ namespace HrdnLab.FpsWave.Weapons
         {
             VerticalMultiplier = 1.1f, HorizontalMultiplier = 0.9f, VerticalRandomness = 0.2f,
             FirstShotMultiplier = 1f, RampShots = 4, RampMultiplier = 1.15f, PatternStrength = 0.3f, HorizontalRandomness = 0.7f,
+            HipRecoilMultiplier = 0.3f, AdsMultiplier = 1f,
             Snappiness = 26f, ReturnSpeed = 10f, PermanentFraction = 0.8f, BurstResetTime = 0.45f,
             ViewKickScale = 0.8f, KickPosition = new Vector3(0.002f, 0.004f, -0.03f), KickRotation = new Vector3(-2.5f, 0.6f, 1.2f),
             ShakePerShot = 0.04f, FovPunch = 0.006f, HeatPerShot = 0.09f, HeatDecay = 0.7f,

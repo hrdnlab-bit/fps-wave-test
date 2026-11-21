@@ -99,6 +99,23 @@ namespace HrdnLab.FpsWave.Tests
         }
 
         [Test]
+        public void WeaponState_BloomKeepsGrowingWhileFiring_RecoversAfterAPause()
+        {
+            var state = CreateRifle(out _);
+            float perShot = state.Stats.Get(StatType.SpreadPerShot);
+            // Raffica a 10 colpi al secondo: tra un colpo e l'altro il bloom non cala.
+            for (int i = 0; i < 4; i++)
+            {
+                state.RegisterShot(100 + i * 0.1, 10f);
+                state.Tick(100 + i * 0.1 + 0.05, 0.05f, 8f);
+            }
+            Assert.That(state.Bloom, Is.EqualTo(perShot * 4f).Within(1e-4f));
+            // Dopo la pausa cala.
+            state.Tick(100.3 + WeaponState.BloomRecoveryDelay + 0.01, 0.05f, 8f);
+            Assert.That(state.Bloom, Is.LessThan(perShot * 4f));
+        }
+
+        [Test]
         public void FireRateLimiter_AllowsBurstButNotSustainedOverrate()
         {
             var limiter = new FireRateLimiter(10f, 3f);
