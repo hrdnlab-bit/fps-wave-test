@@ -38,6 +38,11 @@ namespace HrdnLab.FpsWave.Editor
             PlayerSettings.runInBackground = true; // in multiplayer il gioco non deve fermarsi senza focus
             PlayerSettings.visibleInBackground = true;
             PlayerSettings.fullScreenMode = FullScreenMode.FullScreenWindow;
+            // L'overlay di Steam (Shift+Tab, inviti) si aggancia in modo affidabile solo a DirectX 11
+            // quando il gioco non è avviato dal client Steam.
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64,
+                new[] { UnityEngine.Rendering.GraphicsDeviceType.Direct3D11 });
 
             var options = new BuildPlayerOptions
             {
@@ -74,8 +79,8 @@ namespace HrdnLab.FpsWave.Editor
             foreach (string file in Directory.GetFiles(folder, "*", SearchOption.AllDirectories))
             {
                 string relative = Path.GetRelativePath(folder, file).Replace('\\', '/');
-                if (relative.Contains("DoNotShip"))
-                    continue;
+                if (relative.Contains("DoNotShip") || relative.Contains("DontShip"))
+                    continue; // simboli di debug (Burst/IL2CPP): da conservare, non da distribuire
                 ZipArchiveEntry entry = zip.CreateEntry($"{rootName}/{relative}", System.IO.Compression.CompressionLevel.Optimal);
                 using Stream entryStream = entry.Open();
                 using FileStream input = File.OpenRead(file);
@@ -93,10 +98,12 @@ PRIMA DI INIZIARE
 - Se il firewall chiede l'accesso alla rete: consenti.
 
 GIOCARE INSIEME VIA STEAM
-1. Chi ospita: avvia {ExeName} > ""Host Steam (crea lobby)"" > ""Invita amici"" e scegli l'amico.
-2. L'amico: avvia {ExeName}, poi accetta l'invito nella chat/overlay di Steam
-   (oppure nella lista amici: tasto destro sul nome > ""Unisciti alla partita"").
-3. Entrambi dovete avere la STESSA versione di questa build.
+1. Chi ospita: avvia {ExeName} > ""Host Steam (crea lobby)"". Compare il CODICE LOBBY:
+   premi ""Copia codice"" e mandalo all'amico (Discord, WhatsApp, chat di Steam...).
+2. L'amico: avvia {ExeName}, incolla il codice nel campo ""Codice"" e premi ""Join Steam (codice lobby)"".
+   In alternativa l'Host preme ""Invita"" accanto al nome dell'amico e l'amico, CON IL GIOCO GIA' APERTO,
+   accetta l'invito dalla chat di Steam.
+3. Entrambi dovete avere la STESSA versione di questa build (il gioco lo controlla e avvisa).
 
 Nota: in Steam il gioco compare come ""Spacewar"" (App ID 480 di sviluppo): è normale.
 

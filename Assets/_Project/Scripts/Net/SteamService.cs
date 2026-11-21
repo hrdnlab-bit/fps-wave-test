@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using HrdnLab.FpsWave.Core;
 using Steamworks;
 using UnityEngine;
@@ -38,6 +39,18 @@ namespace HrdnLab.FpsWave.Net
         public static SteamService Instance => _owner;
 
         public bool InLobby => _lobby != CSteamID.Nil;
+
+        /// <summary>Codice della lobby da condividere (l'amico lo incolla in "Join Steam"); vuoto se non in lobby.</summary>
+        public string LobbyCode => InLobby ? _lobby.m_SteamID.ToString() : string.Empty;
+
+        /// <summary>Amico Steam per l'invito dal gioco (senza overlay).</summary>
+        public readonly struct FriendEntry
+        {
+            public readonly ulong Id;
+            public readonly string Name;
+            public readonly bool InGame;
+            public FriendEntry(ulong id, string name, bool inGame) { Id = id; Name = name; InGame = inGame; }
+        }
         public string LocalName => IsReady ? SteamFriends.GetPersonaName() : string.Empty;
 
         /// <summary>Lobby creata: l'Host può avviare il server Steam e invitare gli amici.</summary>
@@ -148,7 +161,54 @@ namespace HrdnLab.FpsWave.Net
             SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypeFriendsOnly, _maxPlayers);
         }
 
-        /// <summary>Apre l'overlay di Steam per invitare amici nella lobby.</summary>
+        /// <summary>Entra nella lobby indicata dal codice (ID numerico mostrato all'Host). False se il codice non è valido.</summary>
+        public bool JoinLobbyByCode(string code)
+        {
+            if (!IsReady)
+            {
+                Error?.Invoke(Status);
+                return false;
+            }
+            if (!ulong.TryParse(code?.Trim(), out ulong id) || id == 0)
+            {
+                Error?.Invoke("Codice lobby non valido: deve essere il numero mostrato all'Host.");
+                return false;
+            }
+            LeaveLobby();
+            SteamMatchmaking.JoinLobby(new CSteamID(id));
+            return true;
+        }
+
+        /// <summary>
+        /// Riempie <paramref name="result"/> con gli amici online (prima chi sta già giocando), per invitarli dal gioco.
+        /// Da chiamare a intervalli, non a ogni frame.
+        /// </summary>
+        public void GetOnlineFriends(List<FriendEntry> result)
+        {
+            result.Clear();
+            if (!IsReady)
+                return;
+            AppId_t app = SteamUtils.GetAppID();
+            int count = SteamFriends.GetFriendCount(EFriendFlags.k_EFriendFlagImmediate);
+            for (int i = 0; i < count; i++)
+            {
+                CSteamID id = SteamFriends.GetFriendByIndex(i, EFriendFlags.k_EFriendFlagImmediate);
+                if (SteamFriends.GetFriendPersonaState(id) == EPersonaState.k_EPersonaStateOffline)
+                    continue;
+                bool inGame = SteamFriends.GetFriendGamePlayed(id, out FriendGameInfo_t game) && game.m_gameID.AppID() == app;
+                result.Add(new FriendEntry(id.m_SteamID, SteamFriends.GetFriendPersonaName(id), inGame));
+            }
+            result.Sort((a, b) => a.InGame != b.InGame ? (a.InGame ? -1 : 1) : string.CompareOrdinal(a.Name, b.Name));
+        }
+
+        /// <summary>Invia l'invito alla lobby a un amico (arriva nella chat di Steam).</summary>
+        public void InviteFriend(ulong friendId)
+        {
+            if (IsReady && InLobby)
+                SteamMatchmaking.InviteUserToLobby(_lobby, new CSteamID(friendId));
+        }
+
+        /// <summary>Apre l'overlay di Steam per invitare amici nella lobby (se l'overlay è disponibile).</summary>
         public void OpenInviteDialog()
         {
             if (IsReady && InLobby)
