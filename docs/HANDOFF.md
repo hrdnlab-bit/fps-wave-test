@@ -40,6 +40,12 @@ Ultimo aggiornamento: 2026-11-21
 - HUD e menu in OnGUI (temporanei, allocano poco ma non zero): da sostituire con UI Toolkit (M0b/M5).
 - Asset: vedi `OPEN_QUESTIONS.md` #13 (login e scelta del pacchetto armi/braccia).
 
+## Domande in sospeso per l'utente (chiederle all'inizio della prossima chat)
+1. Procedura asset M1.6: apro Fab nel browser dell'app, l'utente fa il login, l'AI cerca solo asset gratuiti realistici compatibili con Unity e mostra nome/licenza/dimensione prima di scaricare. Va bene?
+2. Asset CC-BY (gratuiti con attribuzione nei crediti) accettati?
+3. M1.6 subito oppure prima M0b (Steam) e asset dopo?
+4. Esito del test manuale: sparo dal Player 2 (MPPM, "Focus on Player") danneggia i bersagli?
+
 ## Prossimi passi
 1. M1.6: asset realistici di pistola, fucile, braccia FPS e suoni (serve login utente; vedi opzioni in `ASSETS.md`).
 2. Chiudere M1 (versione 0.2.0) dopo il test dello sparo da client remoto.
