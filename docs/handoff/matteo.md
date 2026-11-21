@@ -15,10 +15,12 @@ Ultimo aggiornamento: 2026-11-21
 - Documenti: CHANGELOG, DECISIONS, ROADMAP (task M2), SPAWN_DIRECTOR §13, NETCODE, HANDOFF, LOCKS.
 - Seconda tornata (stesso branch): tipi di nemico guidati dai dati (`EnemyDefinition` in `Data/Enemies/`, prefab in `Prefabs/Enemies/`, catalogo in `Editor/EnemyContentBuilder.cs`, codice in `Enemies/Core` e `Enemies/Spawning`); numeri di danno (`UI/DamageNumbers`, `Weapons/HitConfirm`, conferma server di ogni colpo); fix del segno di proiettile sospeso in aria (schizzo breve sui personaggi, hitbox spente alla morte, animazione più vicina alle hitbox). `Health.SetMaxHealth` aggiunto (area comune).
 - Terza tornata (stesso branch): HUD "visore" ciano (`UI/Hud/SciFiHud` + `UI/Styles/Hud.uss`) e menu "terminale" ambra (`UI/Menu/GameMenu` + `UI/Styles/Menu.uss`) in UI Toolkit; impostazioni salvate (`Core/GameSettings`); `FpsWave/Setup/7. Build UI`. Toccati file di Manuel: `NetBootstrapMenu` (API pubblica + OnGUI spento), `PlayerInputReader` (sensibilità da impostazioni, input bloccato con menu aperto), `PlayerLook` (FOV da impostazioni); rimosso `PlayerHud`.
+- Quarta tornata (stesso branch): sensazione delle armi generica (`Weapons/Feel/`: profilo `WeaponFeel` per arma, `RecoilMath`, `WeaponFeelDriver`), rinculo a molla in `PlayerLook` con tremore e punch del FOV, traccianti e luce del colore dell'energia, calore cosmetico con barra nel HUD, `FpsWave/Setup/8. Apply Weapon Feel`. Toccati file di Manuel: `PlayerWeapons`, `PlayerLook`, `ShotFxPool`, `WeaponDefinition`, `GameInfo` (protocollo 2).
+- Quinta tornata (stesso branch): rinculo stile R6 (mira che sale e resta, arma ferma, perno all'impugnatura, arma più vicina); HUD minimale stile Crysis; HUD e menu con texture (Kenney UI Pack Sci-Fi, rubberduck Sci-Fi interface, font Google) generate da `Editor/UiTextureGenerator` in `Setup/7`; `tools/setup-ui-assets.ps1`.
 
 ## Verifiche
 - Compilazione: 0 errori (`Logs/FpsWaveConsole.log`); restano solo gli avvisi già noti di API deprecate in `NetBootstrapMenu`/`PlayerSpawnService`.
-- Test EditMode: 53/53 (21 nuovi).
+- Test EditMode: 61/61.
 - Play Mode solo Host (Editor): spawn fuori vista, inseguimento, attacco con max 3 attaccanti, kill con la pistola (3 colpi) accettata dal server, rimpiazzo automatico. NavMesh in 12-14 ms. Numeri di danno visibili (bianco, poi rosso grande all'uccisione), corpo che cade senza segni sospesi. Nessun errore in console.
 - Play Mode host + client (MPPM): **da fare**.
 

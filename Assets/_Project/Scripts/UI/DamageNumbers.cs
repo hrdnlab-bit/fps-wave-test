@@ -19,6 +19,8 @@ namespace HrdnLab.FpsWave.UI
         private static readonly string[] s_critical = new string[CachedNumbers];
 
         [SerializeField] private PlayerWeapons _weapons;
+        [Tooltip("Font dei numeri (Orbitron/Rajdhani da ThirdParty/GoogleFonts, assegnato da Setup/7).")]
+        [SerializeField] private Font _font;
         [SerializeField, Min(0.2f)] private float _lifetime = 0.9f;
         [Tooltip("Salita sullo schermo in pixel (a 1080p): uguale da vicino e da lontano.")]
         [SerializeField, Min(0f)] private float _risePixels = 70f;
@@ -96,6 +98,8 @@ namespace HrdnLab.FpsWave.UI
                 clipping = TextClipping.Overflow,
                 wordWrap = false,
             };
+            if (_font != null && _style.font != _font)
+                _style.font = _font;
 
             float now = Time.unscaledTime;
             Color previous = GUI.color;
@@ -150,6 +154,7 @@ namespace HrdnLab.FpsWave.UI
 
 #if UNITY_EDITOR
         public void EditorSetup(PlayerWeapons weapons) => _weapons = weapons;
+        public void EditorSetFont(Font font) => _font = font;
 #endif
     }
 

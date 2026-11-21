@@ -3,6 +3,20 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Changed (HUD stile Crysis, rinculo stile Rainbow Six Siege)
+- **HUD minimale "visore della tuta"** (riferimento Crysis 2/3): solo bussola stretta in alto, un blocco in basso a destra (arma, munizioni grandi, ricarica, calore, integrità a segmenti con valore), mirino a quattro tratti, hit marker, vignetta leggera ai bordi; avviso "INTEGRITÀ CRITICA" sotto il mirino; FPS/ping in alto a destra solo se attivi. Tolti pannelli pieni, radar, biosegnale, testi di stato, scanline e cornice. Il rosso del danno resta solo ai margini.
+- Texture del HUD e del menu generate da `Setup/7` (`Editor/UiTextureGenerator`, in `ThirdParty/_Own/Hud/`), anche dalle sagome Kenney UI Pack Sci-Fi e dagli ologrammi rubberduck (CC0); font Rajdhani/Orbitron/Share Tech Mono (OFL). Il menu usa piastre con tacche, esagoni, scanline e anello olografico. Numeri di danno in Rajdhani Bold.
+- **Rinculo stile Rainbow Six Siege**: ogni colpo alza la mira e lì restano anche i proiettili (85% del rinculo permanente nelle automatiche, 80% nelle semi, da compensare col mouse), deriva laterale riconoscibile per arma; l'arma in mano si muove pochissimo (calcio di ~1° attorno all'impugnatura, non attorno all'occhio) così la mira resta visibile; tremore e punch del FOV ridotti.
+- **Arma più vicina alla camera** e un filo più bassa da fianco (4.5 cm più vicina, 1.2 cm più bassa; in mira non cambia).
+- Nuovo script `tools/setup-ui-assets.ps1` (asset dell'interfaccia fuori dal repo, come quelli Fab).
+
+### Added (sensazione delle armi)
+- **Sensazione delle armi valida per qualunque modello** (`Weapons/Feel/`), con un profilo per arma (`WeaponFeel` nella WeaponDefinition, sezione "Sensazione"): rinculo della camera a due parti (una permanente da compensare, una che scatta e torna a molla), schema orizzontale riconoscibile per arma + parte casuale, primo colpo più forte e crescita nella raffica, riduzione mirando e accovacciati; calcio dell'arma a molla (indietro, su, rotazione), oscillazione che segue il mouse in ritardo, ondeggio di passo e corsa, inclinazione laterale, affondo all'atterraggio, posa di corsa, respiro da fermi, entrata dal basso al cambio arma; tremore a "trauma" e punch del FOV a ogni colpo. La forza resta nelle statistiche (RecoilPitch/RecoilYaw, modificabili dalle mod).
+- **Tocchi sci-fi (cosmetici)**: colore dell'energia per arma su luce di volata e traccianti (visibili anche agli altri giocatori), lampo che si spegne in modo morbido, **calore** che cresce sparando (luce che vira al bianco-arancio, tremolio dell'arma oltre il 70%) con barra "CALORE"/"RAFFREDDAMENTO" nel HUD. Nessun effetto sul bilanciamento.
+- Profili di partenza: automatica (raffica controllabile, salita marcata) e semi-automatica (colpo secco, ritorno rapido); strumento `FpsWave/Setup/8. Apply Weapon Feel` (richiamato da `Setup/3`).
+
+### Changed (rete)
+- `GameInfo.ProtocolVersion` 1 → 2: conferma colpo con danno, `EnemyTarget` sul player e colore del tracciante cambiano i messaggi di rete (le build 0.2.0 non possono unirsi a questa versione).
 ### Added (interfaccia)
 - **HUD "visore da combattimento"** in UI Toolkit (palette ciano): integrità a 20 segmenti con colori di avviso e allarme "integrità critica", munizioni grandi con una tacca per colpo e barra di ricarica, mirino dinamico e hit marker colorati, bordo rosso quando si subisce danno, telemetria (link e FPS), striscia obiettivo. Sostituisce l'HUD OnGUI temporaneo (`PlayerHud`, rimosso).
 - **Menu di gioco "terminale di comando"** in UI Toolkit (palette ambra, diversa dal HUD): principale (Gioca, Impostazioni, Esci), schieramento (crea lobby Steam / entra con codice, ospita / entra in LAN), connessione in corso con annulla, messaggi di errore; in partita Esc apre la pausa (Riprendi, Impostazioni, squadra con codice lobby, copia e inviti agli amici online, Abbandona, Esci). Il pannello OnGUI di sviluppo di `NetBootstrapMenu` resta nel codice ma è spento.

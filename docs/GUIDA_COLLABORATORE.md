@@ -59,6 +59,11 @@ Modelli e texture delle armi **non sono nel repo**: la licenza Fab non permette 
    ```
    Lo script copia i file in `Assets/ThirdParty/Fab/` con i nomi giusti e genera le texture combinate che servono a URP. Alla fine deve dire **"Asset pronti"**. Se i file non sono in Download, aggiungi `-Downloads "percorso\della\cartella"`.
 3. Controlla con `git status`: non deve risultare nessun file modificato o cancellato (gli asset sono esclusi da git apposta).
+4. Sempre con Unity chiuso, metti a posto anche gli asset dell'interfaccia (texture sci-fi gratuite CC0 e font Google; lo script li scarica da solo, oppure li prende da Download se ci sono già `kenney_ui-pack-scifi.zip` e `sci-fi-interface-textures.zip`):
+   ```
+   powershell -ExecutionPolicy Bypass -File tools\setup-ui-assets.ps1
+   ```
+   Poi, una volta aperto Unity, esegui **FpsWave > Setup > 7. Build UI** (genera le texture del HUD in `Assets/ThirdParty/_Own/Hud/`).
 
 ---
 

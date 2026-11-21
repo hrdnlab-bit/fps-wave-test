@@ -39,3 +39,40 @@ MonoBehaviour:
   _overrideViewOffsets: 1
   _viewHipOffset: {x: 0.13, y: -0.105, z: 0.3}
   _viewAdsOffset: {x: 0, y: 0, z: 0.24}
+  _feel:
+    VerticalMultiplier: 1.6
+    HorizontalMultiplier: 0.6
+    FirstShotMultiplier: 1
+    RampShots: 4
+    RampMultiplier: 1.1
+    PatternStrength: 0.4
+    HorizontalRandomness: 0.5
+    Snappiness: 34
+    ReturnSpeed: 10
+    PermanentFraction: 0.8
+    BurstResetTime: 0.45
+    AdsMultiplier: 0.65
+    CrouchMultiplier: 0.8
+    ViewKickScale: 0.8
+    KickPosition: {x: 0.002, y: 0.004, z: -0.03}
+    KickRotation: {x: -2.5, y: 0.6, z: 1.2}
+    KickRandomness: 0.35
+    PositionStiffness: 220
+    PositionDamping: 28
+    RotationStiffness: 200
+    RotationDamping: 26
+    SwayAmount: 1.2
+    SwayMax: 5
+    SwaySmoothing: 9
+    BobAmount: 1
+    StrafeTilt: 3
+    SprintPose: 1
+    IdleBreath: 1
+    ShakePerShot: 0.04
+    FovPunch: 0.006
+    EnergyColor: {r: 0.55, g: 0.75, b: 1, a: 1}
+    HotColor: {r: 1, g: 0.55, b: 0.25, a: 1}
+    HeatPerShot: 0.09
+    HeatDecay: 0.7
+    HeatDecayDelay: 0.25
+    MuzzleLightIntensity: 5

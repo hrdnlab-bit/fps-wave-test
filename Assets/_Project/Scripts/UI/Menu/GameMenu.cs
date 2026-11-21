@@ -260,6 +260,9 @@ namespace HrdnLab.FpsWave.UI
             docRoot.Add(_root);
 
             var backdrop = El("menu-backdrop");
+            backdrop.Add(El("menu-layer", "menu-bg-image"));
+            backdrop.Add(El("menu-layer", "menu-hex"));
+            backdrop.Add(El("menu-ring"));
             for (int i = 1; i < 12; i++)
             {
                 var v = El("menu-grid-line");
@@ -274,6 +277,8 @@ namespace HrdnLab.FpsWave.UI
                 h.style.left = 0; h.style.right = 0; h.style.height = 1;
                 backdrop.Add(h);
             }
+            backdrop.Add(El("menu-layer", "menu-scan"));
+            backdrop.Add(El("menu-layer", "menu-vignette"));
             _root.Add(backdrop);
 
             var frame = El("menu-frame");
@@ -284,9 +289,9 @@ namespace HrdnLab.FpsWave.UI
             _root.Add(frame);
 
             var topbar = El("menu-topbar");
-            topbar.Add(Txt("FPS WAVE // TERMINALE DI COMANDO", "menu-topbar-text"));
+            topbar.Add(Txt("FPS WAVE // TERMINALE DI COMANDO", "menu-topbar-text", "font-mono"));
             topbar.Add(El("menu-spacer"));
-            topbar.Add(Txt($"BUILD {GameInfo.Version} · PROTOCOLLO {GameInfo.ProtocolVersion}", "menu-topbar-text"));
+            topbar.Add(Txt($"BUILD {GameInfo.Version} · PROTOCOLLO {GameInfo.ProtocolVersion}", "menu-topbar-text", "font-mono"));
             _root.Add(topbar);
 
             AddScreen(MenuScreen.Main, BuildMain());
@@ -344,7 +349,7 @@ namespace HrdnLab.FpsWave.UI
 
             var cards = El("cards");
 
-            var steam = El("card");
+            var steam = Card();
             steam.Add(Txt("STEAM · AMICI", "card-title"));
             steam.Add(Txt("Crea una lobby e manda il codice agli amici, oppure entra in quella di un amico. Funziona via Internet.", "card-text"));
             _hostSteamButton = MenuButton("A", "CREA LOBBY", () => { _net.StartHostSteam(); ShowErrorIfAny(); }, "menu-button--primary");
@@ -356,7 +361,7 @@ namespace HrdnLab.FpsWave.UI
             steam.Add(_joinSteamButton);
             cards.Add(steam);
 
-            var lan = El("card");
+            var lan = Card();
             lan.Add(Txt("RETE LOCALE", "card-title"));
             lan.Add(Txt("Stesso PC o stessa rete: uno ospita, gli altri inseriscono il suo indirizzo (porta 7770).", "card-text"));
             lan.Add(MenuButton("C", "OSPITA IN LAN", () => _net.StartHostLan(), "menu-button--primary"));
@@ -407,7 +412,7 @@ namespace HrdnLab.FpsWave.UI
             screen.Add(col);
 
             var side = El("screen-side");
-            var card = El("card");
+            var card = Card();
             card.style.width = 520;
             card.style.flexGrow = 0;
             card.style.marginRight = 0;
@@ -653,6 +658,15 @@ namespace HrdnLab.FpsWave.UI
 
         // ------------------------------------------------------------------ Elementi
 
+        /// <summary>Scheda: piastra a angoli tagliati con trama esagonale e bordo luminoso.</summary>
+        private static VisualElement Card()
+        {
+            VisualElement card = El("card");
+            card.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("card-hex"));
+            card.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("card-edge"));
+            return card;
+        }
+
         private static VisualElement El(params string[] classes)
         {
             var e = new VisualElement();
@@ -673,9 +687,10 @@ namespace HrdnLab.FpsWave.UI
         {
             var button = new Button(onClick);
             button.AddToClassList("menu-button");
+            button.Add(new VisualElement { pickingMode = PickingMode.Ignore }.WithClass("button-edge"));
             foreach (string c in extraClasses)
                 button.AddToClassList(c);
-            var idx = Txt(index, "button-index");
+            var idx = Txt(index, "button-index", "font-mono");
             idx.pickingMode = PickingMode.Ignore;
             var label = new Label(text) { pickingMode = PickingMode.Ignore };
             button.Add(idx);
@@ -736,5 +751,14 @@ namespace HrdnLab.FpsWave.UI
             _styleSheet = styleSheet;
         }
 #endif
+    }
+
+    internal static class VisualElementExtensions
+    {
+        public static VisualElement WithClass(this VisualElement element, string className)
+        {
+            element.AddToClassList(className);
+            return element;
+        }
     }
 }

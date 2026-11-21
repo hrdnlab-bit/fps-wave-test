@@ -27,6 +27,7 @@ Valori *(default)* = scelti dall'AI, da bilanciare con i playtest.
 - **Inizio partita: solo pistola.** La primaria (fucile d'assalto, shotgun, poi le altre) si compra allo shop dalla prima fase di preparazione; la pistola base deve quindi bastare per la wave 1 (TTK del Runner con la pistola ~0.6-0.9 s).
 - Inventario: 1 primaria + 1 secondaria (pistola) + granate (dopo MVP).
 - Feedback: rinculo camera, muzzle flash, tracer, decal di impatto (solo sull'ambiente; sui nemici uno schizzo breve), hit marker (bianco = colpo, rosso = kill, giallo = critico), **numeri di danno** sul punto colpito (bianco normale, oro testa, giallo con "!" critico, rosso uccisione; solo per chi spara, confermati dal server), suono di impatto distinto.
+- **Sensazione delle armi** (uguale per tutte, ritoccabile per arma: `WeaponFeel` nella scheda dell'arma): rinculo che scatta e torna a molla con una parte permanente da compensare, schema orizzontale riconoscibile per arma, primo colpo più forte e crescita nella raffica, rinculo ridotto mirando (~35%) e accovacciati; arma in mano a molla (calcio, oscillazione che segue il mouse, passo, corsa, inclinazione laterale, atterraggio, respiro); tremore e punch del FOV sotto fuoco prolungato. Tema sci-fi: colore dell'energia per arma (luce e traccianti) e calore cosmetico (luce che vira, tremolio, barra nel HUD).
 - TTK target *(default)*: nemico base in 0.4-0.7 s col fucile d'assalto base, 0.6-0.9 s con la pistola base, alla wave 1.
 
 ## 4. Nemici

@@ -7,9 +7,12 @@ using UnityEngine.UIElements;
 namespace HrdnLab.FpsWave.UI
 {
     /// <summary>
-    /// HUD "visore da combattimento" in UI Toolkit (stile in UI/Styles/Hud.uss), solo per il player locale:
-    /// integrità a segmenti, munizioni con una tacca per colpo e ricarica, mirino dinamico, hit marker,
-    /// bordo rosso quando si subisce danno, avviso di integrità critica, telemetria (link e FPS).
+    /// HUD minimale "visore della tuta" in stile Crysis (UI Toolkit, stile in UI/Styles/Hud.uss, texture in ThirdParty/_Own/Hud),
+    /// solo per il player locale. Pochi elementi, sottili e puliti:
+    /// - in alto al centro una bussola stretta con la direzione;
+    /// - in basso a destra un unico blocco: arma, munizioni grandi, ricarica, calore e integrità a segmenti;
+    /// - al centro un mirino a quattro tratti che si apre con lo spread, hit marker colorati;
+    /// - ai bordi una vignetta leggera del visore e il rosso quando si subisce danno (solo ai margini).
     /// Costruito da codice; i testi si aggiornano solo quando cambia il valore (niente allocazioni a ogni frame).
     /// Abilitato/disabilitato da PlayerView insieme al suo UIDocument (owner-only).
     /// </summary>
@@ -19,6 +22,10 @@ namespace HrdnLab.FpsWave.UI
         private const int HealthSegments = 20;
         private const float WarnThreshold = 0.5f;
         private const float CriticalThreshold = 0.25f;
+        private const float CompassWidth = 420f;
+        private const float CompassPixelsPerDegree = 4f;
+
+        private static readonly string[] CompassNames = { "N", "NE", "E", "SE", "S", "SO", "O", "NO" };
 
         [SerializeField] private PlayerWeapons _weapons;
         [SerializeField] private Health _health;
@@ -27,11 +34,10 @@ namespace HrdnLab.FpsWave.UI
 
         private UIDocument _document;
         private VisualElement _root;
+        private VisualElement _cluster;
 
         // Integrità
-        private VisualElement _vitals;
         private Label _healthValue;
-        private Label _healthPercent;
         private Label _healthAlert;
         private readonly VisualElement[] _segments = new VisualElement[HealthSegments];
         private int _shownHealth = -1;
@@ -40,14 +46,15 @@ namespace HrdnLab.FpsWave.UI
 
         // Arma
         private Label _weaponName;
-        private Label _slot;
         private Label _ammo;
         private Label _ammoMax;
-        private VisualElement _pipsRow;
-        private VisualElement[] _pips = System.Array.Empty<VisualElement>();
-        private VisualElement _reloadBox;
+        private VisualElement _reloadRow;
         private Label _reloadLabel;
         private VisualElement _reloadFill;
+        private VisualElement _heatRow;
+        private Label _heatLabel;
+        private VisualElement _heatFill;
+        private int _heatLevel = -1;
         private WeaponDefinition _shownWeapon;
         private int _shownAmmo = -1;
         private int _shownMag = -1;
@@ -55,8 +62,14 @@ namespace HrdnLab.FpsWave.UI
         private float _reloadStart;
         private float _reloadDuration = 1f;
 
-        // Mirino e hit marker
-        private VisualElement _chUp, _chDown, _chLeft, _chRight;
+        // Bussola
+        private VisualElement _compassTicks;
+        private readonly Label[] _compassLabels = new Label[CompassNames.Length];
+        private Label _compassHeading;
+        private int _shownHeading = -1;
+
+        // Centro
+        private VisualElement _chUp, _chDown, _chLeft, _chRight, _chDot;
         private VisualElement _hitMarker;
         private HitMarkerType _markerType;
         private float _markerUntil;
@@ -64,8 +77,7 @@ namespace HrdnLab.FpsWave.UI
         // Danno e telemetria
         private VisualElement _damageFlash;
         private float _damageFlashAmount;
-        private Label _linkLabel;
-        private Label _fpsLabel;
+        private Label _telemetry;
         private float _fpsAccum;
         private int _fpsFrames;
         private float _fpsNextUpdate;
@@ -73,6 +85,7 @@ namespace HrdnLab.FpsWave.UI
         private long _shownRtt = -1;
 
         private static readonly string[] s_numbers = new string[1001];
+        private static readonly string[] s_headings = new string[360];
 
         private void OnEnable()
         {
@@ -114,120 +127,98 @@ namespace HrdnLab.FpsWave.UI
                 _root.styleSheets.Add(_styleSheet);
             docRoot.Add(_root);
 
-            // Leggerissime righe di scansione, solo atmosfera.
-            for (int i = 0; i < 6; i++)
-            {
-                var line = Element("hud-scanline");
-                line.style.top = Length.Percent(12f + i * 15f);
-                _root.Add(line);
-            }
-
-            _damageFlash = Element("hud-damage");
+            _root.Add(Element("layer", "visor-vignette"));
+            _damageFlash = Element("layer", "hud-damage");
             _root.Add(_damageFlash);
 
-            BuildStatus();
-            BuildMission();
-            BuildVitals();
-            BuildWeapon();
-            BuildCrosshair();
+            BuildCompass();
+            BuildCluster();
+            BuildReticle();
+
+            _healthAlert = Text("INTEGRITÀ CRITICA", "alert", "font-bold");
+            _healthAlert.style.display = DisplayStyle.None;
+            _root.Add(_healthAlert);
+
+            _telemetry = Text("", "telemetry", "font-mono");
+            _root.Add(_telemetry);
         }
 
-        private void BuildStatus()
+        private void BuildCompass()
         {
-            var status = Element("hud-status");
-            _linkLabel = Text("LINK -- MS", "hud-status-line", "hud-status-line--accent");
-            _fpsLabel = Text("FPS --", "hud-status-line");
-            status.Add(Text("VISORE TATTICO // V-7", "hud-status-line"));
-            status.Add(_linkLabel);
-            status.Add(_fpsLabel);
-            _root.Add(status);
+            var top = Element("hud-top");
+            var compass = Element("compass");
+            _compassTicks = Element("compass-ticks");
+            compass.Add(_compassTicks);
+            for (int i = 0; i < CompassNames.Length; i++)
+            {
+                _compassLabels[i] = Text(CompassNames[i], "compass-label", "font-bold");
+                if (i % 2 == 0)
+                    _compassLabels[i].AddToClassList("compass-label--cardinal");
+                compass.Add(_compassLabels[i]);
+            }
+            compass.Add(Element("compass-center"));
+            top.Add(compass);
+            _compassHeading = Text("000", "compass-heading", "font-mono");
+            top.Add(_compassHeading);
+            _root.Add(top);
         }
 
-        private void BuildMission()
+        /// <summary>Blocco unico in basso a destra: arma e munizioni sopra, barre sottili sotto.</summary>
+        private void BuildCluster()
         {
-            var mission = Element("hud-mission");
-            var strip = Element("hud-mission-strip");
-            strip.Add(Text("OBIETTIVO", "hud-mission-tag"));
-            strip.Add(Text("SOPRAVVIVI ALLE ONDATE", "hud-mission-text"));
-            mission.Add(strip);
-            _root.Add(mission);
-        }
+            _cluster = Element("cluster");
+            _cluster.Add(Element("cluster-backdrop"));
 
-        private void BuildVitals()
-        {
-            _vitals = Panel("hud-vitals");
-            var header = Element("hud-row");
-            header.Add(Text("INTEGRITÀ", "hud-caption"));
-            header.Add(Element("hud-spacer"));
-            _healthPercent = Text("100%", "hud-caption");
-            header.Add(_healthPercent);
-            _vitals.Add(header);
+            _weaponName = Text("—", "weapon-name", "font-bold");
+            _cluster.Add(_weaponName);
 
-            var valueRow = Element("hud-row");
-            _healthValue = Text("100", "hud-big-number");
-            valueRow.Add(_healthValue);
-            valueRow.Add(Text("HP", "hud-big-unit"));
-            _vitals.Add(valueRow);
+            var ammoRow = Element("ammo-row");
+            _ammo = Text("0", "ammo", "font-display");
+            _ammoMax = Text("/0", "ammo-max", "font-display");
+            ammoRow.Add(_ammo);
+            ammoRow.Add(_ammoMax);
+            _cluster.Add(ammoRow);
 
-            var bar = Element("hud-segments");
+            _cluster.Add(Element("rule"));
+
+            _reloadRow = Bar("RICARICA", out _reloadLabel, out _reloadFill);
+            _reloadRow.AddToClassList("bar-row--reload");
+            _reloadRow.style.display = DisplayStyle.None;
+            _cluster.Add(_reloadRow);
+
+            _heatRow = Bar("CALORE", out _heatLabel, out _heatFill);
+            _cluster.Add(_heatRow);
+
+            var vitals = Element("vitals-row");
+            vitals.Add(Text("ARMATURA", "bar-label", "font-bold"));
+            var segments = Element("segments");
             for (int i = 0; i < HealthSegments; i++)
             {
                 _segments[i] = Element("segment", "segment--on");
-                bar.Add(_segments[i]);
+                segments.Add(_segments[i]);
             }
-            _vitals.Add(bar);
+            vitals.Add(segments);
+            _healthValue = Text("100", "health-value", "font-display");
+            vitals.Add(_healthValue);
+            _cluster.Add(vitals);
 
-            _healthAlert = Text("▲ INTEGRITÀ CRITICA", "hud-alert");
-            _healthAlert.style.display = DisplayStyle.None;
-            _vitals.Add(_healthAlert);
-            _root.Add(_vitals);
+            _root.Add(_cluster);
         }
 
-        private void BuildWeapon()
+        private void BuildReticle()
         {
-            VisualElement weapon = Panel("hud-weapon");
-            var header = Element("hud-weapon-header");
-            _weaponName = Text("—", "hud-weapon-name");
-            _slot = Text("01", "hud-slot");
-            header.Add(_weaponName);
-            header.Add(_slot);
-            weapon.Add(header);
-
-            var ammoRow = Element("hud-ammo-row");
-            _ammo = Text("0", "hud-ammo");
-            _ammoMax = Text("/ 0", "hud-ammo-max");
-            ammoRow.Add(_ammo);
-            ammoRow.Add(_ammoMax);
-            weapon.Add(ammoRow);
-
-            _pipsRow = Element("hud-pips");
-            weapon.Add(_pipsRow);
-
-            _reloadBox = Element("hud-reload");
-            _reloadLabel = Text("RICARICA", "hud-reload-label");
-            var track = Element("hud-reload-track");
-            _reloadFill = Element("hud-reload-fill");
-            track.Add(_reloadFill);
-            _reloadBox.Add(_reloadLabel);
-            _reloadBox.Add(track);
-            _reloadBox.style.display = DisplayStyle.None;
-            weapon.Add(_reloadBox);
-            _root.Add(weapon);
-        }
-
-        private void BuildCrosshair()
-        {
-            var crosshair = Element("crosshair");
+            var reticle = Element("reticle");
             _chUp = Element("ch-line", "ch-line--v");
             _chDown = Element("ch-line", "ch-line--v");
             _chLeft = Element("ch-line", "ch-line--h");
             _chRight = Element("ch-line", "ch-line--h");
-            crosshair.Add(_chUp);
-            crosshair.Add(_chDown);
-            crosshair.Add(_chLeft);
-            crosshair.Add(_chRight);
-            crosshair.Add(Element("ch-dot"));
-            _root.Add(crosshair);
+            _chDot = Element("ch-dot");
+            reticle.Add(_chUp);
+            reticle.Add(_chDown);
+            reticle.Add(_chLeft);
+            reticle.Add(_chRight);
+            reticle.Add(_chDot);
+            _root.Add(reticle);
 
             _hitMarker = Element("hitmarker");
             for (int i = 0; i < 4; i++)
@@ -261,9 +252,11 @@ namespace HrdnLab.FpsWave.UI
                 _root.style.display = display;
             if (UiState.MenuOpen)
                 return;
+
             UpdateVitals();
             UpdateWeapon();
-            UpdateCrosshair();
+            UpdateCompass();
+            UpdateReticle();
             UpdateEffects();
             UpdateTelemetry();
         }
@@ -278,7 +271,6 @@ namespace HrdnLab.FpsWave.UI
             {
                 _shownHealth = hp;
                 _healthValue.text = Number(hp);
-                _healthPercent.text = Number(Mathf.RoundToInt(normalized * 100f)) + "%";
             }
 
             int lit = HudMath.LitSegments(normalized, HealthSegments);
@@ -293,12 +285,12 @@ namespace HrdnLab.FpsWave.UI
             if (level != _vitalsLevel)
             {
                 _vitalsLevel = level;
-                _vitals.EnableInClassList("hud-vitals--warn", level == 1);
-                _vitals.EnableInClassList("hud-vitals--critical", level == 2);
+                _cluster.EnableInClassList("cluster--warn", level == 1);
+                _cluster.EnableInClassList("cluster--critical", level == 2);
                 _healthAlert.style.display = level == 2 ? DisplayStyle.Flex : DisplayStyle.None;
             }
             if (level == 2)
-                _healthAlert.style.opacity = 0.45f + 0.55f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 5f));
+                _healthAlert.style.opacity = 0.35f + 0.65f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4f));
         }
 
         private void UpdateWeapon()
@@ -311,7 +303,6 @@ namespace HrdnLab.FpsWave.UI
             {
                 _shownWeapon = state.Definition;
                 _weaponName.text = state.Definition.DisplayName.ToUpperInvariant();
-                _slot.text = state.Definition.Slot == WeaponSlot.Primary ? "PRIMARIA" : "SECONDARIA";
                 _shownAmmo = -1;
                 _shownMag = -1;
             }
@@ -320,8 +311,7 @@ namespace HrdnLab.FpsWave.UI
             if (mag != _shownMag)
             {
                 _shownMag = mag;
-                _ammoMax.text = "/ " + Number(mag);
-                RebuildPips(mag);
+                _ammoMax.text = "/" + Number(mag);
                 _shownAmmo = -1;
             }
 
@@ -329,15 +319,13 @@ namespace HrdnLab.FpsWave.UI
             {
                 _shownAmmo = state.Ammo;
                 _ammo.text = Number(state.Ammo);
-                _ammo.EnableInClassList("hud-ammo--empty", state.Ammo == 0);
-                _ammo.EnableInClassList("hud-ammo--low", state.Ammo > 0 && state.Ammo <= Mathf.Max(1, mag / 4));
-                for (int i = 0; i < _pips.Length; i++)
-                    _pips[i].EnableInClassList("pip--spent", i >= state.Ammo);
+                _ammo.EnableInClassList("ammo--empty", state.Ammo == 0);
+                _ammo.EnableInClassList("ammo--low", state.Ammo > 0 && state.Ammo <= Mathf.Max(1, mag / 4));
                 if (!state.IsReloading)
                 {
                     bool empty = state.Ammo == 0;
-                    _reloadBox.style.display = empty ? DisplayStyle.Flex : DisplayStyle.None;
-                    _reloadLabel.text = "CARICATORE VUOTO · [R]";
+                    _reloadRow.style.display = empty ? DisplayStyle.Flex : DisplayStyle.None;
+                    _reloadLabel.text = "VUOTO [R]";
                     _reloadFill.style.width = Length.Percent(0f);
                 }
             }
@@ -349,44 +337,77 @@ namespace HrdnLab.FpsWave.UI
                 {
                     _reloadStart = Time.time;
                     _reloadDuration = Mathf.Max(0.05f, state.ReloadTime);
-                    _reloadLabel.text = "RICARICA IN CORSO";
+                    _reloadLabel.text = "RICARICA";
                 }
-                _reloadBox.style.display = state.IsReloading || state.Ammo == 0 ? DisplayStyle.Flex : DisplayStyle.None;
+                _reloadRow.style.display = state.IsReloading || state.Ammo == 0 ? DisplayStyle.Flex : DisplayStyle.None;
             }
             if (state.IsReloading)
                 _reloadFill.style.width = Length.Percent(Mathf.Clamp01((Time.time - _reloadStart) / _reloadDuration) * 100f);
+
+            // Calore (cosmetico): la barra resta discreta e si colora solo quando conta.
+            float heat = _weapons.Heat;
+            _heatFill.style.width = Length.Percent(heat * 100f);
+            int heatLevel = _weapons.IsVenting ? 2 : heat > 0.7f ? 1 : 0;
+            if (heatLevel != _heatLevel)
+            {
+                _heatLevel = heatLevel;
+                _heatRow.EnableInClassList("bar-row--hot", heatLevel >= 1);
+                _heatRow.EnableInClassList("bar-row--venting", heatLevel == 2);
+                _heatLabel.text = heatLevel == 2 ? "RAFFREDDA" : "CALORE";
+            }
+            _heatLabel.style.opacity = heatLevel == 2 ? 0.5f + 0.5f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 6f)) : 1f;
         }
 
-        private void RebuildPips(int magazine)
+        private void UpdateCompass()
         {
-            _pipsRow.Clear();
-            int count = Mathf.Clamp(magazine, 0, 60);
-            _pips = new VisualElement[count];
-            for (int i = 0; i < count; i++)
+            Camera cam = _weapons != null ? _weapons.ViewCamera : null;
+            if (cam == null)
+                return;
+            float heading = HudMath.Heading(cam.transform.forward);
+
+            // La striscia di tacche scorre: al centro c'è la direzione attuale.
+            float offset = CompassWidth * 0.5f - heading * CompassPixelsPerDegree;
+            _compassTicks.style.backgroundPositionX = new BackgroundPosition(BackgroundPositionKeyword.Left, offset);
+
+            for (int i = 0; i < _compassLabels.Length; i++)
             {
-                _pips[i] = Element("pip");
-                _pipsRow.Add(_pips[i]);
+                float delta = Mathf.DeltaAngle(heading, i * 45f);
+                bool visible = Mathf.Abs(delta) < 52f;
+                Label label = _compassLabels[i];
+                label.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+                if (visible)
+                {
+                    label.style.left = CompassWidth * 0.5f + delta * CompassPixelsPerDegree - 20f;
+                    label.style.opacity = 1f - Mathf.Clamp01((Mathf.Abs(delta) - 30f) / 22f);
+                }
+            }
+
+            int rounded = Mathf.RoundToInt(heading) % 360;
+            if (rounded != _shownHeading)
+            {
+                _shownHeading = rounded;
+                _compassHeading.text = s_headings[rounded] ??= rounded.ToString("000");
             }
         }
 
-        private void UpdateCrosshair()
+        private void UpdateReticle()
         {
             if (_weapons == null)
                 return;
             Camera cam = _weapons.ViewCamera;
             float fov = cam != null ? cam.fieldOfView : 90f;
-            // Spread in pixel nello spazio di riferimento 1080p del pannello.
             float gap = HudMath.SpreadToPixels(_weapons.CurrentSpread, fov, 1080f);
-            gap = Mathf.Max(5f, gap) + 6f;
+            gap = Mathf.Max(4f, gap) + 5f;
             _chUp.style.translate = new Translate(0f, -gap);
             _chDown.style.translate = new Translate(0f, gap);
             _chLeft.style.translate = new Translate(-gap, 0f);
             _chRight.style.translate = new Translate(gap, 0f);
-            float alpha = Mathf.Lerp(1f, 0.15f, _weapons.AimAmount);
+            float alpha = 1f - _weapons.AimAmount; // mirando c'è il mirino dell'arma
             _chUp.style.opacity = alpha;
             _chDown.style.opacity = alpha;
             _chLeft.style.opacity = alpha;
             _chRight.style.opacity = alpha;
+            _chDot.style.opacity = alpha;
         }
 
         private void UpdateEffects()
@@ -400,15 +421,15 @@ namespace HrdnLab.FpsWave.UI
                 _hitMarker.style.scale = new Scale(new Vector2(pop, pop));
             }
 
+            // Il rosso resta ai bordi (texture a vignetta): non copre mai la mira.
             if (_damageFlashAmount > 0f)
             {
                 _damageFlashAmount = Mathf.MoveTowards(_damageFlashAmount, 0f, Time.deltaTime * 2.2f);
-                _damageFlash.style.opacity = _damageFlashAmount;
+                _damageFlash.style.opacity = Mathf.Min(0.8f, _damageFlashAmount);
             }
             else if (_vitalsLevel == 2)
             {
-                // Integrità critica: il bordo pulsa piano.
-                _damageFlash.style.opacity = 0.25f + 0.2f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 3f));
+                _damageFlash.style.opacity = 0.15f + 0.2f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 3f));
             }
             else
             {
@@ -418,24 +439,23 @@ namespace HrdnLab.FpsWave.UI
 
         private void UpdateTelemetry()
         {
+            if (!GameSettings.ShowFps)
+                return;
             _fpsAccum += Time.unscaledDeltaTime;
             _fpsFrames++;
             if (Time.unscaledTime < _fpsNextUpdate)
                 return;
-            int fps = Mathf.RoundToInt(_fpsFrames / Mathf.Max(0.0001f, _fpsAccum));
+            int fps = Mathf.Min(1000, Mathf.RoundToInt(_fpsFrames / Mathf.Max(0.0001f, _fpsAccum)));
             _fpsAccum = 0f;
             _fpsFrames = 0;
             _fpsNextUpdate = Time.unscaledTime + 0.5f;
-            if (fps != _shownFps)
+            long rtt = _weapons != null && _weapons.TimeManager != null ? _weapons.TimeManager.RoundTripTime : 0;
+            rtt = (long)Mathf.Min(rtt, 1000);
+            if (fps != _shownFps || rtt != _shownRtt)
             {
                 _shownFps = fps;
-                _fpsLabel.text = "FPS " + Number(Mathf.Min(fps, 1000));
-            }
-            long rtt = _weapons != null && _weapons.TimeManager != null ? _weapons.TimeManager.RoundTripTime : 0;
-            if (rtt != _shownRtt)
-            {
                 _shownRtt = rtt;
-                _linkLabel.text = "LINK " + Number((int)Mathf.Min(rtt, 1000)) + " MS";
+                _telemetry.text = Number(fps) + " FPS   " + Number((int)rtt) + " MS";
             }
         }
 
@@ -443,7 +463,6 @@ namespace HrdnLab.FpsWave.UI
 
         private void HandleHitMarker(HitMarkerType type)
         {
-            // Un marker più importante (kill/critico confermati) non viene sovrascritto da uno minore.
             if (Time.time < _markerUntil && type < _markerType)
                 return;
             _markerType = type;
@@ -456,13 +475,13 @@ namespace HrdnLab.FpsWave.UI
         private void HandleHealthChanged(float previous, float next)
         {
             if (next < previous && _health != null && _health.Max > 0f)
-                _damageFlashAmount = Mathf.Clamp01(_damageFlashAmount + 0.35f + (previous - next) / _health.Max * 2f);
+                _damageFlashAmount = Mathf.Clamp01(_damageFlashAmount + 0.3f + (previous - next) / _health.Max * 2f);
         }
 
         private void HandleSettingsChanged()
         {
-            if (_fpsLabel != null)
-                _fpsLabel.style.display = GameSettings.ShowFps ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_telemetry != null)
+                _telemetry.style.display = GameSettings.ShowFps ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         // ------------------------------------------------------------------ Utilità
@@ -490,14 +509,17 @@ namespace HrdnLab.FpsWave.UI
             return label;
         }
 
-        private static VisualElement Panel(string cls)
+        private static VisualElement Bar(string label, out Label labelElement, out VisualElement fill)
         {
-            VisualElement panel = Element("hud-panel", cls);
-            panel.Add(Element("corner", "corner--tl"));
-            panel.Add(Element("corner", "corner--tr"));
-            panel.Add(Element("corner", "corner--bl"));
-            panel.Add(Element("corner", "corner--br"));
-            return panel;
+            var row = Element("bar-row");
+            labelElement = Text(label, "bar-label", "font-bold");
+            var track = Element("bar-track");
+            fill = Element("bar-fill");
+            track.Add(fill);
+            track.Add(Element("bar-hazard"));
+            row.Add(labelElement);
+            row.Add(track);
+            return row;
         }
 
 #if UNITY_EDITOR
@@ -526,6 +548,13 @@ namespace HrdnLab.FpsWave.UI
         {
             float half = Mathf.Tan(Mathf.Clamp(verticalFov, 1f, 179f) * 0.5f * Mathf.Deg2Rad);
             return Mathf.Tan(Mathf.Max(0f, spreadDegrees) * Mathf.Deg2Rad) / half * screenHeight * 0.5f;
+        }
+
+        /// <summary>Direzione sulla bussola in gradi [0, 360): 0 = +Z (nord), 90 = +X (est).</summary>
+        public static float Heading(Vector3 forward)
+        {
+            float deg = Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg;
+            return deg < 0f ? deg + 360f : deg;
         }
     }
 }

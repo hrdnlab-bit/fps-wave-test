@@ -241,6 +241,7 @@ GameObject:
   - component: {fileID: 6903490536038743217}
   - component: {fileID: 8125962987711106856}
   - component: {fileID: 4719806347758195179}
+  - component: {fileID: 2471166753171380856}
   m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
@@ -462,6 +463,9 @@ MonoBehaviour:
   _minPitch: -85
   _maxPitch: 85
   _fovLerpSpeed: 14
+  _shakeMaxDegrees: 1.4
+  _shakeFrequency: 26
+  _traumaDecay: 1.8
 --- !u!114 &4251965635168637423
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -486,6 +490,7 @@ MonoBehaviour:
   _motor: {fileID: 6190854792051640263}
   _viewModelRoot: {fileID: 7707374290805810112}
   _muzzleLight: {fileID: 30319241975772263}
+  _feel: {fileID: 2471166753171380856}
   _tracerMaterial: {fileID: 2100000, guid: 8f3486bd4f5c96b4fb0c811395647574, type: 2}
   _impactMaterial: {fileID: 2100000, guid: 3b7224077c4b01348ad3f498600df619, type: 2}
   _placeholderMaterial: {fileID: 2100000, guid: 061d0b799beb2d94389971767aef25b5, type: 2}
@@ -564,6 +569,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.UI.DamageNumbers
   _weapons: {fileID: 4251965635168637423}
+  _font: {fileID: 12800000, guid: e39f38abb9abbc8419c5a4476ce233ac, type: 3}
   _lifetime: 0.9
   _risePixels: 70
   _fontSize: 28
@@ -610,6 +616,27 @@ MonoBehaviour:
   _health: {fileID: 6349178083940523481}
   _styleSheet: {fileID: 7433441132597879392, guid: f6c2a8beaeb2f22449f3ec3c2fcebfb8, type: 3}
   _hitMarkerDuration: 0.18
+--- !u!114 &2471166753171380856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3842048281382028655}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0262c53967e0eea4ab69b95b9ffee313, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Weapons.WeaponFeelDriver
+  _look: {fileID: 5320469534409359688}
+  _motor: {fileID: 6190854792051640263}
+  _input: {fileID: 7806041162086333259}
+  _hipOffset: {x: 0, y: -0.012, z: -0.045}
+  _pivot: {x: 0.12, y: -0.17, z: 0.32}
+  _sprintPosition: {x: 0.04, y: -0.07, z: -0.04}
+  _sprintRotation: {x: 10, y: -24, z: 10}
+  _drawPosition: {x: 0, y: -0.14, z: -0.06}
+  _drawRotation: {x: 28, y: -12, z: 8}
 --- !u!1 &8751762922156321670
 GameObject:
   m_ObjectHideFlags: 0

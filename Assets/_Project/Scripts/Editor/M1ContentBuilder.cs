@@ -57,6 +57,7 @@ namespace HrdnLab.FpsWave.Editor
             EnemyContentBuilder.Build(); // nemici: catalogo dei tipi (schede + prefab), muri di copertura, nodi di spawn, EnemyDirector
             WireBootScene(playerPrefab.GetComponent<NetworkObject>());
             UiBuilder.Build(); // HUD sul Player e menu di gioco nella scena Boot
+            WeaponFeelSetup.Apply(applyPresets: true); // sensazione delle armi: driver sul Player + profili di partenza
 
             EditorBuildSettings.scenes = new[]
             {

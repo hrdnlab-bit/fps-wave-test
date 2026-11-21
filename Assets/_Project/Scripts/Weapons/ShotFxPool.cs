@@ -27,6 +27,8 @@ namespace HrdnLab.FpsWave.Weapons
         private float[] _fleshExpiry;
         private int _nextFlesh;
         private Material _fleshMaterial;
+        private MaterialPropertyBlock _tracerBlock;
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         /// <summary>Restituisce il pool della scena corrente, creandolo al primo uso.</summary>
         public static ShotFxPool Get(Material tracerMaterial, Material impactMaterial)
@@ -100,6 +102,15 @@ namespace HrdnLab.FpsWave.Weapons
                 Destroy(_fleshMaterial);
             if (_instance == this)
                 _instance = null;
+        }
+
+        /// <summary>Tracciante del colore dell'energia dell'arma (più chiaro al centro: sembra una scarica).</summary>
+        public void Tracer(Vector3 from, Vector3 to, Color energy)
+        {
+            _tracerBlock ??= new MaterialPropertyBlock();
+            _tracerBlock.SetColor(BaseColorId, Color.Lerp(energy, Color.white, 0.35f) * 1.6f);
+            _tracers[_nextTracer].SetPropertyBlock(_tracerBlock);
+            Tracer(from, to);
         }
 
         public void Tracer(Vector3 from, Vector3 to)

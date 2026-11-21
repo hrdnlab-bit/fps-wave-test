@@ -39,6 +39,12 @@ namespace HrdnLab.FpsWave.Editor
 
         public static void Build()
         {
+            // Texture del HUD "armatura" (procedurali + ricavate dagli asset CC0 in ThirdParty), poi reimport degli stili
+            // perché gli url() puntino ai file appena creati.
+            UiTextureGenerator.GenerateAll();
+            AssetDatabase.ImportAsset(HudStylePath, ImportAssetOptions.ForceUpdate);
+            AssetDatabase.ImportAsset(MenuStylePath, ImportAssetOptions.ForceUpdate);
+
             var theme = AssetDatabase.LoadAssetAtPath<ThemeStyleSheet>(ThemePath);
             var hudStyle = AssetDatabase.LoadAssetAtPath<StyleSheet>(HudStylePath);
             var menuStyle = AssetDatabase.LoadAssetAtPath<StyleSheet>(MenuStylePath);
@@ -96,6 +102,10 @@ namespace HrdnLab.FpsWave.Editor
                     hud = root.AddComponent<SciFiHud>();
                 hud.EditorSetup(root.GetComponent<PlayerWeapons>(), root.GetComponent<Health>(), style);
                 hud.enabled = false;
+
+                var numbersFont = AssetDatabase.LoadAssetAtPath<Font>("Assets/ThirdParty/GoogleFonts/Rajdhani-Bold.ttf");
+                if (root.TryGetComponent(out DamageNumbers numbers) && numbersFont != null)
+                    numbers.EditorSetFont(numbersFont);
 
                 if (root.TryGetComponent(out PlayerView view))
                 {

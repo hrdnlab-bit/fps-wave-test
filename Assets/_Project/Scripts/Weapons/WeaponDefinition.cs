@@ -59,6 +59,9 @@ namespace HrdnLab.FpsWave.Weapons
         [SerializeField] private Vector3 _viewHipOffset = Vector3.zero;
         [SerializeField] private Vector3 _viewAdsOffset = Vector3.zero;
 
+        [Header("Sensazione (cosmetica: rinculo, molle, oscillazioni, energia, calore)")]
+        [SerializeField] private WeaponFeel _feel = new();
+
         public string Id => _id;
         public string DisplayName => _displayName;
         public WeaponSlot Slot => _slot;
@@ -108,6 +111,10 @@ namespace HrdnLab.FpsWave.Weapons
         }
 
         /// <summary>Usato da <c>WeaponViewModelBuilder</c> per collegare il modello realistico.</summary>
+        public WeaponFeel Feel => _feel ??= new WeaponFeel();
+
+        public void EditorSetFeel(WeaponFeel feel) => _feel = feel;
+
         public void EditorSetViewModel(GameObject prefab, Vector3 hipOffset, Vector3 adsOffset)
         {
             _viewModelPrefab = prefab;

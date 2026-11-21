@@ -10,7 +10,7 @@ FPS cooperativo PvE a ondate infinite (1-4 giocatori, Steam), grafica realistica
 Guida completa: [`docs/GUIDA_COLLABORATORE.md`](docs/GUIDA_COLLABORATORE.md). In breve:
 1. Installare Git, Steam e Unity 6000.6.9f1, poi clonare il repo.
 2. Scaricare da Fab i due pacchetti gratuiti indicati in `docs/ASSETS.md` ed eseguire
-   `powershell -ExecutionPolicy Bypass -File tools\setup-fab-assets.ps1` **prima** di aprire Unity.
+   `powershell -ExecutionPolicy Bypass -File tools\setup-fab-assets.ps1` e `tools\setup-ui-assets.ps1` **prima** di aprire Unity (poi `FpsWave/Setup/7`).
 3. Unity Hub -> Add -> cartella del repo. Play da qualsiasi scena (parte da `Boot`).
 
 ## Lavoro in due

@@ -36,6 +36,8 @@ namespace HrdnLab.FpsWave.Weapons
         [SerializeField] private PlayerMotor _motor;
         [SerializeField] private Transform _viewModelRoot;
         [SerializeField] private Light _muzzleLight;
+        [Tooltip("Sensazione delle armi (rinculo, molle, oscillazioni, calore). Se manca resta il rinculo semplice di M1.")]
+        [SerializeField] private WeaponFeelDriver _feel;
 
         [Header("Effetti")]
         [SerializeField] private Material _tracerMaterial;
@@ -74,6 +76,9 @@ namespace HrdnLab.FpsWave.Weapons
         public WeaponState Current => _local != null && _localEquipped >= 0 ? _local[_localEquipped] : null;
         public float AimAmount => _aim;
         public Camera ViewCamera => _look != null ? _look.Camera : null;
+        /// <summary>Calore cosmetico dell'arma impugnata (0-1) e stato di raffreddamento, per il HUD.</summary>
+        public float Heat => _feel != null ? _feel.Heat : 0f;
+        public bool IsVenting => _feel != null && _feel.IsVenting;
 
         /// <summary>Dispersione attuale in gradi (per il mirino dell'HUD).</summary>
         public float CurrentSpread
@@ -101,6 +106,8 @@ namespace HrdnLab.FpsWave.Weapons
                 _limiters[i] = new FireRateLimiter(_loadout[i].CreateStats().Get(StatType.RoundsPerMinute) / 60f);
             }
             _serverEquipped = ClampToValidSlot(_startingWeapon);
+            if (_feel == null)
+                _feel = GetComponent<WeaponFeelDriver>();
         }
 
         public override void OnStartClient()
@@ -204,6 +211,7 @@ namespace HrdnLab.FpsWave.Weapons
             _localEquipped = index;
             _aim = 0f;
             BuildViewModel(_loadout[index]);
+            _feel?.OnEquip(_loadout[index]);
             if (notifyServer)
                 RpcEquip((byte)index);
         }
@@ -243,7 +251,7 @@ namespace HrdnLab.FpsWave.Weapons
 
             // Feedback immediato (predizione locale).
             Vector3 muzzle = _muzzle != null ? _muzzle.position : origin;
-            _fx?.Tracer(muzzle, end);
+            _fx?.Tracer(muzzle, end, state.Definition.Feel.EnergyColor);
             if (hitSomething)
             {
                 // Sui personaggi niente segno permanente: resterebbe sospeso in aria quando il nemico si muove o sparisce.
@@ -252,12 +260,19 @@ namespace HrdnLab.FpsWave.Weapons
                 else
                     _fx?.Impact(hit.point, hit.normal);
             }
+            if (_feel != null)
+            {
+                _feel.OnShot(state, _aim); // rinculo, calcio a molla, tremore, FOV, calore
+            }
+            else
+            {
+                float recoilScale = Mathf.Lerp(1f, _adsRecoilMultiplier, _aim);
+                _look?.AddRecoil(state.Stats.Get(StatType.RecoilPitch) * recoilScale,
+                    UnityEngine.Random.Range(-1f, 1f) * state.Stats.Get(StatType.RecoilYaw) * recoilScale,
+                    state.Definition.RecoilRecoveryPerSecond);
+                _viewKick = 1f;
+            }
             FlashMuzzle();
-            float recoilScale = Mathf.Lerp(1f, _adsRecoilMultiplier, _aim);
-            _look?.AddRecoil(state.Stats.Get(StatType.RecoilPitch) * recoilScale,
-                UnityEngine.Random.Range(-1f, 1f) * state.Stats.Get(StatType.RecoilYaw) * recoilScale,
-                state.Definition.RecoilRecoveryPerSecond);
-            _viewKick = 1f;
             _viewModelAnim?.PlayFire();
 
             NetworkObject target = null;
@@ -278,7 +293,8 @@ namespace HrdnLab.FpsWave.Weapons
             if (_muzzle != null)
                 _muzzleLight.transform.position = _muzzle.position;
             _muzzleLight.enabled = true;
-            _muzzleLightUntil = Time.time + 0.04f;
+            _muzzleLightUntil = Time.time + 0.055f;
+            _feel?.ConfigureMuzzleLight(_muzzleLight);
         }
 
         private void BuildViewModel(WeaponDefinition definition)
@@ -337,16 +353,26 @@ namespace HrdnLab.FpsWave.Weapons
 
         private void UpdateViewModel(float dt)
         {
-            if (_muzzleLight != null && _muzzleLight.enabled && Time.time >= _muzzleLightUntil)
-                _muzzleLight.enabled = false;
+            if (_muzzleLight != null && _muzzleLight.enabled)
+            {
+                if (Time.time >= _muzzleLightUntil)
+                    _muzzleLight.enabled = false;
+                else
+                    _feel?.UpdateMuzzleLight(_muzzleLight);
+            }
             if (_viewModelRoot == null)
                 return;
-            _viewKick = Mathf.MoveTowards(_viewKick, 0f, dt * 12f);
-            Vector3 kick = new(0f, 0f, -0.04f * _viewKick);
             WeaponDefinition def = _loadout[_localEquipped];
             Vector3 hip = def.OverrideViewOffsets ? def.ViewHipOffset : _hipPosition;
             Vector3 ads = def.OverrideViewOffsets ? def.ViewAdsOffset : _adsPosition;
-            _viewModelRoot.localPosition = Vector3.Lerp(hip, ads, _aim) + kick;
+            Vector3 basePosition = Vector3.Lerp(hip, ads, _aim);
+            if (_feel != null)
+            {
+                _feel.ApplyViewModel(_viewModelRoot, basePosition, _aim, dt);
+                return;
+            }
+            _viewKick = Mathf.MoveTowards(_viewKick, 0f, dt * 12f);
+            _viewModelRoot.localPosition = basePosition + new Vector3(0f, 0f, -0.04f * _viewKick);
         }
 
         // ---------------------------------------------------------------- Server
@@ -374,7 +400,7 @@ namespace HrdnLab.FpsWave.Weapons
             ShotRejectReason reason = ServerProcessShot(weaponIndex, origin, direction, end, target, zoneIndex, out bool fired);
 
             if (fired)
-                RpcShotFx(origin, end);
+                RpcShotFx(origin, end, weaponIndex);
 
             if (reason == ShotRejectReason.None)
                 return;
@@ -478,13 +504,15 @@ namespace HrdnLab.FpsWave.Weapons
         }
 
         [ObserversRpc(ExcludeOwner = true)]
-        private void RpcShotFx(Vector3 origin, Vector3 end)
+        private void RpcShotFx(Vector3 origin, Vector3 end, byte weaponIndex)
         {
             if (_fx == null)
                 _fx = ShotFxPool.Get(_tracerMaterial, _impactMaterial);
             // Per i player remoti il tracer parte poco sotto e davanti agli occhi, all'altezza dell'arma.
             Vector3 start = origin + (end - origin).normalized * 0.6f + Vector3.down * 0.15f;
-            _fx.Tracer(start, end);
+            Color energy = weaponIndex < _loadout.Length && _loadout[weaponIndex] != null
+                ? _loadout[weaponIndex].Feel.EnergyColor : Color.white;
+            _fx.Tracer(start, end, energy); // anche gli altri vedono il colore dell'arma
         }
 
 #if UNITY_EDITOR
