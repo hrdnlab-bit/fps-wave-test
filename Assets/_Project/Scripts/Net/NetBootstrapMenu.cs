@@ -112,7 +112,8 @@ namespace HrdnLab.FpsWave.Net
 
             _labelStyle ??= new GUIStyle(GUI.skin.label) { fontSize = 16 };
 
-            GUILayout.BeginArea(new Rect(20, 20, 320, 260), GUI.skin.box);
+            bool idleArea = _serverState == LocalConnectionState.Stopped && _clientState == LocalConnectionState.Stopped;
+            GUILayout.BeginArea(new Rect(20, 20, 320, idleArea ? 200 : 150), GUI.skin.box);
             GUILayout.Label($"FPS Wave Test {HrdnLab.FpsWave.Core.GameInfo.Version} (proto {HrdnLab.FpsWave.Core.GameInfo.ProtocolVersion})", _labelStyle);
 
             bool idle = _serverState == LocalConnectionState.Stopped && _clientState == LocalConnectionState.Stopped;
