@@ -20,6 +20,9 @@
 2. Test EditMode (Unity Test Framework, Window > General > Test Runner) per la logica pura.
 3. Play Mode: host + client con Multiplayer Play Mode per le funzionalità di rete; l'avvio automatico di `NetBootstrapMenu` collega i giocatori virtuali senza clic.
 4. Scene e configurazioni ripetitive si generano con strumenti Editor (menu `FpsWave/...`) invece che a mano: sono ripetibili e versionabili.
+5. Prima di eseguire gli strumenti `FpsWave/Setup` disattivare i giocatori virtuali di Multiplayer Play Mode: bloccano `DefaultPrefabObjects.asset`.
+6. Test di sparo da remoto: il tasto Home (solo Editor/development build) riallinea la visuale alla direzione di spawn; sparare con pressione/rilascio del mouse senza spostarlo.
+7. Uscire dal Play Mode con Ctrl+P (Esc è riservato dal sistema per il controllo remoto).
 4. Solo dopo: commit, push, aggiornamento dei documenti.
 
 ## 4. Struttura cartelle

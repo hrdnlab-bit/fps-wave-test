@@ -3,8 +3,22 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Added (M1)
+- Sistema Stat/Modifier (formula unica, clamp, cache) con test.
+- Salute autorevole sul server (SyncVar), zone colpibili con weakspot, bersagli di allenamento che si rigenerano.
+- Controller FPS client-authoritative: camminata, sprint, crouch con controllo del soffitto, salto; visuale con rinculo; input definito in codice (tastiera/mouse + gamepad); controllo di plausibilità lato server.
+- Armi hitscan: pistola (semi-auto) e fucile d'assalto di test (auto), ADS, bloom, ricarica; validazione server di cadenza (token bucket), munizioni, origine, gittata, bersaglio e linea di vista.
+- Tracer e segni d'impatto in pool, flash di sparo.
+- HUD temporaneo: mirino dinamico, hit marker (colpo/weakspot/critico/kill), munizioni, salute, FPS, RTT.
+- Sessione: caricamento globale della scena Greybox all'avvio del server, ritorno a Boot alla disconnessione, spawn dei player a rotazione.
+- Strumento `FpsWave/Setup/3. Build M1 Content` (layer, materiali, armi, prefab, mappa greybox con SceneId stabili).
+- Tasto di sviluppo Home per riallineare la visuale.
 
-## [0.1.0] - 2026-11-21
+### Fixed
+- Intervallo di sparo calcolato in double (evitava un colpo per errore di arrotondamento float).
+
+
+## [0.1.0] - 2026-11-21 (tag git non pubblicato)
 ### Added
 - FishNet 4.7.4, Multiplayer Play Mode 3.0.0, Test Framework 1.8.0.
 - Scena `Boot` con NetworkManager + Tugboat e menu di sviluppo Host/Join; avvio automatico in Editor (Host sull'istanza principale, join dei giocatori virtuali).

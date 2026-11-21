@@ -28,4 +28,11 @@ Formato: data | decisione | motivo | alternative scartate | chi.
 | 2026-11-21 | In Editor avvio automatico: Host sull'istanza principale, join automatico dei giocatori virtuali MPPM | Test multiplayer senza clic; le finestre dei virtual player non sono controllabili da remoto | Menu manuale in ogni finestra | AI |
 | 2026-11-21 | Mirror della Console su `Logs/FpsWaveConsole.log` | Verifica automatica di errori/warning senza accesso ad AppData | Screenshot della Console | AI |
 | 2026-11-21 | Menu di sviluppo in OnGUI (temporaneo) | Rapido per M0a; sarà sostituito da UI Toolkit con la lobby Steam (M0b) | UI Toolkit subito | AI |
+| 2026-11-21 | Input definito in codice (classe FpsInput) invece dell'asset .inputactions del template | Nessun codice generato da mantenere, binding versionati come codice; la rimappatura arriverà col menu impostazioni | Asset InputSystem_Actions | AI |
+| 2026-11-21 | Stato armi separato client/server (`WeaponState` predetto e autorevole in istanze distinte) | Sull'Host lo stesso componente è client e server: senza separazione le munizioni verrebbero consumate due volte | Stato unico | AI |
+| 2026-11-21 | Limitatore di cadenza server a token bucket (capacità 3) | Tollera colpi raggruppati dal jitter, impedisce cadenze superiori alla media | Intervallo minimo rigido | AI |
+| 2026-11-21 | Hit marker immediato (predetto) + conferma server solo per kill/critico | Reattività senza traffico extra per ogni colpo | Attendere sempre la conferma | AI |
+| 2026-11-21 | SceneId degli oggetti di rete di scena assegnati dal generatore (FNV-1a di percorso scena + indice) | FishNet li assegna solo al salvataggio da interfaccia; senza ID gli oggetti restano disattivati | Salvataggio manuale della scena | AI |
+| 2026-11-21 | Slot 0 = fucile d'assalto di test, slot 1 = pistola iniziale | Si parte con la pistola (scelta utente); il fucile serve a testare l'automatico finché non c'è lo shop (M5) | Solo pistola anche nei test | AI |
+| 2026-11-21 | Bersagli di allenamento con 150 HP | Permettono di vedere più colpi prima della morte; i nemici veri useranno i valori di DESIGN_GAMEPLAY | 60 HP come il Runner | AI |
 | 2026-11-21 | Skill attive: fps-wave-dev-workflow, unity-coop-netcode-review, mod-system-balance (+ frontend-design, skill-creator) | Solo quelle utili al gioco | L'elenco completo di 19 skill | Utente + AI |
