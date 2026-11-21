@@ -52,26 +52,26 @@ MonoBehaviour:
     ReturnSpeed: 9
     PermanentFraction: 0.85
     BurstResetTime: 0.3
-    HipRecoilMultiplier: 0.2
+    HipRecoilMultiplier: 0.12
     AdsMultiplier: 1
     CrouchMultiplier: 0.8
-    ViewKickScale: 0.6
-    KickPosition: {x: 0.001, y: 0.002, z: -0.022}
-    KickRotation: {x: -1.2, y: 0.4, z: 0.8}
+    ViewKickScale: 0.45
+    KickPosition: {x: 0.0006, y: 0.0012, z: -0.012}
+    KickRotation: {x: -0.6, y: 0.25, z: 0.4}
     KickRandomness: 0.35
     PositionStiffness: 220
     PositionDamping: 28
     RotationStiffness: 200
     RotationDamping: 26
-    SwayAmount: 1.2
+    SwayAmount: 1
     SwayMax: 5
-    SwaySmoothing: 9
+    SwaySmoothing: 6.5
     BobAmount: 1
-    StrafeTilt: 3
+    StrafeTilt: 2.5
     SprintPose: 1
     IdleBreath: 1
-    ShakePerShot: 0.025
-    FovPunch: 0.004
+    ShakePerShot: 0.012
+    FovPunch: 0.002
     UsesHeat: 0
     BallisticColor: {r: 1, g: 0.8, b: 0.55, a: 1}
     EnergyColor: {r: 0.35, g: 0.85, b: 1, a: 1}

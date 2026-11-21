@@ -13,6 +13,7 @@ Regole:
 | `Assets/_Project/Scenes/Greybox.unity` | Matteo | `matteo/m2-runner` | 2026-11-21 | muri di copertura, nodi di spawn, EnemyDirector |
 | `Assets/_Project/Prefabs/Player.prefab` | Matteo | `matteo/m2-runner` | 2026-11-21 | aggiunti EnemyTarget, DamageNumbers, HUD (UIDocument + SciFiHud), WeaponFeelDriver |
 | `Assets/_Project/Prefabs/Enemies/**` | Matteo | `matteo/m2-runner` | 2026-11-21 | prefab dei nemici (generati da Setup/6) |
+| `Assets/_Project/Prefabs/ViewModels/**` | Matteo | `matteo/m2-runner` | 2026-11-21 | calcio procedurale dello sparo più leggero (VM_Pistol, VM_M4) |
 | `Assets/_Project/Data/Enemies/**` | Matteo | `matteo/m2-runner` | 2026-11-21 | schede dei tipi di nemico |
 | `Assets/_Project/Scenes/Boot.unity` | Matteo | `matteo/m2-runner` | 2026-11-21 | menu di gioco (UIDocument + GameMenu) sul NetworkManager |
 | `Assets/_Project/UI/**` | Matteo | `matteo/m2-runner` | 2026-11-21 | stili, tema e PanelSettings di HUD e menu |

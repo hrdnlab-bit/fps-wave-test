@@ -47,8 +47,8 @@ namespace HrdnLab.FpsWave.Weapons
         [SerializeField] private Transform _slide;
         [SerializeField, Min(0f)] private float _slideTravel = 0.025f;
         [SerializeField, Min(0.01f)] private float _drawTime = 0.35f;
-        [SerializeField, Min(0f)] private float _fireKickPitch = 6f;
-        [SerializeField, Min(0f)] private float _fireKickBack = 0.03f;
+        [SerializeField, Min(0f)] private float _fireKickPitch = 2.5f;
+        [SerializeField, Min(0f)] private float _fireKickBack = 0.014f;
 
         private Vector3 _restPos;
         private Quaternion _restRot = Quaternion.identity;

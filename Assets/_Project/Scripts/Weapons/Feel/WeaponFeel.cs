@@ -39,18 +39,18 @@ namespace HrdnLab.FpsWave.Weapons
         [Tooltip("Pausa senza sparare dopo la quale la raffica ricomincia da capo.")]
         [Min(0.05f)] public float BurstResetTime = 0.35f;
         [Tooltip("Rinculo della camera sparando da fianco (x). Basso: da fianco la mira quasi non sale, ma la precisione peggiora col bloom.")]
-        [Range(0f, 1.5f)] public float HipRecoilMultiplier = 0.2f;
+        [Range(0f, 1.5f)] public float HipRecoilMultiplier = 0.12f;
         [Tooltip("Rinculo della camera mirando (x): qui si gestisce la salita col mouse, come in Siege.")]
         [Range(0f, 1.5f)] public float AdsMultiplier = 1f;
         [Range(0f, 1.5f)] public float CrouchMultiplier = 0.8f;
 
         [Header("Arma in mano: calcio a molla")]
         [Tooltip("Scala di tutto il calcio del view model (0 se l'asset anima già il suo rinculo).")]
-        [Min(0f)] public float ViewKickScale = 1f;
+        [Min(0f)] public float ViewKickScale = 0.45f;
         [Tooltip("Spostamento per colpo (m): x laterale, y alto, z indietro (negativo).")]
-        public Vector3 KickPosition = new(0.001f, 0.002f, -0.022f);
+        public Vector3 KickPosition = new(0.0006f, 0.0012f, -0.012f);
         [Tooltip("Rotazione per colpo (gradi): x alza la volata (negativo), y laterale, z rollio.")]
-        public Vector3 KickRotation = new(-1.2f, 0.4f, 0.8f);
+        public Vector3 KickRotation = new(-0.6f, 0.25f, 0.4f);
         [Range(0f, 1f)] public float KickRandomness = 0.35f;
         [Min(1f)] public float PositionStiffness = 220f;
         [Min(0f)] public float PositionDamping = 28f;
@@ -59,13 +59,13 @@ namespace HrdnLab.FpsWave.Weapons
 
         [Header("Arma in mano: movimento")]
         [Tooltip("Oscillazione dell'arma che segue in ritardo il mouse (gradi per grado di rotazione).")]
-        [Min(0f)] public float SwayAmount = 1.2f;
+        [Min(0f)] public float SwayAmount = 1f;
         [Min(0f)] public float SwayMax = 5f;
-        [Min(0.1f)] public float SwaySmoothing = 9f;
+        [Min(0.1f)] public float SwaySmoothing = 6.5f;
         [Tooltip("Ondeggio camminando/correndo (x).")]
         [Min(0f)] public float BobAmount = 1f;
         [Tooltip("Inclinazione laterale spostandosi di lato (gradi a piena velocità).")]
-        [Min(0f)] public float StrafeTilt = 3f;
+        [Min(0f)] public float StrafeTilt = 2.5f;
         [Tooltip("Quanto l'arma si abbassa e ruota correndo (x).")]
         [Range(0f, 1.5f)] public float SprintPose = 1f;
         [Tooltip("Respiro da fermi (x).")]
@@ -73,9 +73,9 @@ namespace HrdnLab.FpsWave.Weapons
 
         [Header("Camera")]
         [Tooltip("Tremore aggiunto a ogni colpo (0-1, cresce con il fuoco prolungato).")]
-        [Range(0f, 1f)] public float ShakePerShot = 0.03f;
+        [Range(0f, 1f)] public float ShakePerShot = 0.012f;
         [Tooltip("Allargamento istantaneo del FOV a ogni colpo (frazione).")]
-        [Range(0f, 0.1f)] public float FovPunch = 0.004f;
+        [Range(0f, 0.1f)] public float FovPunch = 0.002f;
 
         [Header("Sci-fi: energia e calore (cosmetici)")]
         [Tooltip("Arma a energia: accumula calore (barra nel HUD, luce che vira al caldo, tremolio). Le armi a proiettili non ne hanno.")]
@@ -104,10 +104,10 @@ namespace HrdnLab.FpsWave.Weapons
         {
             VerticalMultiplier = 1.5f, HorizontalMultiplier = 1f, VerticalRandomness = 0.15f,
             FirstShotMultiplier = 0.75f, RampShots = 6, RampMultiplier = 1.3f, PatternStrength = 0.5f, HorizontalRandomness = 0.6f,
-            HipRecoilMultiplier = 0.2f, AdsMultiplier = 1f,
+            HipRecoilMultiplier = 0.12f, AdsMultiplier = 1f,
             Snappiness = 24f, ReturnSpeed = 9f, PermanentFraction = 0.85f, BurstResetTime = 0.3f,
-            ViewKickScale = 0.6f, KickPosition = new Vector3(0.001f, 0.002f, -0.022f), KickRotation = new Vector3(-1.2f, 0.4f, 0.8f),
-            ShakePerShot = 0.025f, FovPunch = 0.004f, HeatPerShot = 0.035f, HeatDecay = 0.45f,
+            ViewKickScale = 0.45f, KickPosition = new Vector3(0.0006f, 0.0012f, -0.012f), KickRotation = new Vector3(-0.6f, 0.25f, 0.4f),
+            ShakePerShot = 0.012f, FovPunch = 0.002f, HeatPerShot = 0.035f, HeatDecay = 0.45f,
             EnergyColor = new Color(0.35f, 0.85f, 1f),
         };
 
@@ -116,10 +116,10 @@ namespace HrdnLab.FpsWave.Weapons
         {
             VerticalMultiplier = 1.1f, HorizontalMultiplier = 0.9f, VerticalRandomness = 0.2f,
             FirstShotMultiplier = 1f, RampShots = 4, RampMultiplier = 1.15f, PatternStrength = 0.3f, HorizontalRandomness = 0.7f,
-            HipRecoilMultiplier = 0.3f, AdsMultiplier = 1f,
+            HipRecoilMultiplier = 0.18f, AdsMultiplier = 1f,
             Snappiness = 26f, ReturnSpeed = 10f, PermanentFraction = 0.8f, BurstResetTime = 0.45f,
-            ViewKickScale = 0.8f, KickPosition = new Vector3(0.002f, 0.004f, -0.03f), KickRotation = new Vector3(-2.5f, 0.6f, 1.2f),
-            ShakePerShot = 0.04f, FovPunch = 0.006f, HeatPerShot = 0.09f, HeatDecay = 0.7f,
+            ViewKickScale = 0.6f, KickPosition = new Vector3(0.001f, 0.002f, -0.018f), KickRotation = new Vector3(-1.4f, 0.4f, 0.7f),
+            ShakePerShot = 0.02f, FovPunch = 0.003f, HeatPerShot = 0.09f, HeatDecay = 0.7f,
             EnergyColor = new Color(0.55f, 0.75f, 1f),
         };
     }

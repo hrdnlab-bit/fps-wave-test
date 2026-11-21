@@ -201,29 +201,30 @@ namespace HrdnLab.FpsWave.Weapons
             // Inerzia: l'arma reagisce all'accelerazione (resta indietro partendo, va avanti frenando, si inclina sterzando).
             Vector3 accel = (localVelocity - _prevLocalVelocity) / dt;
             _prevLocalVelocity = localVelocity;
-            _inertia = Vector3.Lerp(_inertia, accel, RecoilMath.ExpBlend(9f, dt));
+            _inertia = Vector3.Lerp(_inertia, accel, RecoilMath.ExpBlend(5f, dt));
             var inertiaPos = new Vector3(
                 Mathf.Clamp(-_inertia.x * 0.0011f, -0.012f, 0.012f), 0f,
                 Mathf.Clamp(-_inertia.z * 0.0009f, -0.012f, 0.012f)) * steady;
             var inertiaRot = new Vector3(Mathf.Clamp(_inertia.z * 0.08f, -2f, 2f), 0f, Mathf.Clamp(_inertia.x * 0.22f, -3f, 3f)) * steady;
 
             // Corsa e accovacciamento: transizioni smorzate.
-            _sprint = Mathf.SmoothDamp(_sprint, sprinting ? 1f : 0f, ref _sprintVelocity, 0.14f, Mathf.Infinity, dt);
-            _crouch = Mathf.SmoothDamp(_crouch, crouching ? 1f : 0f, ref _crouchVelocity, 0.12f, Mathf.Infinity, dt);
+            _sprint = Mathf.SmoothDamp(_sprint, sprinting ? 1f : 0f, ref _sprintVelocity, 0.24f, Mathf.Infinity, dt);
+            _crouch = Mathf.SmoothDamp(_crouch, crouching ? 1f : 0f, ref _crouchVelocity, 0.2f, Mathf.Infinity, dt);
 
-            // Passo: la fase avanza con la distanza percorsa (un passo ogni ~0.8 m camminando, ~1.1 m correndo).
-            _bobWeight = Mathf.Lerp(_bobWeight, grounded ? Mathf.Clamp01(speed / 4.5f) : 0f, RecoilMath.ExpBlend(8f, dt));
-            float stepLength = Mathf.Lerp(0.8f, 1.1f, _sprint);
+            // Passo: la fase avanza con la distanza percorsa, a un ritmo umano (~2 passi al secondo camminando,
+            // ~2.7 correndo, come nei Call of Duty): un passo ogni ~2.2 m camminando e ~2.6 m correndo alle velocità del gioco.
+            _bobWeight = Mathf.Lerp(_bobWeight, grounded ? Mathf.Clamp01(speed / 4.5f) : 0f, RecoilMath.ExpBlend(5f, dt));
+            float stepLength = Mathf.Lerp(2.2f, 2.6f, _sprint);
             _bobPhase = (_bobPhase + speed * dt / stepLength * Mathf.PI) % (Mathf.PI * 2f);
             float amp = _feel.BobAmount * _bobWeight * steady;
-            float big = 1f + 1.3f * _sprint;
+            float big = 1f + 1.1f * _sprint;
             float s1 = Mathf.Sin(_bobPhase);
-            float step = Mathf.Abs(s1); // 0 sul piede, 1 a metà passo: due "affondi" per ciclo
-            var bobPos = new Vector3(s1 * 0.009f * big, (0.5f - step) * 0.012f * big, 0f) * amp;
-            var bobRot = new Vector3(step * 1.1f * big, s1 * 0.7f * big, s1 * 1.3f * big) * amp;
+            float step = s1 * s1; // morbido: 0 sul piede, 1 a metà passo, senza spigoli
+            var bobPos = new Vector3(s1 * 0.006f * big, (0.5f - step) * 0.006f * big, 0f) * amp;
+            var bobRot = new Vector3(step * 0.6f * big, s1 * 0.5f * big, s1 * 0.9f * big) * amp;
 
             float strafe = Mathf.Clamp(localVelocity.x / 5f, -1f, 1f);
-            _tilt = Mathf.Lerp(_tilt, -strafe * _feel.StrafeTilt * steady, RecoilMath.ExpBlend(7f, dt));
+            _tilt = Mathf.Lerp(_tilt, -strafe * _feel.StrafeTilt * steady, RecoilMath.ExpBlend(4f, dt));
 
             // Salto e caduta: l'arma si abbassa allo stacco, sale leggermente mentre si cade, affonda all'atterraggio.
             if (!grounded)
@@ -242,7 +243,7 @@ namespace HrdnLab.FpsWave.Weapons
             }
             _wasGrounded = grounded;
             float airTarget = grounded ? 0f : Mathf.Clamp(-velocity.y * 0.003f, -0.015f, 0.02f);
-            _air = Mathf.Lerp(_air, airTarget, RecoilMath.ExpBlend(6f, dt));
+            _air = Mathf.Lerp(_air, airTarget, RecoilMath.ExpBlend(4f, dt));
             var airPos = new Vector3(0f, _air, 0f) * steady;
             var airRot = new Vector3(-_air * 120f, 0f, 0f) * steady;
 
