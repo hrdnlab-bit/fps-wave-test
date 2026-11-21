@@ -13,9 +13,10 @@ namespace HrdnLab.FpsWave.Weapons
     {
         /// <summary>Calcio (gradi): x = su (pitch), y = lato (yaw, positivo a destra).</summary>
         public static Vector2 Kick(WeaponFeel feel, float basePitch, float baseYaw, int shotIndex, int seed,
-            float aim01, bool crouching, float random01)
+            float aim01, bool crouching, float random01, float verticalRandom01 = 0.5f)
         {
-            float vertical = basePitch * feel.VerticalMultiplier * VerticalScale(feel, shotIndex);
+            float vertical = basePitch * feel.VerticalMultiplier * VerticalScale(feel, shotIndex)
+                             * (1f + (verticalRandom01 * 2f - 1f) * feel.VerticalRandomness);
             float pattern = PatternValue(shotIndex, seed);
             float randomSigned = random01 * 2f - 1f;
             float horizontal = baseYaw * feel.HorizontalMultiplier * (pattern * feel.PatternStrength + randomSigned * feel.HorizontalRandomness);

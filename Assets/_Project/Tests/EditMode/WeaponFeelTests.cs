@@ -28,6 +28,25 @@ namespace HrdnLab.FpsWave.Tests
         }
 
         [Test]
+        public void VerticalRandomness_VariesTheClimbWithinItsRange()
+        {
+            var feel = new WeaponFeel { VerticalMultiplier = 1f, FirstShotMultiplier = 1f, VerticalRandomness = 0.2f };
+            float low = RecoilMath.Kick(feel, 1f, 0f, 0, 1, 0f, false, 0.5f, 0f).x;
+            float mid = RecoilMath.Kick(feel, 1f, 0f, 0, 1, 0f, false, 0.5f, 0.5f).x;
+            float high = RecoilMath.Kick(feel, 1f, 0f, 0, 1, 0f, false, 0.5f, 1f).x;
+            Assert.That(low, Is.EqualTo(0.8f).Within(1e-4f));
+            Assert.That(mid, Is.EqualTo(1f).Within(1e-4f));
+            Assert.That(high, Is.EqualTo(1.2f).Within(1e-4f));
+        }
+
+        [Test]
+        public void AutomaticPreset_TapsKickLessThanTheBurst()
+        {
+            WeaponFeel feel = WeaponFeel.AutomaticPreset();
+            Assert.That(RecoilMath.VerticalScale(feel, 0), Is.LessThan(RecoilMath.VerticalScale(feel, 3)));
+        }
+
+        [Test]
         public void Presets_KeepMostRecoilInTheAim_AndAViewModelThatBarelyMoves()
         {
             foreach (WeaponFeel feel in new[] { WeaponFeel.AutomaticPreset(), WeaponFeel.SemiAutoPreset() })

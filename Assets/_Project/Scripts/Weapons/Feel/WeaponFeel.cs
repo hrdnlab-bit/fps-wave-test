@@ -17,19 +17,21 @@ namespace HrdnLab.FpsWave.Weapons
         [Tooltip("Moltiplica la salita verticale data da RecoilPitch: più alto = l'arma sale di più (sensazione di potenza).")]
         [Min(0f)] public float VerticalMultiplier = 1.5f;
         [Tooltip("Moltiplica lo spostamento laterale dato da RecoilYaw.")]
-        [Min(0f)] public float HorizontalMultiplier = 0.7f;
-        [Tooltip("Il primo colpo di una raffica scalcia di più (x).")]
-        [Min(0f)] public float FirstShotMultiplier = 1.2f;
+        [Min(0f)] public float HorizontalMultiplier = 1f;
+        [Tooltip("Primo colpo di una raffica (x): sotto 1 i colpi singoli (tap) saltano meno della raffica.")]
+        [Min(0f)] public float FirstShotMultiplier = 0.75f;
         [Tooltip("Colpi dopo i quali il rinculo verticale raggiunge il massimo della crescita.")]
-        [Min(1)] public int RampShots = 8;
+        [Min(1)] public int RampShots = 6;
         [Tooltip("Rinculo verticale a fine crescita rispetto all'inizio (x).")]
-        [Min(0f)] public float RampMultiplier = 1.25f;
+        [Min(0f)] public float RampMultiplier = 1.3f;
         [Tooltip("Quanto lo schema orizzontale fisso pesa (0 = solo casuale).")]
-        [Range(0f, 1f)] public float PatternStrength = 0.75f;
+        [Range(0f, 1f)] public float PatternStrength = 0.5f;
         [Tooltip("Parte casuale del rinculo orizzontale.")]
-        [Range(0f, 1f)] public float HorizontalRandomness = 0.3f;
+        [Range(0f, 1f)] public float HorizontalRandomness = 0.6f;
+        [Tooltip("Variazione casuale della salita per colpo (0.15 = ±15%).")]
+        [Range(0f, 0.5f)] public float VerticalRandomness = 0.15f;
         [Tooltip("Velocità con cui la camera raggiunge il rinculo (scatto).")]
-        [Min(1f)] public float Snappiness = 30f;
+        [Min(1f)] public float Snappiness = 24f;
         [Tooltip("Velocità di ritorno della parte recuperabile.")]
         [Min(0.1f)] public float ReturnSpeed = 9f;
         [Tooltip("Parte del rinculo che resta (da compensare tirando giù il mouse, come in Rainbow Six Siege). 0 = torna tutto da solo.")]
@@ -75,6 +77,11 @@ namespace HrdnLab.FpsWave.Weapons
         [Header("Sci-fi: energia e calore (cosmetici)")]
         [Tooltip("Arma a energia: accumula calore (barra nel HUD, luce che vira al caldo, tremolio). Le armi a proiettili non ne hanno.")]
         public bool UsesHeat;
+        [Tooltip("Colore di tracciante e lampo per le armi a proiettili (le armi a energia usano EnergyColor).")]
+        public Color BallisticColor = new(1f, 0.8f, 0.55f);
+
+        /// <summary>Colore di tracciante e luce di volata: energia per le armi a energia, caldo e realistico per quelle a proiettili.</summary>
+        public Color MuzzleColor => UsesHeat ? EnergyColor : BallisticColor;
         [Tooltip("Colore della scarica: luce di volata e tracciante.")]
         public Color EnergyColor = new(0.35f, 0.85f, 1f);
         [Tooltip("Colore della luce a calore massimo.")]
@@ -92,9 +99,9 @@ namespace HrdnLab.FpsWave.Weapons
         /// </summary>
         public static WeaponFeel AutomaticPreset() => new()
         {
-            VerticalMultiplier = 1.5f, HorizontalMultiplier = 0.7f,
-            FirstShotMultiplier = 1.2f, RampShots = 8, RampMultiplier = 1.25f, PatternStrength = 0.75f, HorizontalRandomness = 0.3f,
-            Snappiness = 30f, ReturnSpeed = 9f, PermanentFraction = 0.85f, BurstResetTime = 0.3f,
+            VerticalMultiplier = 1.5f, HorizontalMultiplier = 1f, VerticalRandomness = 0.15f,
+            FirstShotMultiplier = 0.75f, RampShots = 6, RampMultiplier = 1.3f, PatternStrength = 0.5f, HorizontalRandomness = 0.6f,
+            Snappiness = 24f, ReturnSpeed = 9f, PermanentFraction = 0.85f, BurstResetTime = 0.3f,
             ViewKickScale = 0.6f, KickPosition = new Vector3(0.001f, 0.002f, -0.022f), KickRotation = new Vector3(-1.2f, 0.4f, 0.8f),
             ShakePerShot = 0.025f, FovPunch = 0.004f, HeatPerShot = 0.035f, HeatDecay = 0.45f,
             EnergyColor = new Color(0.35f, 0.85f, 1f),
@@ -103,9 +110,9 @@ namespace HrdnLab.FpsWave.Weapons
         /// <summary>Profilo di base per un'arma semi-automatica (pistole, fucili di precisione): salto secco della mira, arma stabile.</summary>
         public static WeaponFeel SemiAutoPreset() => new()
         {
-            VerticalMultiplier = 1.6f, HorizontalMultiplier = 0.6f,
-            FirstShotMultiplier = 1f, RampShots = 4, RampMultiplier = 1.1f, PatternStrength = 0.4f, HorizontalRandomness = 0.5f,
-            Snappiness = 34f, ReturnSpeed = 10f, PermanentFraction = 0.8f, BurstResetTime = 0.45f,
+            VerticalMultiplier = 1.1f, HorizontalMultiplier = 0.9f, VerticalRandomness = 0.2f,
+            FirstShotMultiplier = 1f, RampShots = 4, RampMultiplier = 1.15f, PatternStrength = 0.3f, HorizontalRandomness = 0.7f,
+            Snappiness = 26f, ReturnSpeed = 10f, PermanentFraction = 0.8f, BurstResetTime = 0.45f,
             ViewKickScale = 0.8f, KickPosition = new Vector3(0.002f, 0.004f, -0.03f), KickRotation = new Vector3(-2.5f, 0.6f, 1.2f),
             ShakePerShot = 0.04f, FovPunch = 0.006f, HeatPerShot = 0.09f, HeatDecay = 0.7f,
             EnergyColor = new Color(0.55f, 0.75f, 1f),

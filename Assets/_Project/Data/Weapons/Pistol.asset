@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Pistol
   m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Weapons.WeaponDefinition
   _id: pistol_base
-  _displayName: Pistola
+  _displayName: Pistol
   _slot: 1
   _damage: 20
   _roundsPerMinute: 360
@@ -40,14 +40,15 @@ MonoBehaviour:
   _viewHipOffset: {x: 0.13, y: -0.105, z: 0.3}
   _viewAdsOffset: {x: 0, y: 0, z: 0.24}
   _feel:
-    VerticalMultiplier: 1.6
-    HorizontalMultiplier: 0.6
+    VerticalMultiplier: 1.1
+    HorizontalMultiplier: 0.9
     FirstShotMultiplier: 1
     RampShots: 4
-    RampMultiplier: 1.1
-    PatternStrength: 0.4
-    HorizontalRandomness: 0.5
-    Snappiness: 34
+    RampMultiplier: 1.15
+    PatternStrength: 0.3
+    HorizontalRandomness: 0.7
+    VerticalRandomness: 0.2
+    Snappiness: 26
     ReturnSpeed: 10
     PermanentFraction: 0.8
     BurstResetTime: 0.45
@@ -70,6 +71,8 @@ MonoBehaviour:
     IdleBreath: 1
     ShakePerShot: 0.04
     FovPunch: 0.006
+    UsesHeat: 0
+    BallisticColor: {r: 1, g: 0.8, b: 0.55, a: 1}
     EnergyColor: {r: 0.55, g: 0.75, b: 1, a: 1}
     HotColor: {r: 1, g: 0.55, b: 0.25, a: 1}
     HeatPerShot: 0.09

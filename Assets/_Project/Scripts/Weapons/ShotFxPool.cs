@@ -3,7 +3,9 @@ using UnityEngine;
 namespace HrdnLab.FpsWave.Weapons
 {
     /// <summary>
-    /// Effetti cosmetici degli spari (tracer e segni d'impatto), puramente locali e in pool:
+    /// Effetti cosmetici degli spari (tracer e segni d'impatto), puramente locali e in pool.
+    /// Il tracciante è una scia corta che viaggia alla velocità del proiettile (come nei giochi AAA), non una linea fissa
+    /// dalla canna al bersaglio: muovendosi mentre si spara non resta una riga sospesa nel mondo.
     /// nessuna allocazione durante il gioco e nessun oggetto di rete (vedi docs/NETCODE.md).
     /// </summary>
     public sealed class ShotFxPool : MonoBehaviour
@@ -12,13 +14,17 @@ namespace HrdnLab.FpsWave.Weapons
         private const int ImpactCount = 48;
         private const int FleshCount = 16;
         private const float FleshLifetime = 0.14f;
-        private const float TracerLifetime = 0.06f;
+        private const float TracerSpeed = 420f;  // m/s, abbastanza lento da vedersi, abbastanza veloce da non distrarre
+        private const float TracerLength = 3.5f; // lunghezza della scia (m)
         private const float ImpactLifetime = 8f;
 
         private static ShotFxPool _instance;
 
         private LineRenderer[] _tracers;
-        private float[] _tracerExpiry;
+        private float[] _tracerStart;
+        private Vector3[] _tracerFrom;
+        private Vector3[] _tracerDir;
+        private float[] _tracerDistance;
         private Transform[] _impacts;
         private float[] _impactExpiry;
         private int _nextTracer;
@@ -44,7 +50,10 @@ namespace HrdnLab.FpsWave.Weapons
         private void Build(Material tracerMaterial, Material impactMaterial)
         {
             _tracers = new LineRenderer[TracerCount];
-            _tracerExpiry = new float[TracerCount];
+            _tracerStart = new float[TracerCount];
+            _tracerFrom = new Vector3[TracerCount];
+            _tracerDir = new Vector3[TracerCount];
+            _tracerDistance = new float[TracerCount];
             for (int i = 0; i < TracerCount; i++)
             {
                 var t = new GameObject("Tracer");
@@ -52,8 +61,8 @@ namespace HrdnLab.FpsWave.Weapons
                 var lr = t.AddComponent<LineRenderer>();
                 lr.positionCount = 2;
                 lr.useWorldSpace = true;
-                lr.startWidth = 0.025f;
-                lr.endWidth = 0.01f;
+                lr.startWidth = 0.003f; // coda sottile
+                lr.endWidth = 0.014f;   // testa
                 lr.sharedMaterial = tracerMaterial;
                 lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 lr.receiveShadows = false;
@@ -108,19 +117,26 @@ namespace HrdnLab.FpsWave.Weapons
         public void Tracer(Vector3 from, Vector3 to, Color energy)
         {
             _tracerBlock ??= new MaterialPropertyBlock();
-            _tracerBlock.SetColor(BaseColorId, Color.Lerp(energy, Color.white, 0.35f) * 1.6f);
+            _tracerBlock.SetColor(BaseColorId, Color.Lerp(energy, Color.white, 0.25f) * 1.4f);
             _tracers[_nextTracer].SetPropertyBlock(_tracerBlock);
             Tracer(from, to);
         }
 
         public void Tracer(Vector3 from, Vector3 to)
         {
-            LineRenderer lr = _tracers[_nextTracer];
-            _tracerExpiry[_nextTracer] = Time.time + TracerLifetime;
+            int i = _nextTracer;
             _nextTracer = (_nextTracer + 1) % TracerCount;
-            lr.SetPosition(0, from);
-            lr.SetPosition(1, to);
-            lr.enabled = true;
+            Vector3 delta = to - from;
+            float distance = delta.magnitude;
+            if (distance < 0.5f)
+                return;
+            _tracerStart[i] = Time.time;
+            _tracerFrom[i] = from;
+            _tracerDir[i] = delta / distance;
+            _tracerDistance[i] = distance;
+            _tracers[i].SetPosition(0, from);
+            _tracers[i].SetPosition(1, from);
+            _tracers[i].enabled = true;
         }
 
         public void Impact(Vector3 point, Vector3 normal)
@@ -163,8 +179,19 @@ namespace HrdnLab.FpsWave.Weapons
             }
             for (int i = 0; i < TracerCount; i++)
             {
-                if (_tracers[i].enabled && now >= _tracerExpiry[i])
-                    _tracers[i].enabled = false;
+                LineRenderer lr = _tracers[i];
+                if (!lr.enabled)
+                    continue;
+                float travelled = (now - _tracerStart[i]) * TracerSpeed;
+                float head = Mathf.Min(travelled, _tracerDistance[i]);
+                float tail = Mathf.Max(0f, travelled - TracerLength); // la coda continua fino al bersaglio
+                if (tail >= _tracerDistance[i])
+                {
+                    lr.enabled = false;
+                    continue;
+                }
+                lr.SetPosition(0, _tracerFrom[i] + _tracerDir[i] * tail);
+                lr.SetPosition(1, _tracerFrom[i] + _tracerDir[i] * head);
             }
             for (int i = 0; i < ImpactCount; i++)
             {

@@ -94,7 +94,7 @@ namespace HrdnLab.FpsWave.Weapons
 
             // Camera
             Vector2 kick = RecoilMath.Kick(_feel, state.Stats.Get(StatType.RecoilPitch), state.Stats.Get(StatType.RecoilYaw),
-                _shotIndex, _seed, aim, crouching, Random.value);
+                _shotIndex, _seed, aim, crouching, Random.value, Random.value);
             if (_look != null)
             {
                 _look.AddRecoilKick(kick, _feel.PermanentFraction, _feel.Snappiness, _feel.ReturnSpeed);
@@ -129,7 +129,7 @@ namespace HrdnLab.FpsWave.Weapons
         {
             if (light == null)
                 return;
-            light.color = Color.Lerp(_feel.EnergyColor, _feel.HotColor, Mathf.Pow(_heat, 1.5f));
+            light.color = Color.Lerp(_feel.MuzzleColor, _feel.HotColor, Mathf.Pow(_heat, 1.5f));
             light.range = Random.Range(4f, 6f);
             light.intensity = _feel.MuzzleLightIntensity * (1f + _heat * 0.6f);
         }

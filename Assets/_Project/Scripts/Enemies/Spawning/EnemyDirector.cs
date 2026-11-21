@@ -578,7 +578,7 @@ namespace HrdnLab.FpsWave.Enemies
             {
                 _nextOverlayRefresh = now + 0.5f;
                 int wanted = SpawnScoring.TargetAlive(CountAlive(EnemyTarget.Active), _baseAlive, _alivePerPlayer, _hardCap);
-                _overlayText = $"Nemici {_active.Count}/{wanted}  uccisi {_killedTotal}  riciclati {_recycledTotal}  " +
+                _overlayText = $"Enemies {_active.Count}/{wanted}  kills {_killedTotal}  recycled {_recycledTotal}  " +
                                $"spawn {(_spawningEnabled ? "ON" : "OFF")} [{_toggleKey}]";
             }
             GUI.Label(new Rect(10f, Screen.height - 28f, 600f, 22f), _overlayText);

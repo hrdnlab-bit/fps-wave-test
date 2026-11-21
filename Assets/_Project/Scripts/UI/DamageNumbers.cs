@@ -6,8 +6,9 @@ namespace HrdnLab.FpsWave.UI
 {
     /// <summary>
     /// Numeri di danno sopra il punto colpito, solo per chi ha sparato e solo per colpi confermati dal server
-    /// (<see cref="PlayerWeapons.LocalHitConfirmed"/>). Si gonfiano all'arrivo, salgono, deviano un po' di lato e svaniscono;
-    /// colore e dimensione dicono il tipo di colpo: bianco normale, oro testa, giallo con "!" critico, rosso uccisione.
+    /// (<see cref="PlayerWeapons.LocalHitConfirmed"/>). Stile sobrio da gioco AAA: piccolo "pop" d'arrivo, salita breve, svanisce.
+    /// Solo due toni: bianco per i colpi normali, oro tenue per i colpi di precisione (testa/punto debole/critico);
+    /// l'uccisione è appena più grande, senza colori accesi né simboli.
     /// Pool fisso e stringhe in cache: nessuna allocazione durante il gioco. OnGUI come il resto dell'HUD temporaneo.
     /// </summary>
     public sealed class DamageNumbers : MonoBehaviour
@@ -16,21 +17,19 @@ namespace HrdnLab.FpsWave.UI
         private const int CachedNumbers = 1000;
 
         private static readonly string[] s_plain = new string[CachedNumbers];
-        private static readonly string[] s_critical = new string[CachedNumbers];
 
         [SerializeField] private PlayerWeapons _weapons;
         [Tooltip("Font dei numeri (Orbitron/Rajdhani da ThirdParty/GoogleFonts, assegnato da Setup/7).")]
         [SerializeField] private Font _font;
-        [SerializeField, Min(0.2f)] private float _lifetime = 0.9f;
+        [SerializeField, Min(0.2f)] private float _lifetime = 0.75f;
         [Tooltip("Salita sullo schermo in pixel (a 1080p): uguale da vicino e da lontano.")]
-        [SerializeField, Min(0f)] private float _risePixels = 70f;
-        [SerializeField, Min(8)] private int _fontSize = 28;
+        [SerializeField, Min(0f)] private float _risePixels = 45f;
+        [SerializeField, Min(8)] private int _fontSize = 24;
 
         [Header("Colori")]
-        [SerializeField] private Color _normalColor = new(1f, 1f, 1f);
-        [SerializeField] private Color _weakspotColor = new(1f, 0.74f, 0.2f);
-        [SerializeField] private Color _criticalColor = new(1f, 0.93f, 0.15f);
-        [SerializeField] private Color _killColor = new(1f, 0.32f, 0.22f);
+        [SerializeField] private Color _normalColor = new(0.95f, 0.95f, 0.95f);
+        [Tooltip("Colpi di precisione: testa, punto debole, critico.")]
+        [SerializeField] private Color _precisionColor = new(1f, 0.83f, 0.42f);
 
         private struct Entry
         {
@@ -72,15 +71,14 @@ namespace HrdnLab.FpsWave.UI
             e.Born = Time.unscaledTime;
             e.DriftX = Random.Range(-1f, 1f);
             e.Flags = flags;
-            e.Text = DamageText(damage, HitConfirm.Has(flags, HitFlags.Critical));
+            e.Text = DamageText(damage);
         }
 
-        private static string DamageText(ushort damage, bool critical)
+        private static string DamageText(ushort damage)
         {
             if (damage >= CachedNumbers)
-                return critical ? damage + "!" : damage.ToString(); // raro: danni oltre 999
-            string[] cache = critical ? s_critical : s_plain;
-            return cache[damage] ??= critical ? damage + "!" : damage.ToString();
+                return damage.ToString(); // raro: danni oltre 999
+            return s_plain[damage] ??= damage.ToString();
         }
 
         private void OnGUI()
@@ -123,28 +121,25 @@ namespace HrdnLab.FpsWave.UI
                 bool kill = HitConfirm.Has(e.Flags, HitFlags.Kill);
                 bool crit = HitConfirm.Has(e.Flags, HitFlags.Critical);
                 bool weak = HitConfirm.Has(e.Flags, HitFlags.Weakspot);
-                float kindScale = kill ? 1.45f : crit ? 1.3f : weak ? 1.15f : 1f;
+                bool precision = crit || weak;
+                float kindScale = (precision ? 1.12f : 1f) * (kill ? 1.1f : 1f);
                 float size = _fontSize * (Screen.height / 1080f) * kindScale * DamageNumberMotion.Pop(t) * DamageNumberMotion.DistanceScale(screen.z);
                 _style.fontSize = Mathf.Max(8, Mathf.RoundToInt(size));
 
-                Color color = kill ? _killColor : crit ? _criticalColor : weak ? _weakspotColor : _normalColor;
+                Color color = precision ? _precisionColor : _normalColor;
                 float alpha = DamageNumberMotion.Alpha(t);
 
                 float pixelScale = Screen.height / 1080f;
                 float rise = DamageNumberMotion.Rise(t);
-                float x = screen.x + e.DriftX * 36f * pixelScale * rise;
+                float x = screen.x + e.DriftX * 16f * pixelScale * rise;
                 float y = Screen.height - screen.y - (_risePixels * kindScale * pixelScale * rise) - 18f * pixelScale;
                 var rect = new Rect(x - 80f, y - 30f, 160f, 60f);
                 _content.text = e.Text;
 
-                // Contorno scuro (4 direzioni + ombra) per leggerlo su qualunque sfondo.
-                GUI.color = new Color(0f, 0f, 0f, alpha * 0.85f);
-                float o = Mathf.Max(1f, _style.fontSize / 14f);
-                GUI.Label(new Rect(rect.x - o, rect.y, rect.width, rect.height), _content, _style);
-                GUI.Label(new Rect(rect.x + o, rect.y, rect.width, rect.height), _content, _style);
-                GUI.Label(new Rect(rect.x, rect.y - o, rect.width, rect.height), _content, _style);
-                GUI.Label(new Rect(rect.x, rect.y + o, rect.width, rect.height), _content, _style);
-                GUI.Label(new Rect(rect.x + o * 1.5f, rect.y + o * 1.5f, rect.width, rect.height), _content, _style);
+                // Solo un'ombra morbida sotto (niente contorni pesanti): leggibile ma pulito.
+                float o = Mathf.Max(1f, _style.fontSize / 16f);
+                GUI.color = new Color(0f, 0f, 0f, alpha * 0.6f);
+                GUI.Label(new Rect(rect.x + o, rect.y + o, rect.width, rect.height), _content, _style);
 
                 GUI.color = new Color(color.r, color.g, color.b, alpha);
                 GUI.Label(rect, _content, _style);
@@ -161,14 +156,14 @@ namespace HrdnLab.FpsWave.UI
     /// <summary>Curve di animazione dei numeri di danno (logica pura, coperta da test). t va da 0 a 1 nella vita del numero.</summary>
     public static class DamageNumberMotion
     {
-        /// <summary>"Pop" d'arrivo: parte grande (1.7x) e torna a 1x nei primi 12% della vita.</summary>
+        /// <summary>"Pop" d'arrivo discreto: parte a 1.3x e torna a 1x nei primi 12% della vita.</summary>
         public static float Pop(float t)
         {
             const float popTime = 0.12f;
             if (t >= popTime)
                 return 1f;
             float k = Mathf.Clamp01(t / popTime);
-            return Mathf.Lerp(1.7f, 1f, 1f - (1f - k) * (1f - k));
+            return Mathf.Lerp(1.3f, 1f, 1f - (1f - k) * (1f - k));
         }
 
         /// <summary>Salita con frenata (ease-out): veloce all'inizio, quasi ferma alla fine.</summary>

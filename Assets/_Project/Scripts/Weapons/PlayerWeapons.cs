@@ -54,6 +54,7 @@ namespace HrdnLab.FpsWave.Weapons
         private WeaponState[] _server;
         private FireRateLimiter[] _limiters;
         private int _localEquipped = -1;
+        private int _localTracerCounter;
         private int _serverEquipped;
         private float _aim;
         private float _muzzleLightUntil;
@@ -255,8 +256,11 @@ namespace HrdnLab.FpsWave.Weapons
             state.RegisterShot(now, state.Definition.MaxBloom);
 
             // Feedback immediato (predizione locale).
+            // Tracciante del tiratore come nei giochi AAA: solo un colpo su tre delle automatiche (i "traccianti" del caricatore),
+            // mai per le semiautomatiche; la mira si legge da mirino e impatti, non da una riga davanti alla faccia.
             Vector3 muzzle = _muzzle != null ? _muzzle.position : origin;
-            _fx?.Tracer(muzzle, end, state.Definition.Feel.EnergyColor);
+            if (state.Definition.Automatic && _localTracerCounter++ % 3 == 0)
+                _fx?.Tracer(muzzle, end, state.Definition.Feel.MuzzleColor);
             if (hitSomething)
             {
                 // Sui personaggi niente segno permanente: resterebbe sospeso in aria quando il nemico si muove o sparisce.
@@ -516,7 +520,7 @@ namespace HrdnLab.FpsWave.Weapons
             // Per i player remoti il tracer parte poco sotto e davanti agli occhi, all'altezza dell'arma.
             Vector3 start = origin + (end - origin).normalized * 0.6f + Vector3.down * 0.15f;
             Color energy = weaponIndex < _loadout.Length && _loadout[weaponIndex] != null
-                ? _loadout[weaponIndex].Feel.EnergyColor : Color.white;
+                ? _loadout[weaponIndex].Feel.MuzzleColor : Color.white;
             _fx.Tracer(start, end, energy); // anche gli altri vedono il colore dell'arma
         }
 

@@ -138,11 +138,11 @@ namespace HrdnLab.FpsWave.Net
             _lastError = null;
             if (_steam == null || !SteamService.IsReady)
             {
-                _lastError = $"Steam non disponibile. {SteamService.Status}";
+                _lastError = $"Steam unavailable. {SteamService.Status}";
                 return;
             }
             if (!_steam.JoinLobbyByCode(code))
-                _lastError ??= "Codice lobby non valido.";
+                _lastError ??= "Invalid lobby code.";
         }
 
         /// <summary>Si collega a un Host in rete locale all'indirizzo indicato.</summary>
@@ -184,9 +184,9 @@ namespace HrdnLab.FpsWave.Net
         {
             _hostStarting = false;
             _lastError = _mode == NetMode.Lan
-                ? $"Impossibile fare da Host: porta {_port} occupata (un'altra istanza o un Play precedente). " +
-                  "Chiudi le altre finestre di gioco o i giocatori virtuali e riprova."
-                : $"Impossibile avviare il server Steam. {SteamService.Status}";
+                ? $"Cannot host: port {_port} is in use (another instance or a previous Play session). " +
+                  "Close other game windows or virtual players and try again."
+                : $"Could not start the Steam server. {SteamService.Status}";
             Debug.LogWarning($"[FpsWave] {_lastError}");
         }
 
@@ -222,7 +222,7 @@ namespace HrdnLab.FpsWave.Net
             _lastError = null;
             if (_steam == null || !SteamService.IsReady)
             {
-                _lastError = $"Steam non disponibile. {SteamService.Status}";
+                _lastError = $"Steam unavailable. {SteamService.Status}";
                 return;
             }
             _mode = NetMode.Steam;
@@ -250,7 +250,7 @@ namespace HrdnLab.FpsWave.Net
             _lastError = null;
             _mode = NetMode.Steam;
             if (!NetTransports.StartClient(_networkManager, NetMode.Steam, hostSteamId.ToString(), _port))
-                _lastError = "Connessione all'Host Steam non riuscita.";
+                _lastError = "Could not connect to the Steam host.";
         }
 
         private void HandleSteamError(string message)
@@ -287,25 +287,25 @@ namespace HrdnLab.FpsWave.Net
 
             if (idle)
             {
-                GUILayout.Label("Steam (amici via Internet)");
+                GUILayout.Label("Steam (friends over the Internet)");
                 GUI.enabled = SteamService.IsReady;
-                if (GUILayout.Button("Host Steam (crea lobby)", GUILayout.Height(34)))
+                if (GUILayout.Button("Host Steam (create lobby)", GUILayout.Height(34)))
                     StartHostSteam();
                 GUI.enabled = true;
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Codice", GUILayout.Width(50));
                 _lobbyCode = GUILayout.TextField(_lobbyCode);
                 GUILayout.EndHorizontal();
-                if (GUILayout.Button("Join Steam (codice lobby)", GUILayout.Height(30)) && _steam != null)
+                if (GUILayout.Button("Join Steam (lobby code)", GUILayout.Height(30)) && _steam != null)
                 {
                     _lastError = null;
                     _steam.JoinLobbyByCode(_lobbyCode);
                 }
                 GUI.enabled = true;
-                GUILayout.Label("Oppure accetta l'invito Steam (con il gioco già aperto).", _wrapStyle);
+                GUILayout.Label("Or accept the Steam invite (with the game running).", _wrapStyle);
 
                 GUILayout.Space(6);
-                GUILayout.Label("Rete locale (stesso PC / LAN)");
+                GUILayout.Label("Local network (same PC / LAN)");
                 if (GUILayout.Button("Host LAN", GUILayout.Height(30)))
                     StartHostLan();
                 GUILayout.BeginHorizontal();
@@ -317,10 +317,10 @@ namespace HrdnLab.FpsWave.Net
             }
             else
             {
-                GUILayout.Label($"Modalità: {(_mode == NetMode.Steam ? "Steam" : "LAN")}", _labelStyle);
+                GUILayout.Label($"Mode: {(_mode == NetMode.Steam ? "Steam" : "LAN")}", _labelStyle);
                 GUILayout.Label($"Server: {_serverState}   Client: {_clientState}");
                 if (_networkManager.ServerManager.Started)
-                    GUILayout.Label($"Giocatori connessi: {_networkManager.ServerManager.Clients.Count}");
+                    GUILayout.Label($"Connected players: {_networkManager.ServerManager.Clients.Count}");
                 if (_mode == NetMode.Steam && _steam != null && _steam.InLobby && _networkManager.ServerManager.Started)
                     DrawSteamHostPanel();
                 if (GUILayout.Button("Disconnetti", GUILayout.Height(30)))
@@ -332,9 +332,9 @@ namespace HrdnLab.FpsWave.Net
         /// <summary>Codice lobby da copiare e inviti diretti agli amici online: non serve l'overlay di Steam.</summary>
         private void DrawSteamHostPanel()
         {
-            GUILayout.Label($"Codice lobby: {_steam.LobbyCode}");
+            GUILayout.Label($"Lobby code: {_steam.LobbyCode}");
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Copia codice", GUILayout.Height(26)))
+            if (GUILayout.Button("Copy code", GUILayout.Height(26)))
                 GUIUtility.systemCopyBuffer = _steam.LobbyCode;
             if (GUILayout.Button("Overlay Steam", GUILayout.Height(26)))
                 _steam.OpenInviteDialog();
@@ -345,7 +345,7 @@ namespace HrdnLab.FpsWave.Net
                 _nextFriendsRefresh = Time.unscaledTime + 3f;
                 _steam.GetOnlineFriends(_friends);
             }
-            GUILayout.Label(_friends.Count == 0 ? "Nessun amico online." : "Amici online (* = sta giocando):");
+            GUILayout.Label(_friends.Count == 0 ? "No friends online." : "Friends online (* = playing):");
             _friendsScroll = GUILayout.BeginScrollView(_friendsScroll, GUILayout.Height(150));
             foreach (SteamService.FriendEntry friend in _friends)
             {
@@ -354,8 +354,8 @@ namespace HrdnLab.FpsWave.Net
                 if (GUILayout.Button("Invita", GUILayout.Width(70)))
                 {
                     _steam.InviteFriend(friend.Id);
-                    _lastError = $"Invito inviato a {friend.Name}: deve accettarlo dalla chat di Steam con il gioco aperto, " +
-                                 "oppure usare il codice lobby.";
+                    _lastError = $"Invite sent to {friend.Name}: they must accept it from Steam chat with the game running, " +
+                                 "or use the lobby code.";
                 }
                 GUILayout.EndHorizontal();
             }

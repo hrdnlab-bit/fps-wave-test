@@ -59,8 +59,8 @@ namespace HrdnLab.FpsWave.Tests
         [Test]
         public void DamageNumber_PopsThenSettles()
         {
-            Assert.That(DamageNumberMotion.Pop(0f), Is.EqualTo(1.7f).Within(1e-4f));
-            Assert.That(DamageNumberMotion.Pop(0.06f), Is.LessThan(1.7f).And.GreaterThan(1f));
+            Assert.That(DamageNumberMotion.Pop(0f), Is.EqualTo(1.3f).Within(1e-4f));
+            Assert.That(DamageNumberMotion.Pop(0.06f), Is.LessThan(1.3f).And.GreaterThan(1f));
             Assert.That(DamageNumberMotion.Pop(0.5f), Is.EqualTo(1f));
         }
 

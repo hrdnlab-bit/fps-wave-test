@@ -79,3 +79,8 @@ Formato: data | decisione | motivo | alternative scartate | chi.
 - Il HUD e il menu usano texture (Kenney UI Pack Sci-Fi e rubberduck Sci-Fi interface, entrambi CC0; font Google OFL) invece dei soli bordi USS. Gli originali restano fuori da git come gli asset Fab (`tools/setup-ui-assets.ps1`); le texture derivate (piastre 9-slice, ritagli olografici, trame procedurali) sono generate dal codice (`UiTextureGenerator`, `Setup/7`) in `ThirdParty/_Own/Hud/`, così il repo resta leggero e ogni PC le rigenera identiche.
 - HUD: su richiesta di Matteo, stile minimale alla Crysis (pochi elementi in basso a destra e bussola) al posto del visore pieno di pannelli.
 - Rinculo alla Rainbow Six Siege: la mira sale e resta (parte permanente 0.8-0.85), i proiettili vanno sempre al centro della camera, il view model ruota attorno all'impugnatura con un calcio minimo. La forza base resta nelle statistiche modificabili dalle mod (RecoilPitch/RecoilYaw).
+
+## 2026-11-21 - Lingua del gioco e standard AAA per il feedback di sparo (Matteo)
+- Tutto il testo del gioco in inglese (richiesta di Matteo); documenti e commenti restano in italiano.
+- Traccianti: scia che viaggia alla velocità del proiettile, al tiratore solo 1 colpo su 3 delle automatiche; numeri di danno a due toni (bianco / oro tenue di precisione). Riferimento: sparatutto AAA, niente colori accesi.
+- Rinculo: tap più morbido della raffica (FirstShotMultiplier < 1), variazione casuale verticale e laterale moderata.

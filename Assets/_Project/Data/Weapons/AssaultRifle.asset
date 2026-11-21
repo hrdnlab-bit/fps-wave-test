@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: AssaultRifle
   m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Weapons.WeaponDefinition
   _id: rifle_ar
-  _displayName: Fucile d'assalto (test)
+  _displayName: Assault Rifle (test)
   _slot: 0
   _damage: 18
   _roundsPerMinute: 600
@@ -41,13 +41,14 @@ MonoBehaviour:
   _viewAdsOffset: {x: -0.06772335, y: 0.0054002325, z: -0.02}
   _feel:
     VerticalMultiplier: 1.5
-    HorizontalMultiplier: 0.7
-    FirstShotMultiplier: 1.2
-    RampShots: 8
-    RampMultiplier: 1.25
-    PatternStrength: 0.75
-    HorizontalRandomness: 0.3
-    Snappiness: 30
+    HorizontalMultiplier: 1
+    FirstShotMultiplier: 0.75
+    RampShots: 6
+    RampMultiplier: 1.3
+    PatternStrength: 0.5
+    HorizontalRandomness: 0.6
+    VerticalRandomness: 0.15
+    Snappiness: 24
     ReturnSpeed: 9
     PermanentFraction: 0.85
     BurstResetTime: 0.3
@@ -70,6 +71,8 @@ MonoBehaviour:
     IdleBreath: 1
     ShakePerShot: 0.025
     FovPunch: 0.004
+    UsesHeat: 0
+    BallisticColor: {r: 1, g: 0.8, b: 0.55, a: 1}
     EnergyColor: {r: 0.35, g: 0.85, b: 1, a: 1}
     HotColor: {r: 1, g: 0.55, b: 0.25, a: 1}
     HeatPerShot: 0.035

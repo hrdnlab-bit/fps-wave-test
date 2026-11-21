@@ -146,7 +146,7 @@ namespace HrdnLab.FpsWave.UI
             if (_pendingJoinUntil > 0f && now >= _pendingJoinUntil && _net.IsIdle)
             {
                 _pendingJoinUntil = -1f;
-                ShowToast("Nessuna risposta dalla lobby: controlla il codice e che l'Host sia in partita.", true);
+                ShowToast("No response from the lobby: check the code and make sure the host is in game.", true);
             }
 
             Phase phase = _net.IsClientConnected ? Phase.InGame
@@ -164,7 +164,7 @@ namespace HrdnLab.FpsWave.UI
             switch (phase)
             {
                 case Phase.Connecting:
-                    _connectingDetail.text = waitingLobby ? "RICERCA DELLA LOBBY STEAM" : _net.Mode == NetMode.Steam ? "COLLEGAMENTO VIA STEAM" : "COLLEGAMENTO IN RETE LOCALE";
+                    _connectingDetail.text = waitingLobby ? "SEARCHING FOR STEAM LOBBY" : _net.Mode == NetMode.Steam ? "CONNECTING VIA STEAM" : "CONNECTING OVER LAN";
                     ShowScreen(MenuScreen.Connecting);
                     break;
                 case Phase.InGame:
@@ -289,9 +289,9 @@ namespace HrdnLab.FpsWave.UI
             _root.Add(frame);
 
             var topbar = El("menu-topbar");
-            topbar.Add(Txt("FPS WAVE // TERMINALE DI COMANDO", "menu-topbar-text", "font-mono"));
+            topbar.Add(Txt("FPS WAVE // COMMAND TERMINAL", "menu-topbar-text", "font-mono"));
             topbar.Add(El("menu-spacer"));
-            topbar.Add(Txt($"BUILD {GameInfo.Version} · PROTOCOLLO {GameInfo.ProtocolVersion}", "menu-topbar-text", "font-mono"));
+            topbar.Add(Txt($"BUILD {GameInfo.Version} · PROTOCOL {GameInfo.ProtocolVersion}", "menu-topbar-text", "font-mono"));
             _root.Add(topbar);
 
             AddScreen(MenuScreen.Main, BuildMain());
@@ -306,7 +306,7 @@ namespace HrdnLab.FpsWave.UI
             footer.Add(_steamDot);
             footer.Add(_steamStatus);
             footer.Add(El("menu-spacer"));
-            footer.Add(Txt("[ESC] INDIETRO", "menu-footer-text"));
+            footer.Add(Txt("[ESC] BACK", "menu-footer-text"));
             _root.Add(footer);
 
             _toast = El("toast");
@@ -330,12 +330,12 @@ namespace HrdnLab.FpsWave.UI
         {
             var screen = El("screen");
             var col = El("screen-col");
-            col.Add(Txt("PROTOCOLLO QUARANTENA // SETTORE 7", "title-kicker"));
+            col.Add(Txt("QUARANTINE PROTOCOL // SECTOR 7", "title-kicker"));
             col.Add(Txt("FPS WAVE", "title"));
-            col.Add(Txt("CO-OP PVE A ONDATE · DA 1 A 4 OPERATORI", "title-sub"));
-            col.Add(MenuButton("01", "GIOCA", () => ShowScreen(MenuScreen.Play), "menu-button--primary"));
-            col.Add(MenuButton("02", "IMPOSTAZIONI", () => OpenSettings(MenuScreen.Main)));
-            col.Add(MenuButton("03", "ESCI", QuitGame, "menu-button--danger"));
+            col.Add(Txt("WAVE-BASED CO-OP PVE · 1 TO 4 OPERATORS", "title-sub"));
+            col.Add(MenuButton("01", "PLAY", () => ShowScreen(MenuScreen.Play), "menu-button--primary"));
+            col.Add(MenuButton("02", "SETTINGS", () => OpenSettings(MenuScreen.Main)));
+            col.Add(MenuButton("03", "QUIT", QuitGame, "menu-button--danger"));
             screen.Add(col);
             return screen;
         }
@@ -344,35 +344,35 @@ namespace HrdnLab.FpsWave.UI
         {
             var screen = El("screen");
             var col = El("screen-col", "screen-col--wide");
-            col.Add(Txt("SCHIERAMENTO", "screen-title"));
-            col.Add(Txt("SCEGLI COME RAGGIUNGERE LA SQUADRA", "screen-hint"));
+            col.Add(Txt("DEPLOYMENT", "screen-title"));
+            col.Add(Txt("CHOOSE HOW TO JOIN YOUR SQUAD", "screen-hint"));
 
             var cards = El("cards");
 
             var steam = Card();
-            steam.Add(Txt("STEAM · AMICI", "card-title"));
-            steam.Add(Txt("Crea una lobby e manda il codice agli amici, oppure entra in quella di un amico. Funziona via Internet.", "card-text"));
-            _hostSteamButton = MenuButton("A", "CREA LOBBY", () => { _net.StartHostSteam(); ShowErrorIfAny(); }, "menu-button--primary");
+            steam.Add(Txt("STEAM · FRIENDS", "card-title"));
+            steam.Add(Txt("Create a lobby and send the code to your friends, or join a friend's lobby. Works over the Internet.", "card-text"));
+            _hostSteamButton = MenuButton("A", "CREATE LOBBY", () => { _net.StartHostSteam(); ShowErrorIfAny(); }, "menu-button--primary");
             steam.Add(_hostSteamButton);
-            steam.Add(Txt("CODICE LOBBY", "field-label"));
+            steam.Add(Txt("LOBBY CODE", "field-label"));
             _lobbyCodeField = Field(string.Empty);
             steam.Add(_lobbyCodeField);
-            _joinSteamButton = MenuButton("B", "ENTRA CON CODICE", JoinSteam);
+            _joinSteamButton = MenuButton("B", "JOIN WITH CODE", JoinSteam);
             steam.Add(_joinSteamButton);
             cards.Add(steam);
 
             var lan = Card();
-            lan.Add(Txt("RETE LOCALE", "card-title"));
-            lan.Add(Txt("Stesso PC o stessa rete: uno ospita, gli altri inseriscono il suo indirizzo (porta 7770).", "card-text"));
-            lan.Add(MenuButton("C", "OSPITA IN LAN", () => _net.StartHostLan(), "menu-button--primary"));
-            lan.Add(Txt("INDIRIZZO HOST", "field-label"));
+            lan.Add(Txt("LOCAL NETWORK", "card-title"));
+            lan.Add(Txt("Same PC or same network: one player hosts, the others enter their address (port 7770).", "card-text"));
+            lan.Add(MenuButton("C", "HOST ON LAN", () => _net.StartHostLan(), "menu-button--primary"));
+            lan.Add(Txt("HOST ADDRESS", "field-label"));
             _addressField = Field("localhost");
             lan.Add(_addressField);
-            lan.Add(MenuButton("D", "ENTRA IN LAN", () => _net.JoinLan(_addressField.value)));
+            lan.Add(MenuButton("D", "JOIN ON LAN", () => _net.JoinLan(_addressField.value)));
             cards.Add(lan);
 
             col.Add(cards);
-            var back = MenuButton("◄", "INDIETRO", () => ShowScreen(MenuScreen.Main), "menu-button--small");
+            var back = MenuButton("◄", "BACK", () => ShowScreen(MenuScreen.Main), "menu-button--small");
             back.style.width = 260;
             back.style.marginTop = 20;
             col.Add(back);
@@ -386,11 +386,11 @@ namespace HrdnLab.FpsWave.UI
             var box = El("connecting");
             _spinner = El("spinner");
             box.Add(_spinner);
-            box.Add(Txt("CONNESSIONE IN CORSO", "connecting-text"));
+            box.Add(Txt("CONNECTING", "connecting-text"));
             _connectingDetail = Txt(string.Empty, "screen-hint");
             _connectingDetail.style.marginTop = 10;
             box.Add(_connectingDetail);
-            var cancel = MenuButton("✕", "ANNULLA", CancelConnection, "menu-button--small");
+            var cancel = MenuButton("✕", "CANCEL", CancelConnection, "menu-button--small");
             cancel.style.width = 240;
             box.Add(cancel);
             screen.Add(box);
@@ -401,14 +401,14 @@ namespace HrdnLab.FpsWave.UI
         {
             var screen = El("screen");
             var col = El("screen-col");
-            col.Add(Txt("SESSIONE ATTIVA", "title-kicker"));
-            col.Add(Txt("PAUSA", "screen-title"));
+            col.Add(Txt("SESSION ACTIVE", "title-kicker"));
+            col.Add(Txt("PAUSED", "screen-title"));
             _pauseInfo = Txt(string.Empty, "screen-hint");
             col.Add(_pauseInfo);
-            col.Add(MenuButton("01", "RIPRENDI", Resume, "menu-button--primary"));
-            col.Add(MenuButton("02", "IMPOSTAZIONI", () => OpenSettings(MenuScreen.Pause)));
-            col.Add(MenuButton("03", "ABBANDONA LA MISSIONE", Disconnect, "menu-button--danger"));
-            col.Add(MenuButton("04", "ESCI DAL GIOCO", QuitGame, "menu-button--danger"));
+            col.Add(MenuButton("01", "RESUME", Resume, "menu-button--primary"));
+            col.Add(MenuButton("02", "SETTINGS", () => OpenSettings(MenuScreen.Pause)));
+            col.Add(MenuButton("03", "LEAVE MISSION", Disconnect, "menu-button--danger"));
+            col.Add(MenuButton("04", "QUIT GAME", QuitGame, "menu-button--danger"));
             screen.Add(col);
 
             var side = El("screen-side");
@@ -416,15 +416,15 @@ namespace HrdnLab.FpsWave.UI
             card.style.width = 520;
             card.style.flexGrow = 0;
             card.style.marginRight = 0;
-            card.Add(Txt("SQUADRA", "card-title"));
+            card.Add(Txt("SQUAD", "card-title"));
 
             _squadSteam = El();
-            _squadSteam.Add(Txt("Manda questo codice agli amici: lo inseriscono in GIOCA → ENTRA CON CODICE.", "card-text"));
-            _squadSteam.Add(Txt("CODICE LOBBY", "field-label"));
+            _squadSteam.Add(Txt("Send this code to your friends: they enter it under PLAY → JOIN WITH CODE.", "card-text"));
+            _squadSteam.Add(Txt("LOBBY CODE", "field-label"));
             _lobbyCodeLabel = Txt("—", "lobby-code");
             _squadSteam.Add(_lobbyCodeLabel);
             var row = El("card-row");
-            var copy = MenuButton("⧉", "COPIA", CopyLobbyCode, "menu-button--small");
+            var copy = MenuButton("⧉", "COPY", CopyLobbyCode, "menu-button--small");
             copy.style.flexGrow = 1;
             copy.style.marginRight = 8;
             var overlay = MenuButton("⌘", "OVERLAY", () => _net.Steam?.OpenInviteDialog(), "menu-button--small");
@@ -432,18 +432,18 @@ namespace HrdnLab.FpsWave.UI
             row.Add(copy);
             row.Add(overlay);
             _squadSteam.Add(row);
-            _squadSteam.Add(Txt("AMICI ONLINE", "field-label"));
+            _squadSteam.Add(Txt("FRIENDS ONLINE", "field-label"));
             _friendsList = new ScrollView(ScrollViewMode.Vertical);
             _friendsList.AddToClassList("friends-list");
             _squadSteam.Add(_friendsList);
             card.Add(_squadSteam);
 
             _squadLan = El();
-            _squadLan.Add(Txt("Partita in rete locale: gli altri entrano da GIOCA → ENTRA IN LAN con l'indirizzo di questo PC (porta 7770).", "card-text"));
+            _squadLan.Add(Txt("LAN session: others join from PLAY → JOIN ON LAN with this PC's address (port 7770).", "card-text"));
             card.Add(_squadLan);
 
             _squadClient = El();
-            _squadClient.Add(Txt("Sei collegato alla partita di un altro operatore. Per invitare altri amici chiedi il codice all'Host.", "card-text"));
+            _squadClient.Add(Txt("You are in another operator's session. Ask the host for the code to invite more friends.", "card-text"));
             card.Add(_squadClient);
 
             side.Add(card);
@@ -455,42 +455,42 @@ namespace HrdnLab.FpsWave.UI
         {
             var screen = El("screen");
             var col = El("screen-col", "screen-col--wide");
-            col.Add(Txt("IMPOSTAZIONI", "screen-title"));
-            col.Add(Txt("LE MODIFICHE SI APPLICANO E SI SALVANO SUBITO", "screen-hint"));
+            col.Add(Txt("SETTINGS", "screen-title"));
+            col.Add(Txt("CHANGES ARE APPLIED AND SAVED INSTANTLY", "screen-hint"));
 
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.style.flexGrow = 1;
             scroll.style.maxWidth = 900;
             var list = El("settings-list");
 
-            list.Add(Txt("CONTROLLI", "settings-section"));
-            _sensitivity = SliderRow(list, "SENSIBILITÀ MOUSE", GameSettings.MinSensitivity, GameSettings.MaxSensitivity, out _sensitivityValue,
+            list.Add(Txt("CONTROLS", "settings-section"));
+            _sensitivity = SliderRow(list, "MOUSE SENSITIVITY", GameSettings.MinSensitivity, GameSettings.MaxSensitivity, out _sensitivityValue,
                 v => { GameSettings.MouseSensitivity = v; _sensitivityValue.text = SensitivityText(v); });
 
-            list.Add(Txt("VISUALE", "settings-section"));
-            _fov = SliderRow(list, "CAMPO VISIVO (FOV)", GameSettings.MinFov, GameSettings.MaxFov, out _fovValue,
+            list.Add(Txt("DISPLAY", "settings-section"));
+            _fov = SliderRow(list, "FIELD OF VIEW", GameSettings.MinFov, GameSettings.MaxFov, out _fovValue,
                 v => { GameSettings.FieldOfView = Mathf.Round(v); _fovValue.text = Mathf.RoundToInt(v) + "°"; });
-            _fullscreen = ToggleRow(list, "SCHERMO INTERO", v => GameSettings.Fullscreen = v);
-            _vsync = ToggleRow(list, "SINCRONIA VERTICALE (VSYNC)", v => GameSettings.VSync = v);
-            _quality = DropdownRow(list, "QUALITÀ GRAFICA", new List<string>(QualitySettings.names), i => GameSettings.QualityLevel = i);
+            _fullscreen = ToggleRow(list, "FULLSCREEN", v => GameSettings.Fullscreen = v);
+            _vsync = ToggleRow(list, "VSYNC", v => GameSettings.VSync = v);
+            _quality = DropdownRow(list, "GRAPHICS QUALITY", new List<string>(QualitySettings.names), i => GameSettings.QualityLevel = i);
 
             list.Add(Txt("AUDIO", "settings-section"));
-            _volume = SliderRow(list, "VOLUME GENERALE", 0f, 1f, out _volumeValue,
+            _volume = SliderRow(list, "MASTER VOLUME", 0f, 1f, out _volumeValue,
                 v => { GameSettings.MasterVolume = v; _volumeValue.text = Mathf.RoundToInt(v * 100f) + "%"; });
 
-            list.Add(Txt("INTERFACCIA", "settings-section"));
-            _showFps = ToggleRow(list, "MOSTRA FPS E LINK", v => GameSettings.ShowFps = v);
-            _damageNumbers = ToggleRow(list, "NUMERI DI DANNO", v => GameSettings.ShowDamageNumbers = v);
+            list.Add(Txt("INTERFACE", "settings-section"));
+            _showFps = ToggleRow(list, "SHOW FPS AND PING", v => GameSettings.ShowFps = v);
+            _damageNumbers = ToggleRow(list, "DAMAGE NUMBERS", v => GameSettings.ShowDamageNumbers = v);
 
             scroll.Add(list);
             col.Add(scroll);
 
             var buttons = El("card-row");
             buttons.style.marginTop = 16;
-            var back = MenuButton("◄", "INDIETRO", () => ShowScreen(_settingsReturn), "menu-button--small");
+            var back = MenuButton("◄", "BACK", () => ShowScreen(_settingsReturn), "menu-button--small");
             back.style.width = 260;
             back.style.marginRight = 12;
-            var reset = MenuButton("↺", "PREDEFINITE", () => { GameSettings.ResetToDefaults(); RefreshSettings(); }, "menu-button--small");
+            var reset = MenuButton("↺", "DEFAULTS", () => { GameSettings.ResetToDefaults(); RefreshSettings(); }, "menu-button--small");
             reset.style.width = 260;
             buttons.Add(back);
             buttons.Add(reset);
@@ -534,7 +534,7 @@ namespace HrdnLab.FpsWave.UI
             if (_net.Steam == null || !_net.Steam.InLobby)
                 return;
             GUIUtility.systemCopyBuffer = _net.Steam.LobbyCode;
-            ShowToast("Codice lobby copiato negli appunti.", false);
+            ShowToast("Lobby code copied to clipboard.", false);
         }
 
         private static void QuitGame()
@@ -550,8 +550,8 @@ namespace HrdnLab.FpsWave.UI
 
         private void UpdatePauseInfo(float now)
         {
-            string mode = _net.Mode == NetMode.Steam ? "STEAM" : "RETE LOCALE";
-            string role = _net.IsServer ? $"HOST · {_net.ConnectedPlayers} OPERATORI" : "OPERATORE";
+            string mode = _net.Mode == NetMode.Steam ? "STEAM" : "LOCAL NETWORK";
+            string role = _net.IsServer ? $"HOST · {_net.ConnectedPlayers} OPERATORS" : "OPERATOR";
             string info = $"{mode} · {role}";
             if (_pauseInfo.text != info)
                 _pauseInfo.text = info;
@@ -569,7 +569,7 @@ namespace HrdnLab.FpsWave.UI
             _friendsList.Clear();
             if (_friends.Count == 0)
             {
-                _friendsList.Add(Txt("Nessun amico online.", "card-text"));
+                _friendsList.Add(Txt("No friends online.", "card-text"));
                 return;
             }
             foreach (SteamService.FriendEntry friend in _friends)
@@ -584,8 +584,8 @@ namespace HrdnLab.FpsWave.UI
                 var invite = new Button(() =>
                 {
                     _net.Steam.InviteFriend(id);
-                    ShowToast($"Invito inviato a {friendName}: lo accetta dalla chat di Steam con il gioco aperto.", false);
-                }) { text = "INVITA" };
+                    ShowToast($"Invite sent to {friendName}: they accept it from Steam chat with the game running.", false);
+                }) { text = "INVITE" };
                 invite.AddToClassList("friend-invite");
                 row.Add(invite);
                 _friendsList.Add(row);
@@ -595,7 +595,7 @@ namespace HrdnLab.FpsWave.UI
         private void UpdateStatusBar()
         {
             bool ready = SteamService.IsReady;
-            string text = ready ? $"STEAM · {_net.Steam?.LocalName}".ToUpperInvariant() : "STEAM NON DISPONIBILE · SOLO RETE LOCALE";
+            string text = ready ? $"STEAM · {_net.Steam?.LocalName}".ToUpperInvariant() : "STEAM UNAVAILABLE · LAN ONLY";
             if (_steamStatus.text != text)
             {
                 _steamStatus.text = text;

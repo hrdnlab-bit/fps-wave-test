@@ -42,11 +42,11 @@ namespace HrdnLab.FpsWave.Editor
             EnsureFolders();
             EnsureLayers();
             Materials mats = CreateMaterials();
-            WeaponDefinition rifle = CreateWeapon("AssaultRifle", "rifle_ar", "Fucile d'assalto (test)", WeaponSlot.Primary,
+            WeaponDefinition rifle = CreateWeapon("AssaultRifle", "rifle_ar", "Assault Rifle (test)", WeaponSlot.Primary,
                 damage: 18f, rpm: 600f, automatic: true, magazine: 30, reload: 2.2f, range: 120f,
                 hipSpread: 2.0f, adsSpread: 0.25f, spreadPerShot: 0.25f, maxBloom: 4f,
                 recoilPitch: 0.9f, recoilYaw: 0.35f, adsFov: 0.75f, adsTime: 0.22f, size: new Vector3(0.06f, 0.1f, 0.62f));
-            WeaponDefinition pistol = CreateWeapon("Pistol", "pistol_base", "Pistola", WeaponSlot.Secondary,
+            WeaponDefinition pistol = CreateWeapon("Pistol", "pistol_base", "Pistol", WeaponSlot.Secondary,
                 damage: 20f, rpm: 360f, automatic: false, magazine: 12, reload: 1.4f, range: 60f,
                 hipSpread: 1.2f, adsSpread: 0.3f, spreadPerShot: 0.6f, maxBloom: 3f,
                 recoilPitch: 1.6f, recoilYaw: 0.4f, adsFov: 0.85f, adsTime: 0.15f, size: new Vector3(0.05f, 0.11f, 0.22f));

@@ -574,9 +574,7 @@ MonoBehaviour:
   _risePixels: 70
   _fontSize: 28
   _normalColor: {r: 1, g: 1, b: 1, a: 1}
-  _weakspotColor: {r: 1, g: 0.74, b: 0.2, a: 1}
-  _criticalColor: {r: 1, g: 0.93, b: 0.15, a: 1}
-  _killColor: {r: 1, g: 0.32, b: 0.22, a: 1}
+  _precisionColor: {r: 1, g: 0.83, b: 0.42, a: 1}
 --- !u!114 &8125962987711106856
 MonoBehaviour:
   m_ObjectHideFlags: 0

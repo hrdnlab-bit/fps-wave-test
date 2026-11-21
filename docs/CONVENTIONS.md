@@ -9,6 +9,9 @@
 - `CHANGELOG.md` aggiornato a ogni merge.
 - Nessun token o credenziale nel repo o in chat.
 
+## 1b. Lingua
+- **Tutto il testo del gioco è in inglese** (HUD, menu, messaggi di rete/Steam, nomi di armi e nemici, overlay di debug a schermo). Documenti, commenti nel codice e log di sviluppo restano in italiano.
+
 ## 2. Flusso file tra AI e PC
 - PC di Manuel: `C:\Users\manue\FpsWaveTest` (non è un clone git: è la copia di lavoro dell'Editor, sincronizzata dall'AI). Sugli altri PC la cartella del progetto **è** un clone git e Claude Code lavora direttamente lì (vedi `GUIDA_COLLABORATORE.md`).
 - L'AI lavora su un clone del repo nel proprio ambiente cloud (commit e push da lì) e sincronizza i file nella cartella del PC.

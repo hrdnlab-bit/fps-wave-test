@@ -27,7 +27,7 @@ namespace HrdnLab.FpsWave.UI
         private const float CompassWidth = 600f;
         private const float CompassPixelsPerDegree = 4f;
 
-        private static readonly string[] CompassNames = { "N", "NE", "E", "SE", "S", "SO", "O", "NO" };
+        private static readonly string[] CompassNames = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
 
         [SerializeField] private PlayerWeapons _weapons;
         [SerializeField] private Health _health;
@@ -150,7 +150,7 @@ namespace HrdnLab.FpsWave.UI
             BuildWeapon();
             BuildReticle();
 
-            _healthAlert = Text("INTEGRITÀ CRITICA · CERCA COPERTURA", "alert", "font-bold");
+            _healthAlert = Text("ARMOR CRITICAL · TAKE COVER", "alert", "font-bold");
             _healthAlert.style.display = DisplayStyle.None;
             _root.Add(_healthAlert);
         }
@@ -158,8 +158,8 @@ namespace HrdnLab.FpsWave.UI
         private void BuildTop()
         {
             var objective = Element("objective");
-            objective.Add(Text("OBIETTIVO", "objective-tag", "font-bold"));
-            objective.Add(Text("SOPRAVVIVI ALLE ONDATE", "objective-text", "font-bold"));
+            objective.Add(Text("OBJECTIVE", "objective-tag", "font-bold"));
+            objective.Add(Text("SURVIVE THE WAVES", "objective-text", "font-bold"));
             objective.Add(Element("objective-line"));
             _root.Add(objective);
 
@@ -196,9 +196,9 @@ namespace HrdnLab.FpsWave.UI
             Brackets(_vitals);
 
             var header = Element("block-header");
-            header.Add(Text("ARMATURA", "block-title", "font-bold"));
+            header.Add(Text("ARMOR", "block-title", "font-bold"));
             header.Add(Element("spacer"));
-            _healthStatus = Text("NOMINALE", "status-tag", "font-mono");
+            _healthStatus = Text("NOMINAL", "status-tag", "font-mono");
             header.Add(_healthStatus);
             _vitals.Add(header);
 
@@ -208,7 +208,7 @@ namespace HrdnLab.FpsWave.UI
             valueRow.Add(_healthValue);
             valueRow.Add(_healthMax);
             valueRow.Add(Element("spacer"));
-            valueRow.Add(Text("TUTA MK-VII", "micro", "font-mono"));
+            valueRow.Add(Text("SUIT MK-VII", "micro", "font-mono"));
             _vitals.Add(valueRow);
 
             var segments = Element("segments");
@@ -249,12 +249,12 @@ namespace HrdnLab.FpsWave.UI
             _ticksRow = Element("ammo-ticks");
             _weaponBlock.Add(_ticksRow);
 
-            _reloadRow = Bar("RICARICA", out _reloadLabel, out _reloadFill);
+            _reloadRow = Bar("RELOADING", out _reloadLabel, out _reloadFill);
             _reloadRow.AddToClassList("bar-row--reload");
             _reloadRow.style.display = DisplayStyle.None;
             _weaponBlock.Add(_reloadRow);
 
-            _heatRow = Bar("CALORE", out _heatLabel, out _heatFill);
+            _heatRow = Bar("HEAT", out _heatLabel, out _heatFill);
             _weaponBlock.Add(_heatRow);
 
             _weaponBlock.Add(Element("ruler"));
@@ -351,7 +351,7 @@ namespace HrdnLab.FpsWave.UI
                 _vitalsLevel = level;
                 _vitals.EnableInClassList("block--warn", level == 1);
                 _vitals.EnableInClassList("block--critical", level == 2);
-                _healthStatus.text = level == 2 ? "CRITICA" : level == 1 ? "DANNEGGIATA" : "NOMINALE";
+                _healthStatus.text = level == 2 ? "CRITICAL" : level == 1 ? "DAMAGED" : "NOMINAL";
                 _healthAlert.style.display = level == 2 ? DisplayStyle.Flex : DisplayStyle.None;
             }
             if (level == 2)
@@ -394,7 +394,7 @@ namespace HrdnLab.FpsWave.UI
                 {
                     bool empty = state.Ammo == 0;
                     _reloadRow.style.display = empty ? DisplayStyle.Flex : DisplayStyle.None;
-                    _reloadLabel.text = "VUOTO [R]";
+                    _reloadLabel.text = "EMPTY [R]";
                     _reloadFill.style.width = Length.Percent(0f);
                 }
             }
@@ -406,7 +406,7 @@ namespace HrdnLab.FpsWave.UI
                 {
                     _reloadStart = Time.time;
                     _reloadDuration = Mathf.Max(0.05f, state.ReloadTime);
-                    _reloadLabel.text = "RICARICA";
+                    _reloadLabel.text = "RELOADING";
                 }
                 _reloadRow.style.display = state.IsReloading || state.Ammo == 0 ? DisplayStyle.Flex : DisplayStyle.None;
             }
@@ -437,7 +437,7 @@ namespace HrdnLab.FpsWave.UI
                 _heatLevel = heatLevel;
                 _heatRow.EnableInClassList("bar-row--hot", heatLevel >= 1);
                 _heatRow.EnableInClassList("bar-row--venting", heatLevel == 2);
-                _heatLabel.text = heatLevel == 2 ? "RAFFREDDA" : "CALORE";
+                _heatLabel.text = heatLevel == 2 ? "VENTING" : "HEAT";
             }
             _heatLabel.style.opacity = heatLevel == 2 ? 0.5f + 0.5f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 6f)) : 1f;
         }
