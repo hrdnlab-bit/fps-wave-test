@@ -22,7 +22,7 @@ Ultimo aggiornamento: 2026-11-21
 - Compilazione: 0 errori (`Logs/FpsWaveConsole.log`); restano solo gli avvisi già noti di API deprecate in `NetBootstrapMenu`/`PlayerSpawnService`.
 - Test EditMode: 64/64.
 - Play Mode solo Host (Editor): spawn fuori vista, inseguimento, attacco con max 3 attaccanti, kill con la pistola (3 colpi) accettata dal server, rimpiazzo automatico. NavMesh in 12-14 ms. Numeri di danno visibili (bianco, poi rosso grande all'uccisione), corpo che cade senza segni sospesi. Nessun errore in console.
-- Play Mode host + client (MPPM): **da fare**.
+- Play Mode host + client (MPPM, 2026-11-21 23:42): il client si collega, vede i Runner muoversi e il player Host, HUD e menu funzionano, spara senza colpi rifiutati dal server (log puliti su entrambe le istanze). Non sono riuscito a confermare a schermo un'uccisione fatta dal client (mira con il mouse virtuale imprecisa): da riprovare a mano.
 
 ## Lock attivi (vedi docs/LOCKS.md)
 - `Boot.unity`, `UI/**`, area interfaccia, `Greybox.unity`, `Player.prefab`, `Prefabs/Enemies/**`, `Data/Enemies/**`, `DefaultPrefabObjects.asset`, area nemici.

@@ -4,7 +4,7 @@ Ultimo aggiornamento: 2026-11-21 (versione 0.2.0)
 
 ## Stato attuale
 - **M0a completata** (0.1.0). **M1 quasi completa**: gameplay verificato in rete (anche lo sparo dal client remoto), armi realistiche fatte (M4 con braccia animate, pistola Beretta con animazione procedurale). Manca **M1.6 suoni**.
-- **M2 iniziata (Matteo, branch `matteo/m2-runner`)**: Runner con AI server, EnemyDirector con spawn nascosti attorno ai player, pool di rete. Dettagli in `docs/handoff/matteo.md`.
+- **M2 iniziata (Matteo, branch `matteo/m2-runner`)**: Runner con AI server, EnemyDirector con spawn nascosti attorno ai player, pool di rete, tipi di nemico guidati dai dati, numeri di danno; inoltre HUD minimale stile Crysis e menu "terminale" con texture (asset UI fuori dal repo: `tools/setup-ui-assets.ps1`), impostazioni, gunplay stile Call of Duty moderno (`Weapons/Feel/`), gioco in inglese. Dettagli in `docs/handoff/matteo.md`.
 - **M0b in corso**: Steam integrato e verificato in locale (Steam pronto, lobby creata, server/client FishySteamworks attivi), build Windows zippata pronta. Da fare: **test con l'amico** (`OPEN_QUESTIONS.md` #14), overlay di debug completo, console comandi.
 - Progetto Unity: `C:\Users\manue\FpsWaveTest` (Unity 6000.6.9f1, URP). Repo `hrdnlab-bit/fps-wave-test`, branch `main`.
 - `C:\Users\manue\My project` contiene un ALTRO gioco (SABBIA): non toccarlo.

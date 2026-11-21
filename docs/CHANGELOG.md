@@ -22,6 +22,7 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni sema
   - mira con curva morbida (ease in/out) per posa dell'arma e FOV; tempi ADS 0.24 s fucile, 0.17 s pistola; FOV in mira del fucile 0.8;
   - flinch: un colpo subito sposta un po' la visuale (torna da sola) e fa tremare la camera.
 - **Sobbalzo visivo dello sparo ancora ridotto**: calcio dell'arma 0.25x (automatiche) / 0.35x (semi), tremore e punch del FOV ridotti ancora di più, calcio procedurale 1.2°; la clip di sparo del pacchetto M4 (calcio molto ampio) si vede solo per 45 ms e poi sfuma su Idle (`WeaponViewModel._fireClipHold`).
+- **Un filo di salita anche da fianco**: calcio della camera da fianco 0.15 (automatiche) / 0.2 (semi), di cui resta il 30-35% (`WeaponFeel.HipPermanentFraction`).
 - **Gioco in inglese**: HUD, menu, messaggi Steam/rete, nomi delle armi e overlay di debug (vedi `CONVENTIONS.md`).
 - **Arma più vicina alla camera** e un filo più bassa da fianco (4.5 cm più vicina, 1.2 cm più bassa; in mira non cambia).
 - Nuovo script `tools/setup-ui-assets.ps1` (asset dell'interfaccia fuori dal repo, come quelli Fab).

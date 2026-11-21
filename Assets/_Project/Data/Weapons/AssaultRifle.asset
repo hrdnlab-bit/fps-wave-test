@@ -53,7 +53,8 @@ MonoBehaviour:
     ReturnSpeed: 5
     PermanentFraction: 0.55
     BurstResetTime: 0.3
-    HipRecoilMultiplier: 0.12
+    HipRecoilMultiplier: 0.15
+    HipPermanentFraction: 0.35
     AdsMultiplier: 1
     CrouchMultiplier: 0.8
     ViewKickScale: 0.25

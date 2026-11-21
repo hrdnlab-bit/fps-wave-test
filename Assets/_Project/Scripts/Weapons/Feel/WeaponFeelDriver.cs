@@ -136,8 +136,8 @@ namespace HrdnLab.FpsWave.Weapons
                 _shotIndex, _seed, aim, crouching, Random.value, Random.value);
             if (_look != null)
             {
-                // Da fianco il piccolo calcio torna tutto da solo (la mira non sale); mirando resta la parte permanente da compensare.
-                _look.AddRecoilKick(kick, _feel.PermanentFraction * aim, _feel.Snappiness, _feel.ReturnSpeed);
+                // Da fianco il calcio è piccolo e ne resta solo un filo (la mira sale appena); mirando resta la parte permanente da compensare.
+                _look.AddRecoilKick(kick, Mathf.Lerp(_feel.HipPermanentFraction, _feel.PermanentFraction, aim), _feel.Snappiness, _feel.ReturnSpeed);
                 _look.AddTrauma(_feel.ShakePerShot * Mathf.Lerp(1f, 0.5f, aim));
                 _look.AddFovPunch(_feel.FovPunch * Mathf.Lerp(1f, 0.4f, aim));
             }

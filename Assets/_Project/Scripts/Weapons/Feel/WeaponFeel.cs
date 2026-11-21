@@ -39,7 +39,9 @@ namespace HrdnLab.FpsWave.Weapons
         [Tooltip("Pausa senza sparare dopo la quale la raffica ricomincia da capo.")]
         [Min(0.05f)] public float BurstResetTime = 0.35f;
         [Tooltip("Rinculo della camera sparando da fianco (x). Basso: da fianco la mira quasi non sale, ma la precisione peggiora col bloom.")]
-        [Range(0f, 1.5f)] public float HipRecoilMultiplier = 0.12f;
+        [Range(0f, 1.5f)] public float HipRecoilMultiplier = 0.15f;
+        [Tooltip("Parte del calcio da fianco che resta nella mira: un filo di salita, giusto per sentire l'arma.")]
+        [Range(0f, 1f)] public float HipPermanentFraction = 0.35f;
         [Tooltip("Rinculo della camera mirando (x): qui si gestisce la salita col mouse, come in Siege.")]
         [Range(0f, 1.5f)] public float AdsMultiplier = 1f;
         [Range(0f, 1.5f)] public float CrouchMultiplier = 0.8f;
@@ -104,7 +106,7 @@ namespace HrdnLab.FpsWave.Weapons
         {
             VerticalMultiplier = 1.4f, HorizontalMultiplier = 0.9f, VerticalRandomness = 0.1f,
             FirstShotMultiplier = 0.8f, RampShots = 8, RampMultiplier = 1.35f, PatternStrength = 0.6f, HorizontalRandomness = 0.4f,
-            HipRecoilMultiplier = 0.12f, AdsMultiplier = 1f,
+            HipRecoilMultiplier = 0.15f, HipPermanentFraction = 0.35f, AdsMultiplier = 1f,
             Snappiness = 18f, ReturnSpeed = 5f, PermanentFraction = 0.55f, BurstResetTime = 0.3f,
             ViewKickScale = 0.25f, KickPosition = new Vector3(0.0006f, 0.0012f, -0.012f), KickRotation = new Vector3(-0.6f, 0.25f, 0.4f),
             ShakePerShot = 0.005f, FovPunch = 0.001f, HeatPerShot = 0.035f, HeatDecay = 0.45f,
@@ -116,7 +118,7 @@ namespace HrdnLab.FpsWave.Weapons
         {
             VerticalMultiplier = 1.1f, HorizontalMultiplier = 0.8f, VerticalRandomness = 0.15f,
             FirstShotMultiplier = 1f, RampShots = 4, RampMultiplier = 1.15f, PatternStrength = 0.3f, HorizontalRandomness = 0.6f,
-            HipRecoilMultiplier = 0.18f, AdsMultiplier = 1f,
+            HipRecoilMultiplier = 0.2f, HipPermanentFraction = 0.3f, AdsMultiplier = 1f,
             Snappiness = 22f, ReturnSpeed = 7f, PermanentFraction = 0.4f, BurstResetTime = 0.45f,
             ViewKickScale = 0.35f, KickPosition = new Vector3(0.001f, 0.002f, -0.018f), KickRotation = new Vector3(-1.4f, 0.4f, 0.7f),
             ShakePerShot = 0.008f, FovPunch = 0.0015f, HeatPerShot = 0.09f, HeatDecay = 0.7f,
