@@ -259,12 +259,11 @@ namespace HrdnLab.FpsWave.Editor
             string path = $"{ArtDir}/AIRO_Pilot_FirstPerson.asset";
             // Si aggiorna l'asset sul posto (stessi vertici, triangoli diversi): così il riferimento nel prefab resta valido.
             Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
-            if (mesh == null || mesh.vertexCount != source.vertexCount)
+            if (mesh == null || mesh.vertexCount != source.vertexCount || AssetDatabase.AssetPathToGUID(path) != StableGuid(path))
             {
-                if (mesh != null) AssetDatabase.DeleteAsset(path);
-                mesh = Object.Instantiate(source);
-                mesh.name = source.name + "_FirstPerson";
-                AssetDatabase.CreateAsset(mesh, path);
+                var copy = Object.Instantiate(source);
+                copy.name = source.name + "_FirstPerson";
+                mesh = CreateMeshAssetWithStableGuid(copy, path);
             }
             Transform[] bones = body.bones;
             var hidden = new bool[bones.Length];
@@ -362,13 +361,9 @@ namespace HrdnLab.FpsWave.Editor
             mesh.name = name;
             string meshPath = $"{MeshesDir}/{name}.asset";
             string prefabPath = $"{WeaponsPrefabDir}/{name}.prefab";
-            // Arma ricreata da zero (mesh + prefab): l'unico riferimento al prefab è nella WeaponDefinition, che viene
-            // riassegnata sotto, quindi non si rompe niente e si evitano riferimenti a mesh vecchie.
-            AssetDatabase.DeleteAsset(prefabPath);
-            AssetDatabase.DeleteAsset(meshPath);
-            AssetDatabase.CreateAsset(mesh, meshPath);
-            AssetDatabase.SaveAssets();
-            mesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
+            // Mesh ricreata da zero (asset derivato, fuori dal repo: vedi docs/ASSETS.md) con GUID fisso, così i prefab
+            // nel repo la ritrovano su ogni PC; il prefab viene sovrascritto e mantiene il proprio GUID.
+            mesh = CreateMeshAssetWithStableGuid(mesh, meshPath);
             Object.DestroyImmediate(vm);
 
             var root = new GameObject(name);
@@ -537,6 +532,37 @@ namespace HrdnLab.FpsWave.Editor
         }
 
         // ---------------------------------------------------------------- Utilità
+
+        // ---------------------------------------------------------------- Mesh derivate
+
+        /// <summary>GUID deterministico dal percorso: le mesh derivate (fuori dal repo) hanno lo stesso GUID su ogni PC.</summary>
+        private static string StableGuid(string path)
+        {
+            using var md5 = System.Security.Cryptography.MD5.Create();
+            byte[] hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes("fpswave-derived:" + path));
+            return string.Concat(hash.Select(b => b.ToString("x2")));
+        }
+
+        /// <summary>Ricrea l'asset della mesh e ne fissa il GUID (riscrivendo il .meta prima che altri lo usino).</summary>
+        private static Mesh CreateMeshAssetWithStableGuid(Mesh mesh, string path)
+        {
+            AssetDatabase.DeleteAsset(path);
+            AssetDatabase.CreateAsset(mesh, path);
+            AssetDatabase.SaveAssets();
+            string guid = StableGuid(path);
+            if (AssetDatabase.AssetPathToGUID(path) != guid)
+            {
+                string metaPath = path + ".meta";
+                string meta = System.IO.File.ReadAllText(metaPath);
+                meta = System.Text.RegularExpressions.Regex.Replace(meta, @"guid: [0-9a-f]{32}", "guid: " + guid);
+                System.IO.File.WriteAllText(metaPath, meta);
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            }
+            var saved = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (AssetDatabase.AssetPathToGUID(path) != guid)
+                Debug.LogWarning($"[FpsWave] {path}: GUID non fissato ({AssetDatabase.AssetPathToGUID(path)}), i prefab funzionano ma cambieranno su altri PC.");
+            return saved;
+        }
 
         private static Transform FindByName(Transform parent, string name)
         {

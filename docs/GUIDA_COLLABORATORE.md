@@ -64,6 +64,7 @@ Modelli e texture delle armi **non sono nel repo**: la licenza Fab non permette 
    powershell -ExecutionPolicy Bypass -File tools\setup-ui-assets.ps1
    ```
    Poi, una volta aperto Unity, esegui **FpsWave > Setup > 7. Build UI** (genera le texture del HUD in `Assets/ThirdParty/_Own/Hud/`).
+5. Sempre con Unity chiuso, il personaggio del player (AIRO, modello nostro): scarica `AIRO_Pilot_Unity.zip` dal Drive condiviso da Manuel ed estrailo **nella cartella del progetto** (contiene `Assets/ThirdParty/_Own/AIRO/AIRO_Pilot.fbx` e `Textures/`). Una volta aperto Unity esegui **FpsWave > Setup > 9. Build Player Character (AIRO)**: rigenera le mesh derivate (fuori da git) e `git status` deve restare pulito.
 
 ---
 

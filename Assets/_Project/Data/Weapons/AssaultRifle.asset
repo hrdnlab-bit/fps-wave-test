@@ -40,6 +40,7 @@ MonoBehaviour:
   _overrideViewOffsets: 1
   _viewHipOffset: {x: 0, y: 0, z: 0}
   _viewAdsOffset: {x: -0.06772335, y: 0.0054002325, z: -0.02}
+  _worldModelPrefab: {fileID: 523464614060942372, guid: 5f1f6ac745da3fd4aabd15d7d4f9288c, type: 3}
   _feel:
     VerticalMultiplier: 1.4
     HorizontalMultiplier: 0.9

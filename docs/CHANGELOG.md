@@ -3,6 +3,12 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Added (personaggio AIRO, Manuel)
+- **Corpo del player: pilota sci-fi AIRO** (modello nostro da Blender, ~75k triangoli, PBR 4K, rig umanoide a 52 ossa) al posto della capsula, costruito da `FpsWave/Setup/9. Build Player Character (AIRO)` (richiamato anche da `Setup/3`).
+- **Animazione procedurale** (`Player/Character/`): gambe con IK a due ossa sul ciclo del passo (camminata, corsa, strafe, indietro), bacino che scende in crouch, piedi sollevati in aria, busto e testa che seguono la mira, braccia con IK sull'impugnatura dell'arma in terza persona e dita chiuse sull'arma.
+- **Armi in terza persona** (`Prefabs/Weapons/WM_*`, `WorldWeaponModel`) generate dai view model: fucile e pistola impugnati dal corpo, con rinculo visibile e tracciante degli altri giocatori che parte dalla volata.
+- **Prima persona**: si vedono gambe e bacino guardando in basso (mesh senza testa, collo, braccia e piastra) e l'ombra completa del personaggio con la posa dell'arma.
+- Test EditMode del rig sul prefab vero (passo, strafe, crouch, salto, mani sull'impugnatura a ±45°): 24 test nuovi.
 ### Changed (HUD stile Crysis, rinculo stile Rainbow Six Siege)
 - **HUD "visore della tuta"** (riferimento Crysis 2/3), sottile e senza pannelli pieni: obiettivo in alto a sinistra, bussola con direzione in un riquadro, telemetria in alto a destra (se attiva); in basso a sinistra integrità (valore/massimo, stato NOMINALE/DANNEGGIATA/CRITICA, segmenti, righello); in basso a destra arma (tasto, nome, AUTO/SEMI), munizioni grandi con una tacca per colpo, ricarica, striscia delle armi in dotazione; angoli sottili attorno ai blocchi; mirino a quattro tratti; rosso del danno solo ai margini. Misure su 1920x1080 scalate con lo schermo. Tolti radar, biosegnale, scanline e cornice.
 - **Calore solo per le armi a energia** (`WeaponFeel.UsesHeat`, spento per le armi a proiettili attuali): senza calore niente barra nel HUD, niente luce che vira al caldo né tremolio.
