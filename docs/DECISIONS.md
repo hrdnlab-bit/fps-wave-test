@@ -24,4 +24,8 @@ Formato: data | decisione | motivo | alternative scartate | chi.
 | 2026-11-21 | Asset pesanti fuori dal repo: in `Assets/ThirdParty/` si versionano solo `.meta` e file di testo; binari sul PC con backup su Google Drive; l'amico riceve una build zippata | Il push LFS dall'ambiente dell'AI viene rifiutato; zero costi; i `.meta` mantengono i GUID | LFS dal PC dell'utente; repo senza LFS | Utente |
 | 2026-11-21 | Feel tattico-arcade, ADS classico | Scelta dell'utente | Tattico realistico; arcade veloce; solo hip-fire | Utente |
 | 2026-11-21 | Si parte con la sola pistola, la primaria si compra allo shop | Scelta dell'utente: progressione percepibile dalla prima wave | Fucile + pistola; scelta in lobby | Utente |
+| 2026-11-21 | Scene e setup generati da strumenti Editor (`FpsWave/Setup`) | Ripetibili, versionabili, non dipendono dal controllo remoto dell'interfaccia | Costruzione manuale nell'Editor | AI |
+| 2026-11-21 | In Editor avvio automatico: Host sull'istanza principale, join automatico dei giocatori virtuali MPPM | Test multiplayer senza clic; le finestre dei virtual player non sono controllabili da remoto | Menu manuale in ogni finestra | AI |
+| 2026-11-21 | Mirror della Console su `Logs/FpsWaveConsole.log` | Verifica automatica di errori/warning senza accesso ad AppData | Screenshot della Console | AI |
+| 2026-11-21 | Menu di sviluppo in OnGUI (temporaneo) | Rapido per M0a; sarà sostituito da UI Toolkit con la lobby Steam (M0b) | UI Toolkit subito | AI |
 | 2026-11-21 | Skill attive: fps-wave-dev-workflow, unity-coop-netcode-review, mod-system-balance (+ frontend-design, skill-creator) | Solo quelle utili al gioco | L'elenco completo di 19 skill | Utente + AI |

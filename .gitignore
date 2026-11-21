@@ -117,9 +117,6 @@ InitTestScene*.unity*
 .vscode/
 .idea/
 
-# Contenuti del template da rimuovere dal progetto (M0a.2)
-/[Aa]ssets/TutorialInfo*
-/[Aa]ssets/Readme.asset*
 
 # Asset pesanti di terze parti fuori dal repo (vedi docs/ASSETS.md):
 # si versionano solo .meta e file di testo, cosi' i GUID restano stabili.
