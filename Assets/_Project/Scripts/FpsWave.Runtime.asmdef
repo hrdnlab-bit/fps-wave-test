@@ -3,7 +3,9 @@
     "rootNamespace": "HrdnLab.FpsWave",
     "references": [
         "Unity.InputSystem",
-        "FishNet.Runtime"
+        "FishNet.Runtime",
+        "FishySteamworks",
+        "com.rlabrecque.steamworks.net"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

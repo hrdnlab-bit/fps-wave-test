@@ -90,12 +90,8 @@ namespace HrdnLab.FpsWave.Editor
             var managers = Object.FindObjectsByType<NetworkManager>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             foreach (var manager in managers)
             {
-                if (manager == null)
-                    continue;
-                if (manager.ClientManager != null && manager.ClientManager.Started)
-                    manager.ClientManager.StopConnection();
-                if (manager.ServerManager != null && manager.ServerManager.Started)
-                    manager.ServerManager.StopConnection(true);
+                if (manager != null)
+                    HrdnLab.FpsWave.Net.NetTransports.StopAll(manager); // gestisce anche Multipass
             }
         }
     }

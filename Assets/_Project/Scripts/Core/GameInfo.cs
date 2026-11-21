@@ -7,7 +7,7 @@ namespace HrdnLab.FpsWave.Core
     /// </summary>
     public static class GameInfo
     {
-        public const string Version = "0.0.1";
+        public const string Version = "0.2.0";
         public const int ProtocolVersion = 1;
     }
 }

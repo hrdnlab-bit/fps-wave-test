@@ -1,22 +1,24 @@
 using FishNet.Managing;
 using FishNet.Transporting;
+using HrdnLab.FpsWave.Core;
 using UnityEngine;
 
 namespace HrdnLab.FpsWave.Net
 {
     /// <summary>
-    /// Menu minimo di sviluppo (M0a): avvia Host, Client o Server dedicato con il transport locale (Tugboat)
-    /// e mostra lo stato della connessione. Verrà sostituito dal menu principale con lobby Steam (M0b).
-    /// Usa OnGUI solo perché è uno strumento di debug: non va usato per la UI di gioco.
+    /// Menu di sviluppo (M0a/M0b): Host e Join in rete locale (Tugboat) o via Steam (lobby per amici, inviti,
+    /// relay Steam). In Editor l'istanza principale fa da Host LAN e i giocatori virtuali di Multiplayer Play Mode
+    /// si collegano da soli. Usa OnGUI perché è uno strumento di debug: sarà sostituito dal menu principale in UI Toolkit.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class NetBootstrapMenu : MonoBehaviour
     {
         [SerializeField] private NetworkManager _networkManager;
+        [SerializeField] private SteamService _steam;
         [SerializeField] private string _address = "localhost";
         [SerializeField] private ushort _port = 7770;
 
-        [Tooltip("Solo nell'Editor: l'istanza principale avvia l'Host e i giocatori virtuali di Multiplayer Play Mode si collegano da soli.")]
+        [Tooltip("Solo nell'Editor: l'istanza principale avvia l'Host LAN e i giocatori virtuali di Multiplayer Play Mode si collegano da soli.")]
         [SerializeField] private bool _autoStartInEditor = true;
         [SerializeField, Min(1)] private int _autoJoinAttempts = 10;
 
@@ -25,8 +27,10 @@ namespace HrdnLab.FpsWave.Net
         private LocalConnectionState _serverState = LocalConnectionState.Stopped;
         private LocalConnectionState _clientState = LocalConnectionState.Stopped;
         private GUIStyle _labelStyle;
+        private GUIStyle _wrapStyle;
         private string _lastError;
         private bool _hostStarting;
+        private NetMode _mode = NetMode.Lan;
 
         private void Awake()
         {
@@ -34,16 +38,24 @@ namespace HrdnLab.FpsWave.Net
                 _networkManager = GetComponent<NetworkManager>();
             if (_networkManager == null)
                 _networkManager = FindFirstObjectByType<NetworkManager>();
+            if (_steam == null)
+                _steam = GetComponent<SteamService>();
         }
 
         // Start e non OnEnable: i sotto-manager di FishNet vengono creati nell'Awake del NetworkManager,
         // il cui ordine rispetto a questo componente non è garantito.
         private void Start()
         {
-            if (_networkManager == null)
+            if (_networkManager == null || !OwnsManager)
                 return;
             _networkManager.ServerManager.OnServerConnectionState += HandleServerState;
             _networkManager.ClientManager.OnClientConnectionState += HandleClientState;
+            if (_steam != null)
+            {
+                _steam.LobbyHosted += HandleLobbyHosted;
+                _steam.JoinHostRequested += HandleJoinSteamHost;
+                _steam.Error += HandleSteamError;
+            }
 
 #if UNITY_EDITOR
             if (_autoStartInEditor)
@@ -51,15 +63,16 @@ namespace HrdnLab.FpsWave.Net
                 if (IsVirtualPlayer())
                     StartCoroutine(AutoJoin());
                 else
-                    StartHost();
+                    StartHostLan();
             }
 #endif
         }
 
         /// <summary>
-        /// True se questa istanza è un giocatore virtuale di Multiplayer Play Mode
-        /// (il progetto clone sta in Library/VP/; vedi <see cref="EditorInstanceInfo"/>).
+        /// False per la copia di Boot che FishNet distrugge al ritorno al menu (il NetworkManager persistente è un altro).
         /// </summary>
+        private bool OwnsManager => _networkManager != null && _networkManager.gameObject == gameObject;
+
         private static bool IsVirtualPlayer() =>
             Application.isEditor && EditorInstanceInfo.IsVirtualPlayerPath(
                 Application.dataPath, System.IO.Directory.GetCurrentDirectory());
@@ -72,7 +85,7 @@ namespace HrdnLab.FpsWave.Net
                 if (_clientState == LocalConnectionState.Started)
                     yield break;
                 if (_clientState == LocalConnectionState.Stopped)
-                    StartClient();
+                    JoinLan();
             }
         }
 
@@ -84,17 +97,24 @@ namespace HrdnLab.FpsWave.Net
         {
             if (_networkManager == null || _networkManager.ServerManager == null || _networkManager.ClientManager == null)
                 return;
-            // Solo se il NetworkManager è il nostro: una copia duplicata di Boot (ritorno al menu) viene
-            // distrutta da FishNet e non deve chiudere la sessione del manager persistente.
-            if (_networkManager.gameObject == gameObject)
-                StopAll();
+            if (!OwnsManager)
+                return;
+            StopAll();
             _networkManager.ServerManager.OnServerConnectionState -= HandleServerState;
             _networkManager.ClientManager.OnClientConnectionState -= HandleClientState;
+            if (_steam != null)
+            {
+                _steam.LobbyHosted -= HandleLobbyHosted;
+                _steam.JoinHostRequested -= HandleJoinSteamHost;
+                _steam.Error -= HandleSteamError;
+            }
         }
+
+        // ---------------------------------------------------------------- Stato
 
         private void HandleServerState(ServerConnectionStateArgs args)
         {
-            _serverState = args.ConnectionState;
+            _serverState = _networkManager.ServerManager.Started ? LocalConnectionState.Started : args.ConnectionState;
             if (args.ConnectionState == LocalConnectionState.Started)
             {
                 _hostStarting = false;
@@ -107,88 +127,158 @@ namespace HrdnLab.FpsWave.Net
                     _networkManager.ClientManager.StopConnection();
                 ReportHostFailure();
             }
+            if (args.ConnectionState == LocalConnectionState.Stopped && !_networkManager.ServerManager.Started)
+                _steam?.LeaveLobby();
+        }
+
+        private void HandleClientState(ClientConnectionStateArgs args)
+        {
+            _clientState = args.ConnectionState;
+            if (args.ConnectionState == LocalConnectionState.Stopped && !_networkManager.ServerManager.Started)
+                _steam?.LeaveLobby();
         }
 
         private void ReportHostFailure()
         {
             _hostStarting = false;
-            _lastError = $"Impossibile fare da Host: porta {_port} occupata (un'altra istanza o un Play precedente). " +
-                         "Chiudi le altre finestre di gioco o i giocatori virtuali e riprova.";
+            _lastError = _mode == NetMode.Lan
+                ? $"Impossibile fare da Host: porta {_port} occupata (un'altra istanza o un Play precedente). " +
+                  "Chiudi le altre finestre di gioco o i giocatori virtuali e riprova."
+                : $"Impossibile avviare il server Steam. {SteamService.Status}";
             Debug.LogWarning($"[FpsWave] {_lastError}");
         }
 
-        private void HandleClientState(ClientConnectionStateArgs args) => _clientState = args.ConnectionState;
+        // ---------------------------------------------------------------- LAN
 
-        /// <summary>Avvia server + client locale (listen server).</summary>
-        public void StartHost()
+        /// <summary>Host in rete locale: server Tugboat + client locale.</summary>
+        public void StartHostLan()
         {
             _lastError = null;
-            _networkManager.TransportManager.Transport.SetPort(_port);
+            _mode = NetMode.Lan;
             _hostStarting = true;
-            if (!_networkManager.ServerManager.StartConnection())
+            if (!NetTransports.StartServer(_networkManager, NetMode.Lan, _port))
             {
                 ReportHostFailure();
                 return;
             }
-            _networkManager.ClientManager.StartConnection("localhost", _port);
+            NetTransports.StartClient(_networkManager, NetMode.Lan, "localhost", _port);
         }
 
-        /// <summary>Si connette a un Host esistente.</summary>
-        public void StartClient()
+        /// <summary>Si collega a un Host in rete locale.</summary>
+        public void JoinLan()
         {
             _lastError = null;
-            _networkManager.ClientManager.StartConnection(_address, _port);
+            _mode = NetMode.Lan;
+            NetTransports.StartClient(_networkManager, NetMode.Lan, _address, _port);
         }
 
-        /// <summary>Chiude client e server locali.</summary>
+        // ---------------------------------------------------------------- Steam
+
+        /// <summary>Host via Steam: crea la lobby per amici; il server parte quando la lobby è pronta.</summary>
+        public void StartHostSteam()
+        {
+            _lastError = null;
+            if (_steam == null || !SteamService.IsReady)
+            {
+                _lastError = $"Steam non disponibile. {SteamService.Status}";
+                return;
+            }
+            _mode = NetMode.Steam;
+            _steam.CreateLobby();
+        }
+
+        private void HandleLobbyHosted()
+        {
+            _mode = NetMode.Steam;
+            _hostStarting = true;
+            if (!NetTransports.StartServer(_networkManager, NetMode.Steam, _port))
+            {
+                _steam.LeaveLobby();
+                ReportHostFailure();
+                return;
+            }
+            // Client locale dell'Host: FishySteamworks usa una connessione interna, l'indirizzo non conta.
+            NetTransports.StartClient(_networkManager, NetMode.Steam, "localhost", _port);
+        }
+
+        private void HandleJoinSteamHost(ulong hostSteamId)
+        {
+            if (_networkManager.ServerManager.Started || _networkManager.ClientManager.Started)
+                NetTransports.StopAll(_networkManager);
+            _lastError = null;
+            _mode = NetMode.Steam;
+            if (!NetTransports.StartClient(_networkManager, NetMode.Steam, hostSteamId.ToString(), _port))
+                _lastError = "Connessione all'Host Steam non riuscita.";
+        }
+
+        private void HandleSteamError(string message)
+        {
+            _lastError = message;
+            Debug.LogWarning($"[FpsWave][Steam] {message}");
+        }
+
+        /// <summary>Chiude client e server su tutti i transport ed esce dalla lobby Steam.</summary>
         public void StopAll()
         {
-            if (_networkManager == null || _networkManager.ClientManager == null || _networkManager.ServerManager == null)
-                return;
-            if (_networkManager.ClientManager.Started)
-                _networkManager.ClientManager.StopConnection();
-            if (_networkManager.ServerManager.Started)
-                _networkManager.ServerManager.StopConnection(true);
+            NetTransports.StopAll(_networkManager);
+            _steam?.LeaveLobby();
         }
+
+        // ---------------------------------------------------------------- UI di sviluppo
 
         private void OnGUI()
         {
-            if (_networkManager == null)
+            if (_networkManager == null || !OwnsManager)
                 return;
 
             _labelStyle ??= new GUIStyle(GUI.skin.label) { fontSize = 16 };
-
-            bool idleArea = _serverState == LocalConnectionState.Stopped && _clientState == LocalConnectionState.Stopped;
-            float height = (idleArea ? 200 : 150) + (_lastError != null ? 70 : 0);
-            GUILayout.BeginArea(new Rect(20, 20, 320, height), GUI.skin.box);
-            GUILayout.Label($"FPS Wave Test {HrdnLab.FpsWave.Core.GameInfo.Version} (proto {HrdnLab.FpsWave.Core.GameInfo.ProtocolVersion})", _labelStyle);
-            if (_lastError != null)
-                GUILayout.Label(_lastError);
+            _wrapStyle ??= new GUIStyle(GUI.skin.label) { wordWrap = true };
 
             bool idle = _serverState == LocalConnectionState.Stopped && _clientState == LocalConnectionState.Stopped;
+            float height = (idle ? 330 : 190) + (_lastError != null ? 70 : 0);
+            GUILayout.BeginArea(new Rect(20, 20, 360, height), GUI.skin.box);
+            GUILayout.Label($"FPS Wave Test {GameInfo.Version} (proto {GameInfo.ProtocolVersion})", _labelStyle);
+            GUILayout.Label(SteamService.IsReady ? $"Steam: {_steam?.LocalName}" : $"Steam: no ({SteamService.Status})", _wrapStyle);
+            if (_lastError != null)
+                GUILayout.Label(_lastError, _wrapStyle);
+
             if (idle)
             {
-                if (GUILayout.Button("Host (server + client)", GUILayout.Height(36)))
-                    StartHost();
+                GUILayout.Label("Steam (amici via Internet)");
+                GUI.enabled = SteamService.IsReady;
+                if (GUILayout.Button("Host Steam (crea lobby)", GUILayout.Height(34)))
+                    StartHostSteam();
+                GUI.enabled = true;
+                GUILayout.Label("Per entrare: accetta l'invito Steam o \"Unisciti alla partita\" dalla lista amici.", _wrapStyle);
 
+                GUILayout.Space(6);
+                GUILayout.Label("Rete locale (stesso PC / LAN)");
+                if (GUILayout.Button("Host LAN", GUILayout.Height(30)))
+                    StartHostLan();
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Indirizzo", GUILayout.Width(70));
                 _address = GUILayout.TextField(_address);
                 GUILayout.EndHorizontal();
-
-                if (GUILayout.Button("Join (client)", GUILayout.Height(36)))
-                    StartClient();
+                if (GUILayout.Button("Join LAN", GUILayout.Height(30)))
+                    JoinLan();
             }
             else
             {
-                GUILayout.Label($"Server: {_serverState}", _labelStyle);
-                GUILayout.Label($"Client: {_clientState}", _labelStyle);
+                GUILayout.Label($"Modalità: {(_mode == NetMode.Steam ? "Steam" : "LAN")}", _labelStyle);
+                GUILayout.Label($"Server: {_serverState}   Client: {_clientState}");
                 if (_networkManager.ServerManager.Started)
-                    GUILayout.Label($"Giocatori connessi: {_networkManager.ServerManager.Clients.Count}", _labelStyle);
-                if (GUILayout.Button("Disconnetti", GUILayout.Height(32)))
+                    GUILayout.Label($"Giocatori connessi: {_networkManager.ServerManager.Clients.Count}");
+                if (_mode == NetMode.Steam && _steam != null && _steam.InLobby && _networkManager.ServerManager.Started
+                    && GUILayout.Button("Invita amici (overlay Steam)", GUILayout.Height(30)))
+                    _steam.OpenInviteDialog();
+                if (GUILayout.Button("Disconnetti", GUILayout.Height(30)))
                     StopAll();
             }
             GUILayout.EndArea();
         }
+
+#if UNITY_EDITOR
+        public void EditorSetSteam(SteamService steam) => _steam = steam;
+#endif
     }
 }
