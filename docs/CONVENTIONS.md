@@ -5,7 +5,7 @@
 - Conventional Commits: `feat`, `fix`, `refactor`, `perf`, `net`, `docs`, `chore`, `test`. Formato: `tipo(ambito): descrizione breve in inglese`, corpo di 1-3 righe con cosa e perché.
   Esempio: `feat(weapons): add hitscan fire with server validation`.
 - Un commit per modifica logica. Branch `feature/mN-nome` per ogni milestone, merge su `main` a milestone verificata, tag `v0.N.0`.
-- `.gitignore` Unity standard (Library, Temp, Obj, Logs, UserSettings, Build, file di progetto dell'IDE) + Git LFS per texture, modelli, audio, video (`.gitattributes`).
+- `.gitignore` Unity standard (Library, Temp, Obj, Logs, UserSettings, Build, file di progetto dell'IDE) + esclusione dei binari in `Assets/ThirdParty/` (si versionano solo i `.meta` e i file di testo, vedi `ASSETS.md`). `.gitattributes` con LFS resta come rete di sicurezza ma non si usa.
 - `CHANGELOG.md` aggiornato a ogni merge.
 - Nessun token o credenziale nel repo o in chat.
 

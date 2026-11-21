@@ -3,6 +3,7 @@
 Valori *(default)* = scelti dall'AI, da bilanciare con i playtest.
 
 ## 1. Player
+- Feel: **tattico-arcade** (riferimenti Killing Floor 2, Deep Rock Galactic): movimento rapido e reattivo, rinculo marcato ma controllabile, niente stamina.
 - Movimento: camminata 4.5 m/s, sprint 7 m/s, crouch 2.5 m/s, salto 1.2 m, scivolata da sprint (dopo MVP).
 - Camera prima persona, FOV regolabile 70-110 (default 90).
 - Salute 100 + scudo 50 che si rigenera dopo 4 s senza danni (tuta militare sperimentale, coerente con l'ambientazione).
@@ -22,9 +23,11 @@ Valori *(default)* = scelti dall'AI, da bilanciare con i playtest.
 - Categorie MVP: pistola, fucile d'assalto, shotgun. Dopo MVP: sniper, SMG, lanciagranate, armi sperimentali (energia) come drop rari.
 - Tutte hitscan nell'MVP; proiettili fisici solo per esplosivi ed energia (dopo MVP).
 - Statistiche: danno, cadenza, spread, rinculo (pattern + recupero), caricatore, ricarica, chance critico, moltiplicatore critico, moltiplicatore weakspot (testa 2x).
+- **ADS** (tasto destro): zoom leggero (FOV -15/-25% secondo l'arma), spread ridotto del 60%, rinculo ridotto del 30%, movimento al 60%, transizione 0.15-0.3 s per arma. Hip-fire comunque utilizzabile a corta distanza.
+- **Inizio partita: solo pistola.** La primaria (fucile d'assalto, shotgun, poi le altre) si compra allo shop dalla prima fase di preparazione; la pistola base deve quindi bastare per la wave 1 (TTK del Runner con la pistola ~0.6-0.9 s).
 - Inventario: 1 primaria + 1 secondaria (pistola) + granate (dopo MVP).
 - Feedback: rinculo camera, muzzle flash, tracer, decal di impatto, hit marker (bianco = colpo, rosso = kill, giallo = critico), suono di impatto distinto.
-- TTK target *(default)*: nemico base in 0.4-0.7 s col fucile d'assalto base alla wave 1.
+- TTK target *(default)*: nemico base in 0.4-0.7 s col fucile d'assalto base, 0.6-0.9 s con la pistola base, alla wave 1.
 
 ## 4. Nemici
 | Tipo | Ruolo | HP base | Velocità | Costo budget | Compare dalla wave |

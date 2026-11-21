@@ -8,8 +8,9 @@
 | 4 | Ambientazione | M1 (scelta asset) | Risolta: valle in quarantena + complesso militare sci-fi |
 | 5 | Percorso di sviluppo | M0 | Risolta: ibrido |
 | 6 | Struttura della partita | M3 | Risolta: endless, boss ogni 10 wave |
-| 7 | Feel del movimento e delle armi (tattico/lento o arcade/veloce), ADS sì/no | M1 | Da chiedere prima di M1 |
-| 8 | Arma iniziale e set di armi dell'MVP | M1 | Da chiedere prima di M1 |
+| 7 | Feel del movimento e delle armi, ADS | M1 | Risolta: tattico-arcade, ADS classico |
+| 8 | Arma iniziale | M1 | Risolta: solo pistola, primaria allo shop |
 | 9 | Nome definitivo del gioco | - | Aperta |
 | 10 | App ID Steam proprio per il rilascio | Rilascio | Aperta |
-| 11 | Quota Git LFS di GitHub (1 GB gratuito) | M7-M8 | Aperta |
+| 11 | Gestione asset pesanti | M1 | Risolta: fuori dal repo, `.meta` nel repo, backup su Google Drive, build zippata per l'amico |
+| 12 | Creare la cartella Google Drive `FpsWaveTest_Assets` per il backup degli asset | M1 | Da fare (utente o AI via browser) |

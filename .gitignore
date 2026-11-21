@@ -120,3 +120,27 @@ InitTestScene*.unity*
 # Contenuti del template da rimuovere dal progetto (M0a.2)
 /[Aa]ssets/TutorialInfo*
 /[Aa]ssets/Readme.asset*
+
+# Asset pesanti di terze parti fuori dal repo (vedi docs/ASSETS.md):
+# si versionano solo .meta e file di testo, cosi' i GUID restano stabili.
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[pP][nN][gG]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[jJ][pP][gG]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[jJ][pP][eE][gG]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[tT][gG][aA]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[tT][iI][fF]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[tT][iI][fF][fF]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[eE][xX][rR]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[hH][dD][rR]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[pP][sS][dD]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[fF][bB][xX]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[oO][bB][jJ]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[gG][lL][bB]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[gG][lL][tT][fF]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[bB][lL][eE][nN][dD]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[wW][aA][vV]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[mM][pP]3
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[oO][gG][gG]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[fF][lL][aA][cC]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[mM][pP]4
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[uU][nN][iI][tT][yY][pP][aA][cC][kK][aA][gG][eE]
+/[Aa]ssets/[Tt]hird[Pp]arty/**/*.[zZ][iI][pP]

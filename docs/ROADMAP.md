@@ -5,7 +5,7 @@ Ogni milestone è giocabile e testata in multiplayer (host + client). Percorso s
 | # | Milestone | Contenuto | Fatto quando |
 |---|---|---|---|
 | M0a | Setup + rete locale | Progetto Unity URP, repo + LFS, struttura cartelle e asmdef, FishNet + Tugboat, scena Boot e menu minimo Host/Join, Multiplayer Play Mode | 2-4 istanze connesse in locale |
-| M1 | Player + arma | Controller FPS replicato, camera, sistema Stat/Modifier, arma hitscan con validazione server, feedback (rinculo, muzzle, hit marker), greybox map, arma + braccia realistiche, overlay FPS/RTT minimo | Host e client si muovono e sparano a bersagli, danno coerente su tutti |
+| M1 | Player + arma | Controller FPS replicato, camera, sistema Stat/Modifier, pistola hitscan con validazione server + fucile d'assalto di test, ADS, feedback (rinculo, muzzle, hit marker), greybox map, arma + braccia realistiche, overlay FPS/RTT minimo | Host e client si muovono e sparano a bersagli, danno coerente su tutti |
 | M0b | Steam + debug | Steamworks.NET + FishySteamworks, lobby Steam (crea/invita/entra), controllo versione al join, overlay di debug completo, console comandi | Partita via Steam con un amico |
 | M2 | Nemici | Runner e Brute, AI host-side con NavMesh, salute/danno/morte, pooling di rete, stato a terra e rianimazione | 40 nemici in scena entro budget, rianimazione funzionante |
 | M3 | Wave endless | DifficultyModel, WaveDefinition, SpawnDirector, SpawnPointSelector, stati della wave sincronizzati, HUD wave, wipe e schermata finale, primo boss a wave 10, prime mutazioni | Si arriva oltre la wave 10 con scaling percepibile |

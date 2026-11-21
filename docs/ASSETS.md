@@ -6,7 +6,13 @@
 - Ambientazione mista (natura + militare sci-fi): la parte sci-fi deve restare "militare credibile" (metallo verniciato, cemento, cavi, pannelli, luci di servizio). Si scartano kit sci-fi lucidi/cartoon anche se gratuiti.
 - Ogni asset importato va registrato nella tabella in fondo (nome, fonte, licenza, link, data). I CC-BY richiedono attribuzione nei crediti.
 - Asset di terze parti in `Assets/ThirdParty/<Fonte>/`; gli asset del gioco (prefab, materiali URP adattati) in `Assets/_Project/`.
-- Formati pesanti tramite Git LFS; i pacchetti scaricabili di nuovo dalla fonte si possono tenere fuori dal repo se la quota LFS si esaurisce.
+- **Asset pesanti fuori dal repo** (scelta dell'utente): in `Assets/ThirdParty/` il repo contiene solo i file `.meta` e i file di testo (materiali, prefab, scene), mentre i binari (texture, modelli, audio, video) sono esclusi da `.gitignore`. I `.meta` conservano i GUID: rimettendo i binari con lo stesso nome, tutti i riferimenti restano validi.
+- I binari originali vivono sul PC dell'utente; backup consigliato in una cartella Google Drive `FpsWaveTest_Assets` (stessa struttura di `Assets/ThirdParty/`).
+- Gli asset creati da noi che sono binari (rari) vanno anch'essi in `Assets/ThirdParty/_Own/` per seguire la stessa regola.
+
+### Come li ottiene un'altra persona
+- **Per giocare (l'amico che testa)**: non serve nulla del progetto. Riceve una **build Windows** già compilata (cartella zippata condivisa via Google Drive/WeTransfer); gli asset sono dentro la build. Con l'App ID proprio si userà un branch Steam privato.
+- **Per sviluppare** (un secondo sviluppatore, o un PC nuovo): clona il repo e scarica la cartella `FpsWaveTest_Assets` da Google Drive dentro `Assets/ThirdParty/`; in alternativa riscarica le fonti dal registro qui sotto (sono tutte gratuite).
 
 ## 2. Fonti approvate
 | Fonte | Contenuto | Licenza | Note |

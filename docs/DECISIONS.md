@@ -21,4 +21,7 @@ Formato: data | decisione | motivo | alternative scartate | chi.
 | 2026-11-21 | Disconnessione Host = fine partita; join solo in preparazione | Semplicità MVP | Host migration | AI (default) |
 | 2026-11-21 | Documenti divisi per tema, un'informazione in un solo file, copia nel repo (`docs/`) e nel Progetto | Meno incoerenze, meno contesto consumato | Baseline unico | Utente + AI |
 | 2026-11-21 | Progetto in `C:\Users\manue\FpsWaveTest`, template Universal 3D locale, senza AI Assistant, senza Unity Cloud e senza repo creato da Unity Hub | Cartella dedicata richiesta dall'utente; il repo esiste già | Riutilizzare `My project` (contiene un altro gioco) | Utente + AI |
+| 2026-11-21 | Asset pesanti fuori dal repo: in `Assets/ThirdParty/` si versionano solo `.meta` e file di testo; binari sul PC con backup su Google Drive; l'amico riceve una build zippata | Il push LFS dall'ambiente dell'AI viene rifiutato; zero costi; i `.meta` mantengono i GUID | LFS dal PC dell'utente; repo senza LFS | Utente |
+| 2026-11-21 | Feel tattico-arcade, ADS classico | Scelta dell'utente | Tattico realistico; arcade veloce; solo hip-fire | Utente |
+| 2026-11-21 | Si parte con la sola pistola, la primaria si compra allo shop | Scelta dell'utente: progressione percepibile dalla prima wave | Fucile + pistola; scelta in lobby | Utente |
 | 2026-11-21 | Skill attive: fps-wave-dev-workflow, unity-coop-netcode-review, mod-system-balance (+ frontend-design, skill-creator) | Solo quelle utili al gioco | L'elenco completo di 19 skill | Utente + AI |
