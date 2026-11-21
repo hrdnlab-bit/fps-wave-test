@@ -34,7 +34,7 @@ namespace HrdnLab.FpsWave.Net
         public static bool IsReady { get; private set; }
 
         /// <summary>Motivo per cui Steam non è disponibile (vuoto se pronto).</summary>
-        public static string Status { get; private set; } = "Steam non inizializzato";
+        public static string Status { get; private set; } = "Steam not initialized";
 
         public static SteamService Instance => _owner;
 
@@ -77,7 +77,7 @@ namespace HrdnLab.FpsWave.Net
 #if UNITY_EDITOR
             if (EditorInstanceInfo.IsVirtualPlayerPath(Application.dataPath, System.IO.Directory.GetCurrentDirectory()))
             {
-                Status = "Steam disattivato nei giocatori virtuali (si usa la rete locale)";
+                Status = "Steam disabled for virtual players (using local network)";
                 return;
             }
 #endif
@@ -85,19 +85,19 @@ namespace HrdnLab.FpsWave.Net
             {
                 if (!Packsize.Test() || !DllCheck.Test())
                 {
-                    Status = "Steamworks.NET: libreria non compatibile con questa piattaforma";
+                    Status = "Steamworks.NET: library not supported on this platform";
                     return;
                 }
                 ESteamAPIInitResult result = SteamAPI.InitEx(out string message);
                 if (result != ESteamAPIInitResult.k_ESteamAPIInitResult_OK)
                 {
-                    Status = $"Steam non disponibile ({result}): {message}. Steam è aperto e con l'account collegato?";
+                    Status = $"Steam unavailable ({result}): {message}. Is Steam running and signed in?";
                     return;
                 }
             }
             catch (DllNotFoundException e)
             {
-                Status = $"steam_api64.dll mancante: {e.Message}";
+                Status = $"steam_api64.dll missing: {e.Message}";
                 return;
             }
 
@@ -142,7 +142,7 @@ namespace HrdnLab.FpsWave.Net
             if (IsReady)
                 SteamAPI.Shutdown();
             IsReady = false;
-            Status = "Steam non inizializzato";
+            Status = "Steam not initialized";
             _owner = null;
         }
 
@@ -171,7 +171,7 @@ namespace HrdnLab.FpsWave.Net
             }
             if (!ulong.TryParse(code?.Trim(), out ulong id) || id == 0)
             {
-                Error?.Invoke("Codice lobby non valido: deve essere il numero mostrato all'Host.");
+                Error?.Invoke("Invalid lobby code: it must be the number shown to the host.");
                 return false;
             }
             LeaveLobby();
@@ -233,7 +233,7 @@ namespace HrdnLab.FpsWave.Net
             if (data.m_eResult != EResult.k_EResultOK)
             {
                 _creatingAsHost = false;
-                Error?.Invoke($"Creazione lobby fallita: {data.m_eResult}");
+                Error?.Invoke($"Lobby creation failed: {data.m_eResult}");
                 return;
             }
             _lobby = new CSteamID(data.m_ulSteamIDLobby);
@@ -260,7 +260,7 @@ namespace HrdnLab.FpsWave.Net
 
             if (data.m_EChatRoomEnterResponse != (uint)EChatRoomEnterResponse.k_EChatRoomEnterResponseSuccess)
             {
-                Error?.Invoke($"Impossibile entrare nella lobby ({(EChatRoomEnterResponse)data.m_EChatRoomEnterResponse}).");
+                Error?.Invoke($"Could not join the lobby ({(EChatRoomEnterResponse)data.m_EChatRoomEnterResponse}).");
                 return;
             }
 
@@ -270,14 +270,14 @@ namespace HrdnLab.FpsWave.Net
             if (!LobbyCompatibility.IsCompatible(proto, GameInfo.ProtocolVersion))
             {
                 LeaveLobby();
-                Error?.Invoke($"Versione diversa: l'Host ha la {version} (protocollo {proto}), tu la {GameInfo.Version} " +
-                              $"(protocollo {GameInfo.ProtocolVersion}). Aggiornate entrambi alla stessa build.");
+                Error?.Invoke($"Version mismatch: the host has {version} (protocol {proto}), you have {GameInfo.Version} " +
+                              $"(protocol {GameInfo.ProtocolVersion}). Both players need the same build.");
                 return;
             }
             if (!ulong.TryParse(SteamMatchmaking.GetLobbyData(lobby, HostKey), out ulong host) || host == 0)
             {
                 LeaveLobby();
-                Error?.Invoke("Lobby senza Host valido.");
+                Error?.Invoke("Lobby has no valid host.");
                 return;
             }
             Debug.Log($"[FpsWave][Steam] Entrato nella lobby {lobby.m_SteamID}, Host {host}.");

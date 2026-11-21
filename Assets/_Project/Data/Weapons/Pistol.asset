@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Pistol
   m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Weapons.WeaponDefinition
   _id: pistol_base
-  _displayName: Pistola
+  _displayName: Pistol
   _slot: 1
   _damage: 20
   _roundsPerMinute: 360
@@ -22,7 +22,7 @@ MonoBehaviour:
   _reloadTime: 1.4
   _range: 60
   _hipSpread: 1.2
-  _adsSpread: 0.3
+  _adsSpread: 0.08
   _spreadPerShot: 0.6
   _maxBloom: 3
   _bloomRecoveryPerSecond: 8
@@ -30,7 +30,8 @@ MonoBehaviour:
   _recoilYaw: 0.4
   _recoilRecoveryPerSecond: 10
   _adsFovMultiplier: 0.85
-  _adsTime: 0.15
+  _adsTime: 0.17
+  _sprintToFireTime: 0.13
   _critChance: 0.05
   _critMultiplier: 1.5
   _weakspotMultiplier: 2
@@ -39,3 +40,45 @@ MonoBehaviour:
   _overrideViewOffsets: 1
   _viewHipOffset: {x: 0.13, y: -0.105, z: 0.3}
   _viewAdsOffset: {x: 0, y: 0, z: 0.24}
+  _feel:
+    VerticalMultiplier: 1.1
+    HorizontalMultiplier: 0.8
+    FirstShotMultiplier: 1
+    RampShots: 4
+    RampMultiplier: 1.15
+    PatternStrength: 0.3
+    HorizontalRandomness: 0.6
+    VerticalRandomness: 0.15
+    Snappiness: 22
+    ReturnSpeed: 7
+    PermanentFraction: 0.4
+    BurstResetTime: 0.45
+    HipRecoilMultiplier: 0.2
+    HipPermanentFraction: 0.3
+    AdsMultiplier: 1
+    CrouchMultiplier: 0.8
+    ViewKickScale: 0.35
+    KickPosition: {x: 0.001, y: 0.002, z: -0.018}
+    KickRotation: {x: -1.4, y: 0.4, z: 0.7}
+    KickRandomness: 0.35
+    PositionStiffness: 220
+    PositionDamping: 28
+    RotationStiffness: 200
+    RotationDamping: 26
+    SwayAmount: 1
+    SwayMax: 5
+    SwaySmoothing: 6.5
+    BobAmount: 1
+    StrafeTilt: 2.5
+    SprintPose: 1
+    IdleBreath: 1
+    ShakePerShot: 0.008
+    FovPunch: 0.0015
+    UsesHeat: 0
+    BallisticColor: {r: 1, g: 0.8, b: 0.55, a: 1}
+    EnergyColor: {r: 0.55, g: 0.75, b: 1, a: 1}
+    HotColor: {r: 1, g: 0.55, b: 0.25, a: 1}
+    HeatPerShot: 0.09
+    HeatDecay: 0.7
+    HeatDecayDelay: 0.25
+    MuzzleLightIntensity: 5

@@ -1,0 +1,451 @@
+using System.Collections.Generic;
+using FishNet.Component.Transforming;
+using FishNet.Object;
+using HrdnLab.FpsWave.Combat;
+using HrdnLab.FpsWave.Core;
+using HrdnLab.FpsWave.Enemies;
+using HrdnLab.FpsWave.Player;
+using HrdnLab.FpsWave.UI;
+using HrdnLab.FpsWave.Weapons;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.AI;
+using UnityEngine.SceneManagement;
+
+namespace HrdnLab.FpsWave.Editor
+{
+    /// <summary>
+    /// Genera in modo ripetibile il contenuto nemici: per ogni voce del <see cref="Catalog"/> una scheda
+    /// <see cref="EnemyDefinition"/> (`Data/Enemies/`) e un prefab di rete in pool (`Prefabs/Enemies/`);
+    /// sul Player i componenti EnemyTarget e DamageNumbers; nella Greybox muri di copertura, nodi di spawn ed EnemyDirector.
+    /// Non rigenera il Player (le armi di Setup/4 restano): aggiunge solo i componenti mancanti.
+    /// Viene chiamato anche da "3. Build M1 Content", così una rigenerazione completa non perde i nemici.
+    /// </summary>
+    public static class EnemyContentBuilder
+    {
+        private const string MaterialsDir = "Assets/_Project/Art/Materials";
+        private const string EnemyDataDir = "Assets/_Project/Data/Enemies";
+        private const string EnemyPrefabsDir = "Assets/_Project/Prefabs/Enemies";
+        private const string PlayerPrefabPath = "Assets/_Project/Prefabs/Player.prefab";
+        private const string RootName = "M2_Enemies";
+
+        // =========================================================================================
+        // CATALOGO DEI NEMICI: un tipo = una voce. Statistiche da DESIGN_GAMEPLAY.md §4.
+        // Per aggiungere un nemico (Brute, Spitter...) si aggiunge qui una voce e si esegue Setup/6:
+        // nascono la scheda Data/Enemies/Enemy_<Nome>.asset e il prefab Prefabs/Enemies/Enemy_<Nome>.prefab,
+        // e il director inizia a spawnarlo secondo SpawnWeight. I valori si ritoccano poi nella scheda.
+        // Comportamenti speciali (carica del Brute, attacco a distanza) andranno in componenti propri
+        // in Scripts/Enemies/Types/, aggiunti al prefab da questa voce.
+        // =========================================================================================
+        private sealed class EnemyTypeSpec
+        {
+            public string Id;
+            public string Name;
+            public float MaxHealth;
+            public float MoveSpeed;
+            public float AttackDamage;
+            public float AttackInterval;
+            public float AttackRange;
+            public float StopDistance;
+            public float SpawnWeight;
+            public Vector2Int GroupSize;
+            public int BudgetCost;
+            public int FirstWave;
+            // Sagoma (greybox finché non arrivano i modelli veri)
+            public Color BodyColor;
+            public Vector3 BodyScale;   // capsula del corpo: larghezza, mezza altezza, profondità
+            public float HeadSize;
+            public float AgentRadius;
+            public float AgentHeight;
+        }
+
+        private static readonly EnemyTypeSpec[] Catalog =
+        {
+            new EnemyTypeSpec
+            {
+                Id = "runner", Name = "Runner",
+                MaxHealth = 60f, MoveSpeed = 6f,
+                AttackDamage = 6f, AttackInterval = 1f, AttackRange = 1.9f, StopDistance = 1.4f,
+                SpawnWeight = 1f, GroupSize = new Vector2Int(2, 4), BudgetCost = 1, FirstWave = 1,
+                BodyColor = new Color(0.55f, 0.13f, 0.1f), BodyScale = new Vector3(0.55f, 0.75f, 0.45f), HeadSize = 0.32f,
+                AgentRadius = 0.35f, AgentHeight = 1.8f,
+            },
+        };
+
+        /// <summary>Muri alti 4 m che spezzano la linea di vista (centro, dimensioni). Il perimetro è a ±80 m.</summary>
+        private static readonly (Vector3 center, Vector3 size)[] CoverWalls =
+        {
+            // Nord
+            (new Vector3(-40f, 2f, 45f), new Vector3(14f, 4f, 1f)),
+            (new Vector3(-25f, 2f, 60f), new Vector3(1f, 4f, 14f)),
+            (new Vector3(0f, 2f, 55f), new Vector3(10f, 4f, 1f)),
+            (new Vector3(25f, 2f, 50f), new Vector3(16f, 4f, 1f)),
+            (new Vector3(45f, 2f, 62f), new Vector3(1f, 4f, 12f)),
+            // Est
+            (new Vector3(60f, 2f, 20f), new Vector3(1f, 4f, 16f)),
+            (new Vector3(55f, 2f, -20f), new Vector3(12f, 4f, 1f)),
+            (new Vector3(65f, 2f, -45f), new Vector3(1f, 4f, 14f)),
+            // Ovest
+            (new Vector3(-55f, 2f, 25f), new Vector3(1f, 4f, 16f)),
+            (new Vector3(-50f, 2f, -25f), new Vector3(12f, 4f, 1f)),
+            (new Vector3(-62f, 2f, -50f), new Vector3(1f, 4f, 12f)),
+            // Sud, ai lati del poligono di tiro
+            (new Vector3(-30f, 2f, -55f), new Vector3(10f, 4f, 1f)),
+            (new Vector3(30f, 2f, -50f), new Vector3(10f, 4f, 1f)),
+            // Centro: un "isolato" a L e un muro lungo
+            (new Vector3(-30f, 2f, 15f), new Vector3(10f, 4f, 1f)),
+            (new Vector3(-25.5f, 2f, 20f), new Vector3(1f, 4f, 9f)),
+            (new Vector3(35f, 2f, 32f), new Vector3(14f, 4f, 1f)),
+        };
+
+        /// <summary>Ripari già presenti nella Greybox (M1) dietro cui ha senso spawnare.</summary>
+        private static readonly (Vector3 center, Vector3 size)[] ExistingBlockers =
+        {
+            (new Vector3(-8f, 2f, 30f), new Vector3(10f, 4f, 1f)),   // Cover_06
+            (new Vector3(-20f, 2f, -30f), new Vector3(8f, 4f, 1f)),  // LoS_Wall
+            (new Vector3(14f, 1.5f, 14f), new Vector3(1f, 3f, 6f)),  // Cover_03
+            (new Vector3(30f, 1.5f, 10f), new Vector3(8f, 3f, 8f)),  // Platform
+        };
+
+        [MenuItem("FpsWave/Setup/6. Build Enemies")]
+        public static void BuildMenu()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+            Build();
+            EditorSceneManager.OpenScene(ProjectSetupTools.BootScenePath);
+        }
+
+        /// <summary>Genera schede, prefab, componenti del Player e contenuto della Greybox. Lascia aperta la Greybox.</summary>
+        public static void Build()
+        {
+            Material wall = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialsDir}/M_Grey_Wall.mat");
+            if (wall == null)
+            {
+                Debug.LogError("[FpsWave] Materiali greybox mancanti: eseguire prima 'FpsWave/Setup/3. Build M1 Content'.");
+                return;
+            }
+            EnsureFolder(EnemyDataDir);
+            EnsureFolder(EnemyPrefabsDir);
+
+            var definitions = new EnemyDefinition[Catalog.Length];
+            for (int i = 0; i < Catalog.Length; i++)
+                definitions[i] = BuildEnemyType(Catalog[i]);
+
+            EnsurePlayerComponents();
+            BuildGreyboxContent(definitions, wall);
+            AssetDatabase.SaveAssets();
+
+            // I prefab con NetworkObject vanno in DefaultPrefabObjects (FishNet lo fa da solo; qui lo forziamo).
+            if (!EditorApplication.ExecuteMenuItem("Tools/Fish-Networking/Utility/Refresh Default Prefabs"))
+                Debug.LogWarning("[FpsWave] Menu FishNet 'Refresh Default Prefabs' non trovato: verificare che i prefab dei nemici siano in DefaultPrefabObjects.");
+            Debug.Log($"[FpsWave] Nemici generati: {Catalog.Length} tipi, componenti del Player, muri, nodi di spawn ed EnemyDirector nella Greybox.");
+        }
+
+        // ------------------------------------------------------------------ Tipi di nemico
+
+        private static EnemyDefinition BuildEnemyType(EnemyTypeSpec spec)
+        {
+            // Scheda: si riusa l'asset esistente (stesso GUID), si riscrivono i valori del catalogo.
+            string definitionPath = $"{EnemyDataDir}/Enemy_{spec.Name}.asset";
+            var definition = AssetDatabase.LoadAssetAtPath<EnemyDefinition>(definitionPath);
+            if (definition == null)
+            {
+                definition = ScriptableObject.CreateInstance<EnemyDefinition>();
+                AssetDatabase.CreateAsset(definition, definitionPath);
+            }
+            definition.EditorSetup(spec.Id, spec.Name, spec.MaxHealth, spec.MoveSpeed, spec.AttackDamage, spec.AttackInterval,
+                spec.AttackRange, spec.StopDistance, spec.SpawnWeight, spec.GroupSize, spec.BudgetCost, spec.FirstWave,
+                spec.AgentRadius, spec.AgentHeight);
+
+            Material material = LitMaterial($"M_Enemy_{spec.Name}", spec.BodyColor, 0.35f);
+            GameObject prefab = CreateEnemyPrefab(spec, definition, material);
+            definition.EditorSetPrefab(prefab.GetComponent<NetworkObject>());
+            EditorUtility.SetDirty(definition);
+            return definition;
+        }
+
+        private static GameObject CreateEnemyPrefab(EnemyTypeSpec spec, EnemyDefinition definition, Material bodyMaterial)
+        {
+            var root = new GameObject($"Enemy_{spec.Name}");
+            NetworkObject nob = ObjectFactory.AddComponent<NetworkObject>(root);
+            nob.SetDefaultDespawnType(DespawnType.Pool);
+
+            var netTransform = ObjectFactory.AddComponent<NetworkTransform>(root);
+            ConfigureEnemyNetworkTransform(netTransform);
+
+            var agent = root.AddComponent<NavMeshAgent>();
+            agent.agentTypeID = 0;
+            agent.radius = spec.AgentRadius;
+            agent.height = spec.AgentHeight;
+            agent.baseOffset = 0f;
+            agent.speed = spec.MoveSpeed;
+            agent.enabled = false; // lo attiva solo il server (EnemyAgent.OnStartServer)
+
+            var health = ObjectFactory.AddComponent<Health>(root);
+            var enemy = ObjectFactory.AddComponent<EnemyAgent>(root);
+            var visual = ObjectFactory.AddComponent<EnemyVisual>(root);
+
+            // Il modello è un figlio solo grafico: EnemyVisual lo inclina e lo fa oscillare.
+            // Le hitbox stanno in un figlio separato e fermo, così l'animazione cosmetica non sposta i collider
+            // (server e client vedono le stesse zone colpibili).
+            var model = new GameObject("Model").transform;
+            model.SetParent(root.transform, false);
+            var hitboxes = new GameObject("Hitboxes").transform;
+            hitboxes.SetParent(root.transform, false);
+
+            Vector3 bodyScale = spec.BodyScale;
+            float bodyHeight = bodyScale.y * 2f;               // la capsula di Unity è alta 2 a scala 1
+            var bodyPos = new Vector3(0f, bodyScale.y + 0.1f, 0f);
+            var headPos = new Vector3(0f, bodyPos.y + bodyHeight * 0.5f + spec.HeadSize * 0.4f, 0.08f);
+            Vector3 headScale = Vector3.one * spec.HeadSize;
+            float armY = bodyPos.y + bodyHeight * 0.23f;
+            float armX = bodyScale.x * 0.58f;
+
+            GameObject torso = Primitive(PrimitiveType.Capsule, "Body", model, bodyPos, bodyScale, bodyMaterial);
+            GameObject head = Primitive(PrimitiveType.Sphere, "Head", model, headPos, headScale, bodyMaterial);
+            Object.DestroyImmediate(torso.GetComponent<Collider>());
+            Object.DestroyImmediate(head.GetComponent<Collider>());
+
+            var bodyZone = HitboxOnly(PrimitiveType.Capsule, "Body_Hit", hitboxes, bodyPos, bodyScale).AddComponent<HitZone>();
+            bodyZone.EditorSetup(1f, false);
+            var headZone = HitboxOnly(PrimitiveType.Sphere, "Head_Hit", hitboxes, headPos, headScale).AddComponent<HitZone>();
+            headZone.EditorSetup(1f, true);
+
+            // Braccia protese in avanti: sagoma riconoscibile da lontano, senza collider.
+            GameObject armL = Primitive(PrimitiveType.Cube, "Arm_L", model, new Vector3(-armX, armY, 0.3f),
+                new Vector3(0.12f, 0.12f, 0.7f), bodyMaterial);
+            GameObject armR = Primitive(PrimitiveType.Cube, "Arm_R", model, new Vector3(armX, armY, 0.3f),
+                new Vector3(0.12f, 0.12f, 0.7f), bodyMaterial);
+            Object.DestroyImmediate(armL.GetComponent<Collider>());
+            Object.DestroyImmediate(armR.GetComponent<Collider>());
+
+            health.EditorSetup(spec.MaxHealth, new[] { bodyZone, headZone });
+            enemy.EditorSetup(definition);
+            visual.EditorSetup(model, new Renderer[]
+            {
+                torso.GetComponent<Renderer>(), head.GetComponent<Renderer>(),
+                armL.GetComponent<Renderer>(), armR.GetComponent<Renderer>(),
+            }, spec.BodyColor, spec.MoveSpeed);
+
+            foreach (Renderer r in root.GetComponentsInChildren<Renderer>())
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            SetLayerRecursively(root, GameLayers.Hittable);
+
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, $"{EnemyPrefabsDir}/Enemy_{spec.Name}.prefab");
+            Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        /// <summary>
+        /// Server-authoritative, 15 Hz (ogni 2 tick a 30 Hz), solo posizione + yaw (NETCODE.md §3).
+        /// </summary>
+        private static void ConfigureEnemyNetworkTransform(NetworkTransform netTransform)
+        {
+            var so = new SerializedObject(netTransform);
+            SetBool(so, "_clientAuthoritative", false);
+            SetBool(so, "_sendToOwner", false);
+            SetBool(so, "_synchronizeScale", false);
+            SetBool(so, "_synchronizeParent", false);
+            SetBool(so, "_rotationSnapping.X", true);
+            SetBool(so, "_rotationSnapping.Z", true);
+            SerializedProperty interval = so.FindProperty("_interval");
+            if (interval != null)
+                interval.intValue = 2;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // ------------------------------------------------------------------ Player
+
+        /// <summary>Aggiunge al Player solo ciò che manca: EnemyTarget (bersaglio dei nemici) e DamageNumbers (numeri di danno).</summary>
+        private static void EnsurePlayerComponents()
+        {
+            GameObject root = PrefabUtility.LoadPrefabContents(PlayerPrefabPath);
+            try
+            {
+                bool changed = false;
+                if (!root.TryGetComponent(out EnemyTarget target))
+                {
+                    target = ObjectFactory.AddComponent<EnemyTarget>(root);
+                    target.EditorSetup(root.GetComponent<PlayerMotor>());
+                    changed = true;
+                }
+                if (!root.TryGetComponent(out DamageNumbers numbers))
+                {
+                    numbers = root.AddComponent<DamageNumbers>();
+                    numbers.EditorSetup(root.GetComponent<PlayerWeapons>());
+                    changed = true;
+                }
+                if (changed)
+                    PrefabUtility.SaveAsPrefabAsset(root, PlayerPrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        // ------------------------------------------------------------------ Scena Greybox
+
+        private static void BuildGreyboxContent(EnemyDefinition[] enemyTypes, Material wallMaterial)
+        {
+            Scene scene = EditorSceneManager.OpenScene(M1ContentBuilder.GreyboxScenePath, OpenSceneMode.Single);
+            foreach (GameObject existing in scene.GetRootGameObjects())
+                if (existing.name == RootName)
+                    Object.DestroyImmediate(existing);
+
+            var root = new GameObject(RootName);
+            var walls = new GameObject("CoverWalls").transform;
+            walls.SetParent(root.transform, false);
+            for (int i = 0; i < CoverWalls.Length; i++)
+            {
+                GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                go.name = $"EnemyCover_{i:00}";
+                go.transform.SetParent(walls, false);
+                go.transform.localPosition = CoverWalls[i].center;
+                go.transform.localScale = CoverWalls[i].size;
+                go.GetComponent<MeshRenderer>().sharedMaterial = wallMaterial;
+                go.layer = GameLayers.Environment;
+                GameObjectUtility.SetStaticEditorFlags(go,
+                    StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic);
+            }
+            walls.gameObject.layer = GameLayers.Environment;
+
+            // Nodi ai due lati di ogni riparo: a runtime il director usa solo quelli coperti rispetto ai player.
+            Physics.SyncTransforms();
+            var nodesRoot = new GameObject("EnemySpawnNodes").transform;
+            nodesRoot.SetParent(root.transform, false);
+            var positions = new List<Vector3>(128);
+            foreach ((Vector3 center, Vector3 size) in CoverWalls)
+                AddNodesAround(center, size, positions);
+            foreach ((Vector3 center, Vector3 size) in ExistingBlockers)
+                AddNodesAround(center, size, positions);
+
+            int placed = 0;
+            for (int i = 0; i < positions.Count; i++)
+            {
+                if (!IsFreeSpot(positions[i]))
+                    continue;
+                var node = new GameObject($"Node_{placed:000}");
+                node.transform.SetParent(nodesRoot, false);
+                node.transform.position = positions[i];
+                node.AddComponent<EnemySpawnNode>();
+                placed++;
+            }
+
+            var director = root.AddComponent<EnemyDirector>();
+            director.EditorSetup(enemyTypes, new Vector3(0f, 5f, 0f), new Vector3(166f, 24f, 166f));
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene, M1ContentBuilder.GreyboxScenePath);
+            Debug.Log($"[FpsWave] Greybox: {CoverWalls.Length} muri di copertura, {placed} nodi di spawn.");
+        }
+
+        /// <summary>Due o tre nodi per lato lungo del riparo, a 1.6 m dalla faccia.</summary>
+        private static void AddNodesAround(Vector3 center, Vector3 size, List<Vector3> output)
+        {
+            bool alongX = size.x >= size.z;
+            float length = alongX ? size.x : size.z;
+            float halfThickness = (alongX ? size.z : size.x) * 0.5f;
+            float offset = halfThickness + 1.6f;
+            float end = Mathf.Max(0f, length * 0.5f - 1.5f);
+            int steps = length >= 12f ? 3 : 2;
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int s = 0; s < steps; s++)
+                {
+                    float along = Mathf.Lerp(-end, end, s / (float)(steps - 1));
+                    Vector3 p = alongX
+                        ? new Vector3(center.x + along, 0f, center.z + side * offset)
+                        : new Vector3(center.x + side * offset, 0f, center.z + along);
+                    output.Add(p);
+                }
+            }
+        }
+
+        /// <summary>Scarta i nodi fuori dal perimetro, nel poligono di tiro o dentro altra geometria.</summary>
+        private static bool IsFreeSpot(Vector3 p)
+        {
+            if (Mathf.Abs(p.x) > 77f || Mathf.Abs(p.z) > 77f)
+                return false;
+            if (Mathf.Abs(p.x) < 9f && p.z > -64f && p.z < -13f)
+                return false; // corsia del poligono e zona di spawn dei player
+            return !Physics.CheckBox(p + Vector3.up * 1f, new Vector3(0.45f, 0.85f, 0.45f), Quaternion.identity,
+                1 << GameLayers.Environment, QueryTriggerInteraction.Ignore);
+        }
+
+        // ------------------------------------------------------------------ Utilità
+
+        private static void EnsureFolder(string path)
+        {
+            if (AssetDatabase.IsValidFolder(path))
+                return;
+            string parent = System.IO.Path.GetDirectoryName(path)!.Replace('\\', '/');
+            EnsureFolder(parent);
+            AssetDatabase.CreateFolder(parent, System.IO.Path.GetFileName(path));
+        }
+
+        private static Material LitMaterial(string name, Color color, float smoothness)
+        {
+            string path = $"{MaterialsDir}/{name}.mat";
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(shader);
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            else if (mat.shader != shader)
+            {
+                mat.shader = shader;
+            }
+            mat.SetColor("_BaseColor", color);
+            mat.SetFloat("_Smoothness", smoothness);
+            mat.enableInstancing = true;
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        private static GameObject Primitive(PrimitiveType type, string name, Transform parent, Vector3 localPosition,
+            Vector3 localScale, Material material)
+        {
+            GameObject go = GameObject.CreatePrimitive(type);
+            go.name = name;
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPosition;
+            go.transform.localScale = localScale;
+            go.GetComponent<MeshRenderer>().sharedMaterial = material;
+            return go;
+        }
+
+        /// <summary>Primitiva con il solo collider (niente mesh): per le hitbox.</summary>
+        private static GameObject HitboxOnly(PrimitiveType type, string name, Transform parent, Vector3 localPosition, Vector3 localScale)
+        {
+            GameObject go = GameObject.CreatePrimitive(type);
+            go.name = name;
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPosition;
+            go.transform.localScale = localScale;
+            Object.DestroyImmediate(go.GetComponent<MeshRenderer>());
+            Object.DestroyImmediate(go.GetComponent<MeshFilter>());
+            return go;
+        }
+
+        private static void SetBool(SerializedObject so, string property, bool value)
+        {
+            SerializedProperty p = so.FindProperty(property);
+            if (p != null)
+                p.boolValue = value;
+            else
+                Debug.LogWarning($"[FpsWave] Proprietà '{property}' non trovata su {so.targetObject.GetType().Name}.");
+        }
+
+        private static void SetLayerRecursively(GameObject go, int layer)
+        {
+            go.layer = layer;
+            foreach (Transform child in go.transform)
+                SetLayerRecursively(child.gameObject, layer);
+        }
+    }
+}

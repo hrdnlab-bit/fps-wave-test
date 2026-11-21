@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: AssaultRifle
   m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Weapons.WeaponDefinition
   _id: rifle_ar
-  _displayName: Fucile d'assalto (test)
+  _displayName: Assault Rifle (test)
   _slot: 0
   _damage: 18
   _roundsPerMinute: 600
@@ -22,15 +22,16 @@ MonoBehaviour:
   _reloadTime: 2.2
   _range: 120
   _hipSpread: 2
-  _adsSpread: 0.25
+  _adsSpread: 0.04
   _spreadPerShot: 0.25
   _maxBloom: 4
   _bloomRecoveryPerSecond: 8
   _recoilPitch: 0.9
   _recoilYaw: 0.35
   _recoilRecoveryPerSecond: 10
-  _adsFovMultiplier: 0.75
-  _adsTime: 0.22
+  _adsFovMultiplier: 0.8
+  _adsTime: 0.24
+  _sprintToFireTime: 0.22
   _critChance: 0.05
   _critMultiplier: 1.5
   _weakspotMultiplier: 2
@@ -39,3 +40,45 @@ MonoBehaviour:
   _overrideViewOffsets: 1
   _viewHipOffset: {x: 0, y: 0, z: 0}
   _viewAdsOffset: {x: -0.06772335, y: 0.0054002325, z: -0.02}
+  _feel:
+    VerticalMultiplier: 1.4
+    HorizontalMultiplier: 0.9
+    FirstShotMultiplier: 0.8
+    RampShots: 8
+    RampMultiplier: 1.35
+    PatternStrength: 0.6
+    HorizontalRandomness: 0.4
+    VerticalRandomness: 0.1
+    Snappiness: 18
+    ReturnSpeed: 5
+    PermanentFraction: 0.55
+    BurstResetTime: 0.3
+    HipRecoilMultiplier: 0.15
+    HipPermanentFraction: 0.35
+    AdsMultiplier: 1
+    CrouchMultiplier: 0.8
+    ViewKickScale: 0.25
+    KickPosition: {x: 0.0006, y: 0.0012, z: -0.012}
+    KickRotation: {x: -0.6, y: 0.25, z: 0.4}
+    KickRandomness: 0.35
+    PositionStiffness: 220
+    PositionDamping: 28
+    RotationStiffness: 200
+    RotationDamping: 26
+    SwayAmount: 1
+    SwayMax: 5
+    SwaySmoothing: 6.5
+    BobAmount: 1
+    StrafeTilt: 2.5
+    SprintPose: 1
+    IdleBreath: 1
+    ShakePerShot: 0.005
+    FovPunch: 0.001
+    UsesHeat: 0
+    BallisticColor: {r: 1, g: 0.8, b: 0.55, a: 1}
+    EnergyColor: {r: 0.35, g: 0.85, b: 1, a: 1}
+    HotColor: {r: 1, g: 0.55, b: 0.25, a: 1}
+    HeatPerShot: 0.035
+    HeatDecay: 0.45
+    HeatDecayDelay: 0.25
+    MuzzleLightIntensity: 5

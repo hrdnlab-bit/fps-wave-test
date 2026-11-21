@@ -1,4 +1,5 @@
 using FishNet.Object;
+using HrdnLab.FpsWave.Core;
 using UnityEngine;
 
 namespace HrdnLab.FpsWave.Player
@@ -9,13 +10,12 @@ namespace HrdnLab.FpsWave.Player
     /// </summary>
     public sealed class PlayerInputReader : NetworkBehaviour
     {
-        [SerializeField, Range(0.01f, 2f)] private float _mouseSensitivity = 0.12f;
         [SerializeField, Range(10f, 400f)] private float _stickSensitivity = 180f;
 
         private FpsInput _input;
 
-        /// <summary>True se questo è il player locale e il gioco ha il focus (cursore bloccato).</summary>
-        public bool HasControl => _input != null && Cursor.lockState == CursorLockMode.Locked;
+        /// <summary>True se questo è il player locale, il gioco ha il focus (cursore bloccato) e nessun menu è aperto.</summary>
+        public bool HasControl => _input != null && Cursor.lockState == CursorLockMode.Locked && !UiState.MenuOpen;
         public FpsInput Input => _input;
 
         public Vector2 MoveInput => HasControl ? Vector2.ClampMagnitude(_input.Move.ReadValue<Vector2>(), 1f) : Vector2.zero;
@@ -27,7 +27,7 @@ namespace HrdnLab.FpsWave.Player
             {
                 if (!HasControl)
                     return Vector2.zero;
-                Vector2 mouse = _input.Look.ReadValue<Vector2>() * _mouseSensitivity;
+                Vector2 mouse = _input.Look.ReadValue<Vector2>() * GameSettings.MouseSensitivity;
                 Vector2 stick = _input.LookStick.ReadValue<Vector2>() * (_stickSensitivity * Time.deltaTime);
                 return mouse + stick;
             }
@@ -79,13 +79,20 @@ namespace HrdnLab.FpsWave.Player
         {
             if (_input == null)
                 return;
+            if (UiState.MenuHandlesEscape)
+            {
+                // Esc e cursore li gestisce il menu di gioco (pausa); qui solo il ritorno al gioco con un clic.
+                if (!UiState.MenuOpen && Cursor.lockState != CursorLockMode.Locked && _input.Fire.WasPressedThisFrame() && Application.isFocused)
+                    LockCursor(true);
+                return;
+            }
             if (_input.Pause.WasPressedThisFrame())
                 LockCursor(Cursor.lockState != CursorLockMode.Locked);
             else if (Cursor.lockState != CursorLockMode.Locked && _input.Fire.WasPressedThisFrame() && Application.isFocused)
                 LockCursor(true);
         }
 
-        private static void LockCursor(bool locked)
+        public static void LockCursor(bool locked)
         {
             Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
             Cursor.visible = !locked;

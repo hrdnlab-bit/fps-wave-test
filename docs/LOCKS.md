@@ -10,4 +10,6 @@ Regole:
 
 | File o area | Chi | Branch | Dal | Note |
 |---|---|---|---|---|
-| - | - | - | - | - |
+| Area interfaccia (`Scripts/UI/`) | Matteo | `matteo/m2-runner` | 2026-11-21 | HUD e menu nuovi; avvisare Manuel prima dell'overlay di debug (M0b) |
+| Area sensazione armi (`Scripts/Weapons/Feel/`) | Matteo | `matteo/m2-runner` | 2026-11-21 | nuova; tocca `PlayerWeapons`, `PlayerLook`, `ShotFxPool` (area di Manuel) |
+| Area nemici / spawn / wave (`Scripts/Enemies/`) | Matteo | `matteo/m2-runner` | 2026-11-21 | area dichiarata |

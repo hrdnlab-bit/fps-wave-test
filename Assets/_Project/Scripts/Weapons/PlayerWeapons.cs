@@ -36,6 +36,8 @@ namespace HrdnLab.FpsWave.Weapons
         [SerializeField] private PlayerMotor _motor;
         [SerializeField] private Transform _viewModelRoot;
         [SerializeField] private Light _muzzleLight;
+        [Tooltip("Sensazione delle armi (rinculo, molle, oscillazioni, calore). Se manca resta il rinculo semplice di M1.")]
+        [SerializeField] private WeaponFeelDriver _feel;
 
         [Header("Effetti")]
         [SerializeField] private Material _tracerMaterial;
@@ -52,6 +54,10 @@ namespace HrdnLab.FpsWave.Weapons
         private WeaponState[] _server;
         private FireRateLimiter[] _limiters;
         private int _localEquipped = -1;
+        private int _localTracerCounter;
+        private float _lastSprintTime = -10f;
+        private bool _queuedSemiShot;
+        private float _queuedSemiShotTime;
         private int _serverEquipped;
         private float _aim;
         private float _muzzleLightUntil;
@@ -65,9 +71,25 @@ namespace HrdnLab.FpsWave.Weapons
         /// <summary>Solo player locale: un colpo ha toccato un bersaglio (predetto) o è stato confermato dal server (kill/critico).</summary>
         public event Action<HitMarkerType> LocalHitMarker;
 
+        /// <summary>
+        /// Solo per chi ha sparato: colpo confermato dal server (punto colpito, danno arrotondato, tipo di colpo).
+        /// Usato dai numeri di danno (<c>UI.DamageNumbers</c>).
+        /// </summary>
+        public event Action<Vector3, ushort, HitFlags> LocalHitConfirmed;
+
         public WeaponState Current => _local != null && _localEquipped >= 0 ? _local[_localEquipped] : null;
         public float AimAmount => _aim;
         public Camera ViewCamera => _look != null ? _look.Camera : null;
+        /// <summary>Calore cosmetico dell'arma impugnata (0-1) e stato di raffreddamento, per il HUD.</summary>
+        public float Heat => _feel != null ? _feel.Heat : 0f;
+        public bool IsVenting => _feel != null && _feel.IsVenting;
+        /// <summary>L'arma impugnata è a energia (ha il calore): il HUD mostra la barra solo in quel caso.</summary>
+        public bool UsesHeat => Current != null && Current.Definition.Feel.UsesHeat;
+        /// <summary>Armi della dotazione e indice di quella impugnata (per la striscia delle armi nel HUD).</summary>
+        public System.Collections.Generic.IReadOnlyList<WeaponDefinition> Loadout => _loadout;
+        public int EquippedIndex => _localEquipped;
+        /// <summary>Mira con curva morbida (ease in/out) per posa dell'arma e FOV: entra e esce come nei Call of Duty.</summary>
+        public float AimEased => _aim * _aim * (3f - 2f * _aim);
 
         /// <summary>Dispersione attuale in gradi (per il mirino dell'HUD).</summary>
         public float CurrentSpread
@@ -76,8 +98,21 @@ namespace HrdnLab.FpsWave.Weapons
             {
                 WeaponState s = Current;
                 if (s == null) return 0f;
-                float baseSpread = Mathf.Lerp(s.Stats.Get(StatType.HipSpread), s.Stats.Get(StatType.AdsSpread), _aim);
-                return baseSpread + s.Bloom * Mathf.Lerp(1f, 0.5f, _aim);
+                float hip = s.Stats.Get(StatType.HipSpread);
+                float baseSpread = Mathf.Lerp(hip, s.Stats.Get(StatType.AdsSpread), _aim);
+                // Come nei Call of Duty: da fianco la dispersione cresce sparando (bloom), muovendosi e in aria, cala
+                // accovacciati; mirando l'arma è precisa (niente bloom) e si gestisce solo il rinculo.
+                float hipWeight = 1f - _aim;
+                float movement = 0f;
+                if (_motor != null)
+                {
+                    Vector3 v = _motor.Velocity;
+                    float moving = Mathf.Clamp01(new Vector2(v.x, v.z).magnitude / 4.5f);
+                    movement = hip * (0.5f * moving + (_motor.IsGrounded ? 0f : 0.9f));
+                    if (_motor.IsCrouching)
+                        baseSpread *= Mathf.Lerp(1f, 0.85f, hipWeight);
+                }
+                return baseSpread + (s.Bloom + movement) * hipWeight;
             }
         }
 
@@ -95,6 +130,8 @@ namespace HrdnLab.FpsWave.Weapons
                 _limiters[i] = new FireRateLimiter(_loadout[i].CreateStats().Get(StatType.RoundsPerMinute) / 60f);
             }
             _serverEquipped = ClampToValidSlot(_startingWeapon);
+            if (_feel == null)
+                _feel = GetComponent<WeaponFeelDriver>();
         }
 
         public override void OnStartClient()
@@ -155,14 +192,42 @@ namespace HrdnLab.FpsWave.Weapons
             if (_input.ReloadPressed)
                 RequestReload(state, now);
 
+            // Sprint e arma, come nei Call of Duty: sparare o mirare interrompe la corsa, e dopo la corsa
+            // serve un attimo (sprint-to-fire) perché l'arma torni in posizione prima del primo colpo.
+            if (_motor != null)
+            {
+                _motor.SprintBlocked = _input.FireHeld || _input.AimHeld;
+                if (_motor.IsSprinting)
+                    _lastSprintTime = Time.time;
+            }
+            bool sprintRecovered = Time.time - _lastSprintTime >= state.Definition.SprintToFireTime;
+
             bool wantsAim = _input.AimHeld && !state.IsReloading && !(_motor != null && _motor.IsSprinting);
             _aim = Mathf.MoveTowards(_aim, wantsAim ? 1f : 0f, dt / state.Definition.AdsTime);
-            if (_look != null) _look.FovMultiplier = Mathf.Lerp(1f, state.Definition.AdsFovMultiplier, _aim);
+            float aimEased = AimEased;
+            if (_look != null) _look.FovMultiplier = Mathf.Lerp(1f, state.Definition.AdsFovMultiplier, aimEased);
             if (_motor != null) _motor.SpeedMultiplier = Mathf.Lerp(1f, _adsMoveMultiplier, _aim);
 
-            bool trigger = state.Definition.Automatic ? _input.FireHeld : _input.FirePressed;
-            if (!trigger)
+            bool trigger;
+            if (state.Definition.Automatic)
+            {
+                trigger = _input.FireHeld;
+            }
+            else
+            {
+                // Il colpo premuto durante il rialzo dell'arma non va perso: parte appena l'arma è pronta.
+                if (_input.FirePressed)
+                {
+                    _queuedSemiShot = true;
+                    _queuedSemiShotTime = Time.time;
+                }
+                if (_queuedSemiShot && Time.time - _queuedSemiShotTime > 0.35f)
+                    _queuedSemiShot = false; // premuto troppo prima: non spara in ritardo
+                trigger = _queuedSemiShot;
+            }
+            if (!trigger || !sprintRecovered)
                 return;
+            _queuedSemiShot = false;
 
             if (state.Ammo <= 0 && !state.IsReloading)
             {
@@ -198,6 +263,7 @@ namespace HrdnLab.FpsWave.Weapons
             _localEquipped = index;
             _aim = 0f;
             BuildViewModel(_loadout[index]);
+            _feel?.OnEquip(_loadout[index]);
             if (notifyServer)
                 RpcEquip((byte)index);
         }
@@ -236,16 +302,32 @@ namespace HrdnLab.FpsWave.Weapons
             state.RegisterShot(now, state.Definition.MaxBloom);
 
             // Feedback immediato (predizione locale).
+            // Tracciante del tiratore come nei giochi AAA: solo un colpo su tre delle automatiche (i "traccianti" del caricatore),
+            // mai per le semiautomatiche; la mira si legge da mirino e impatti, non da una riga davanti alla faccia.
             Vector3 muzzle = _muzzle != null ? _muzzle.position : origin;
-            _fx?.Tracer(muzzle, end);
+            if (state.Definition.Automatic && _localTracerCounter++ % 3 == 0)
+                _fx?.Tracer(muzzle, end, state.Definition.Feel.MuzzleColor);
             if (hitSomething)
-                _fx?.Impact(hit.point, hit.normal);
+            {
+                // Sui personaggi niente segno permanente: resterebbe sospeso in aria quando il nemico si muove o sparisce.
+                if (zone != null)
+                    _fx?.FleshImpact(hit.point, hit.normal);
+                else
+                    _fx?.Impact(hit.point, hit.normal);
+            }
+            if (_feel != null)
+            {
+                _feel.OnShot(state, _aim); // rinculo, calcio a molla, tremore, FOV, calore
+            }
+            else
+            {
+                float recoilScale = Mathf.Lerp(1f, _adsRecoilMultiplier, _aim);
+                _look?.AddRecoil(state.Stats.Get(StatType.RecoilPitch) * recoilScale,
+                    UnityEngine.Random.Range(-1f, 1f) * state.Stats.Get(StatType.RecoilYaw) * recoilScale,
+                    state.Definition.RecoilRecoveryPerSecond);
+                _viewKick = 1f;
+            }
             FlashMuzzle();
-            float recoilScale = Mathf.Lerp(1f, _adsRecoilMultiplier, _aim);
-            _look?.AddRecoil(state.Stats.Get(StatType.RecoilPitch) * recoilScale,
-                UnityEngine.Random.Range(-1f, 1f) * state.Stats.Get(StatType.RecoilYaw) * recoilScale,
-                state.Definition.RecoilRecoveryPerSecond);
-            _viewKick = 1f;
             _viewModelAnim?.PlayFire();
 
             NetworkObject target = null;
@@ -266,7 +348,8 @@ namespace HrdnLab.FpsWave.Weapons
             if (_muzzle != null)
                 _muzzleLight.transform.position = _muzzle.position;
             _muzzleLight.enabled = true;
-            _muzzleLightUntil = Time.time + 0.04f;
+            _muzzleLightUntil = Time.time + 0.055f;
+            _feel?.ConfigureMuzzleLight(_muzzleLight);
         }
 
         private void BuildViewModel(WeaponDefinition definition)
@@ -325,16 +408,26 @@ namespace HrdnLab.FpsWave.Weapons
 
         private void UpdateViewModel(float dt)
         {
-            if (_muzzleLight != null && _muzzleLight.enabled && Time.time >= _muzzleLightUntil)
-                _muzzleLight.enabled = false;
+            if (_muzzleLight != null && _muzzleLight.enabled)
+            {
+                if (Time.time >= _muzzleLightUntil)
+                    _muzzleLight.enabled = false;
+                else
+                    _feel?.UpdateMuzzleLight(_muzzleLight);
+            }
             if (_viewModelRoot == null)
                 return;
-            _viewKick = Mathf.MoveTowards(_viewKick, 0f, dt * 12f);
-            Vector3 kick = new(0f, 0f, -0.04f * _viewKick);
             WeaponDefinition def = _loadout[_localEquipped];
             Vector3 hip = def.OverrideViewOffsets ? def.ViewHipOffset : _hipPosition;
             Vector3 ads = def.OverrideViewOffsets ? def.ViewAdsOffset : _adsPosition;
-            _viewModelRoot.localPosition = Vector3.Lerp(hip, ads, _aim) + kick;
+            Vector3 basePosition = Vector3.Lerp(hip, ads, AimEased);
+            if (_feel != null)
+            {
+                _feel.ApplyViewModel(_viewModelRoot, basePosition, _aim, dt);
+                return;
+            }
+            _viewKick = Mathf.MoveTowards(_viewKick, 0f, dt * 12f);
+            _viewModelRoot.localPosition = basePosition + new Vector3(0f, 0f, -0.04f * _viewKick);
         }
 
         // ---------------------------------------------------------------- Server
@@ -362,7 +455,7 @@ namespace HrdnLab.FpsWave.Weapons
             ShotRejectReason reason = ServerProcessShot(weaponIndex, origin, direction, end, target, zoneIndex, out bool fired);
 
             if (fired)
-                RpcShotFx(origin, end);
+                RpcShotFx(origin, end, weaponIndex);
 
             if (reason == ShotRejectReason.None)
                 return;
@@ -424,9 +517,10 @@ namespace HrdnLab.FpsWave.Weapons
             if (zone == null)
                 return ShotRejectReason.TargetMismatch;
 
-            // Bersagli fermi per ora: la velocità del bersaglio entrerà in gioco con i nemici (M2).
+            // Bersagli in movimento (nemici): tolleranza allargata di velocità * ritardo stimato del client.
+            float targetSpeed = target.TryGetComponent(out IMovingTarget moving) ? moving.ServerSpeed : 0f;
             Vector3 closest = zone.Collider.ClosestPoint(end);
-            if (!ShotValidation.IsTargetPlausible(end, closest, 0f, 0f))
+            if (!ShotValidation.IsTargetPlausible(end, closest, targetSpeed, ShotValidation.MovingTargetLagSeconds))
                 return ShotRejectReason.TargetMismatch;
 
             if (distance > 0.2f && Physics.Linecast(origin, end - toEnd / distance * 0.1f, GameLayers.LineOfSightMask, QueryTriggerInteraction.Ignore))
@@ -438,8 +532,8 @@ namespace HrdnLab.FpsWave.Weapons
                 stats.Get(StatType.WeakspotMultiplier), crit, stats.Get(StatType.CritMultiplier));
             bool killed = health.ApplyDamage(new DamageInfo(damage, crit, zone.IsWeakspot, OwnerId, end));
 
-            if (killed || crit)
-                RpcConfirmHit(Owner, killed, crit);
+            // Conferma per ogni colpo andato a segno (≈20 byte): numeri di danno e, per kill/critico, l'hit marker confermato.
+            RpcConfirmHit(Owner, end, HitConfirm.PackDamage(damage), (byte)HitConfirm.MakeFlags(crit, zone.IsWeakspot, killed));
             return ShotRejectReason.None;
         }
 
@@ -454,19 +548,26 @@ namespace HrdnLab.FpsWave.Weapons
         }
 
         [TargetRpc]
-        private void RpcConfirmHit(NetworkConnection connection, bool killed, bool critical)
+        private void RpcConfirmHit(NetworkConnection connection, Vector3 point, ushort damage, byte flagBits)
         {
-            LocalHitMarker?.Invoke(killed ? HitMarkerType.Kill : HitMarkerType.Critical);
+            var flags = (HitFlags)flagBits;
+            if (HitConfirm.Has(flags, HitFlags.Kill))
+                LocalHitMarker?.Invoke(HitMarkerType.Kill);
+            else if (HitConfirm.Has(flags, HitFlags.Critical))
+                LocalHitMarker?.Invoke(HitMarkerType.Critical);
+            LocalHitConfirmed?.Invoke(point, damage, flags);
         }
 
         [ObserversRpc(ExcludeOwner = true)]
-        private void RpcShotFx(Vector3 origin, Vector3 end)
+        private void RpcShotFx(Vector3 origin, Vector3 end, byte weaponIndex)
         {
             if (_fx == null)
                 _fx = ShotFxPool.Get(_tracerMaterial, _impactMaterial);
             // Per i player remoti il tracer parte poco sotto e davanti agli occhi, all'altezza dell'arma.
             Vector3 start = origin + (end - origin).normalized * 0.6f + Vector3.down * 0.15f;
-            _fx.Tracer(start, end);
+            Color energy = weaponIndex < _loadout.Length && _loadout[weaponIndex] != null
+                ? _loadout[weaponIndex].Feel.MuzzleColor : Color.white;
+            _fx.Tracer(start, end, energy); // anche gli altri vedono il colore dell'arma
         }
 
 #if UNITY_EDITOR

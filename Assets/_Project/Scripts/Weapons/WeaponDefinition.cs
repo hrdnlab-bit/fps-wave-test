@@ -44,6 +44,8 @@ namespace HrdnLab.FpsWave.Weapons
         [Header("Mira (ADS)")]
         [SerializeField, Range(0.3f, 1f)] private float _adsFovMultiplier = 0.8f;
         [SerializeField, Min(0.01f)] private float _adsTime = 0.2f;
+        [Tooltip("Tempo per tornare a sparare dopo la corsa (s), come nei Call of Duty: l'arma deve rialzarsi.")]
+        [SerializeField, Min(0f)] private float _sprintToFireTime = 0.2f;
 
         [Header("Critici e weakspot")]
         [SerializeField, Range(0f, 1f)] private float _critChance = 0.05f;
@@ -59,6 +61,9 @@ namespace HrdnLab.FpsWave.Weapons
         [SerializeField] private Vector3 _viewHipOffset = Vector3.zero;
         [SerializeField] private Vector3 _viewAdsOffset = Vector3.zero;
 
+        [Header("Sensazione (cosmetica: rinculo, molle, oscillazioni, energia, calore)")]
+        [SerializeField] private WeaponFeel _feel = new();
+
         public string Id => _id;
         public string DisplayName => _displayName;
         public WeaponSlot Slot => _slot;
@@ -68,6 +73,7 @@ namespace HrdnLab.FpsWave.Weapons
         public float RecoilRecoveryPerSecond => _recoilRecoveryPerSecond;
         public float AdsFovMultiplier => _adsFovMultiplier;
         public float AdsTime => _adsTime;
+        public float SprintToFireTime => _sprintToFireTime;
         public GameObject ViewModelPrefab => _viewModelPrefab;
         public Vector3 PlaceholderSize => _placeholderSize;
         public bool OverrideViewOffsets => _overrideViewOffsets && _viewModelPrefab != null;
@@ -108,6 +114,10 @@ namespace HrdnLab.FpsWave.Weapons
         }
 
         /// <summary>Usato da <c>WeaponViewModelBuilder</c> per collegare il modello realistico.</summary>
+        public WeaponFeel Feel => _feel ??= new WeaponFeel();
+
+        public void EditorSetFeel(WeaponFeel feel) => _feel = feel;
+
         public void EditorSetViewModel(GameObject prefab, Vector3 hipOffset, Vector3 adsOffset)
         {
             _viewModelPrefab = prefab;

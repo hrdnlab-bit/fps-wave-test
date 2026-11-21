@@ -95,3 +95,10 @@ Per ogni gruppo:
 ## 12. Test
 - EditMode: formule del DifficultyModel, budget, scaling, selezione pesata, accumulo delle mutazioni, filtri dell'anello (logica pura, senza scena).
 - Debug in gioco: gizmo dei nodi (verde valido, rosso visibile, grigio irraggiungibile), overlay con budget residuo, intensità e pressione per giocatore, comandi console `wave.skip`, `wave.set N`, `spawn <tipo> <n>`, `mutation.add <id>`.
+
+## 13. Stato dell'implementazione (M2, 2026-11-21)
+- Tipi di nemico: schede `EnemyDefinition` in `Data/Enemies/` (peso di spawn, gruppo min/max, costo, wave d'ingresso, pool iniziale); il director sceglie un tipo per gruppo in base al peso (`SpawnScoring.PickByWeight`). Costo e wave d'ingresso saranno usati dal budget di M3.
+- Codice in `Scripts/Enemies/Spawning/` e `Scripts/Enemies/Core/`: `EnemyDirector` (tick, visibilità, spawn, riciclo, AI a turno), `SpawnScoring` (logica pura dei §8: anello, punteggio, migliori 3, scelta pesata; coperta da test), `EnemySpawnNode`, `EnemyAgent`, `EnemyTarget`, `EnemyVisual`.
+- Fatto: anello 25-60 m (mai sotto 15 m da nessun player), nodi visibili scartati (2 raggi per player verso testa e gambe, 32 raggi per frame, cache 1.2 s, conferma prima dello spawn), percorso verificato con `NavMesh.CalculatePath`, punteggio con distanza ideale 40 m, bonus spalle/fianchi e penalità di varietà (10 s), scelta pesata tra i migliori 3, ripiego su nodi nascosti più lontani; gruppi 2-4 verso il player con meno inseguitori; spawn scaglionato (2 per frame); riciclo oltre 90 m o bloccati da 8 s.
+- Semplificato fino a M3: niente budget né curva di intensità; numero di nemici vivi = 4 + 4 per player (tetto 40), nuovo gruppo ogni 2.5 s se si è sotto il numero.
+- Debug: F8 sull'Host attiva/disattiva gli spawn; riga in basso a sinistra (vivi/obiettivo, uccisi, riciclati); gizmo dei nodi selezionando `M2_Enemies` in Play (verde valido, rosso visibile, grigio fuori NavMesh).
