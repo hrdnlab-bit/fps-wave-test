@@ -57,6 +57,7 @@ namespace HrdnLab.FpsWave.Weapons
         private float _muzzleLightUntil;
         private float _viewKick;
         private GameObject _viewModel;
+        private WeaponViewModel _viewModelAnim;
         private Transform _muzzle;
         private ShotFxPool _fx;
         private float _nextRejectLogTime;
@@ -203,8 +204,11 @@ namespace HrdnLab.FpsWave.Weapons
 
         private void RequestReload(WeaponState state, double now)
         {
-            if (state.StartReload(now))
-                RpcReload((byte)_localEquipped);
+            bool empty = state.Ammo <= 0;
+            if (!state.StartReload(now))
+                return;
+            _viewModelAnim?.PlayReload(empty, state.Stats.Get(StatType.ReloadTime));
+            RpcReload((byte)_localEquipped);
         }
 
         private void FireLocal(WeaponState state, double now)
@@ -242,6 +246,7 @@ namespace HrdnLab.FpsWave.Weapons
                 UnityEngine.Random.Range(-1f, 1f) * state.Stats.Get(StatType.RecoilYaw) * recoilScale,
                 state.Definition.RecoilRecoveryPerSecond);
             _viewKick = 1f;
+            _viewModelAnim?.PlayFire();
 
             NetworkObject target = null;
             sbyte zoneIndex = -1;
@@ -271,9 +276,11 @@ namespace HrdnLab.FpsWave.Weapons
             if (_viewModel != null)
                 Destroy(_viewModel);
 
+            _viewModelAnim = null;
             if (definition.ViewModelPrefab != null)
             {
                 _viewModel = Instantiate(definition.ViewModelPrefab, _viewModelRoot, false);
+                _viewModel.TryGetComponent(out _viewModelAnim);
             }
             else
             {
@@ -289,6 +296,15 @@ namespace HrdnLab.FpsWave.Weapons
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
             SetLayerRecursively(_viewModel, GameLayers.Player);
+
+            if (_viewModelAnim != null && _viewModelAnim.Muzzle != null)
+            {
+                _muzzle = _viewModelAnim.Muzzle;
+                _viewModelAnim.PlayDraw();
+                if (_muzzleLight != null)
+                    _muzzleLight.enabled = false;
+                return;
+            }
 
             var muzzle = new GameObject("Muzzle").transform;
             muzzle.SetParent(_viewModel.transform.parent, false);
@@ -315,7 +331,10 @@ namespace HrdnLab.FpsWave.Weapons
                 return;
             _viewKick = Mathf.MoveTowards(_viewKick, 0f, dt * 12f);
             Vector3 kick = new(0f, 0f, -0.04f * _viewKick);
-            _viewModelRoot.localPosition = Vector3.Lerp(_hipPosition, _adsPosition, _aim) + kick;
+            WeaponDefinition def = _loadout[_localEquipped];
+            Vector3 hip = def.OverrideViewOffsets ? def.ViewHipOffset : _hipPosition;
+            Vector3 ads = def.OverrideViewOffsets ? def.ViewAdsOffset : _adsPosition;
+            _viewModelRoot.localPosition = Vector3.Lerp(hip, ads, _aim) + kick;
         }
 
         // ---------------------------------------------------------------- Server

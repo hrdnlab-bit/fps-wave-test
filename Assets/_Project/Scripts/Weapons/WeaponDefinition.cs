@@ -54,6 +54,10 @@ namespace HrdnLab.FpsWave.Weapons
         [Tooltip("Modello in prima persona. Se vuoto si usa il segnaposto greybox.")]
         [SerializeField] private GameObject _viewModelPrefab;
         [SerializeField] private Vector3 _placeholderSize = new(0.07f, 0.12f, 0.45f);
+        [Tooltip("Se attivo, il modello usa le posizioni sotto invece di quelle generiche del player (i rig allineati alla camera partono da zero).")]
+        [SerializeField] private bool _overrideViewOffsets;
+        [SerializeField] private Vector3 _viewHipOffset = Vector3.zero;
+        [SerializeField] private Vector3 _viewAdsOffset = Vector3.zero;
 
         public string Id => _id;
         public string DisplayName => _displayName;
@@ -66,6 +70,9 @@ namespace HrdnLab.FpsWave.Weapons
         public float AdsTime => _adsTime;
         public GameObject ViewModelPrefab => _viewModelPrefab;
         public Vector3 PlaceholderSize => _placeholderSize;
+        public bool OverrideViewOffsets => _overrideViewOffsets && _viewModelPrefab != null;
+        public Vector3 ViewHipOffset => _viewHipOffset;
+        public Vector3 ViewAdsOffset => _viewAdsOffset;
 
         /// <summary>Crea un blocco di statistiche nuovo, indipendente dagli altri giocatori.</summary>
         public StatBlock CreateStats()
@@ -98,6 +105,15 @@ namespace HrdnLab.FpsWave.Weapons
             _hipSpread = hipSpread; _adsSpread = adsSpread; _spreadPerShot = spreadPerShot; _maxBloom = maxBloom;
             _recoilPitch = recoilPitch; _recoilYaw = recoilYaw; _adsFovMultiplier = adsFov; _adsTime = adsTime;
             _placeholderSize = placeholderSize;
+        }
+
+        /// <summary>Usato da <c>WeaponViewModelBuilder</c> per collegare il modello realistico.</summary>
+        public void EditorSetViewModel(GameObject prefab, Vector3 hipOffset, Vector3 adsOffset)
+        {
+            _viewModelPrefab = prefab;
+            _overrideViewOffsets = prefab != null;
+            _viewHipOffset = hipOffset;
+            _viewAdsOffset = adsOffset;
         }
 #endif
     }
