@@ -74,3 +74,6 @@ Co-op PvE tra amici: l'obiettivo è **reattività locale** e **economia autorevo
 - `PlayerCharacter`: `SyncVar<sbyte>` della pitch della visuale (gradi interi, solo agli altri, canale unreliable) e `SyncVar<byte>` dei flag (accovacciato, a terra; reliable). Il proprietario li invia con una ServerRpc unreliable a 10 Hz **solo quando cambiano**: ~2 byte di dati per invio, al massimo ~0.1 KB/s per giocatore.
 - `PlayerWeapons._observedEquipped` (`SyncVar<sbyte>`, escluso il proprietario): arma impugnata vista dagli altri, cambia solo al cambio arma. Il rinculo del corpo usa l'`ObserversRpc` di sparo già esistente (nessun messaggio nuovo).
 - I traccianti degli altri partono dalla volata dell'arma in terza persona (`IThirdPersonMuzzle`), solo lato client.
+
+## Morte dei nemici (cosmetica)
+- `EnemyAgent.RpcKilled(Vector3 puntoLocale, Vector3 direzioneLocale, byte tipo)` (ObserversRpc, ~28 byte per morte): tipo di caduta (0 indietro, 1 avanti, 2 testa) e punto del colpo letale. I client scelgono animazione e arto da staccare (`EnemyGore`); se l'RPC arriva dopo la SyncVar della salute, la caduta aspetta fino a 0,25 s.

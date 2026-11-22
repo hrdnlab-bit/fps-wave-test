@@ -18,8 +18,13 @@ namespace HrdnLab.FpsWave.Enemies
         private static readonly int AttackId = Animator.StringToHash("Attack");
         private static readonly int DeadId = Animator.StringToHash("Dead");
         private static readonly int RunRateId = Animator.StringToHash("RunRate");
+        private static readonly int VariantId = Animator.StringToHash("Variant");
+        private static readonly int AttackIndexId = Animator.StringToHash("AttackIndex");
+        private static readonly int HitId = Animator.StringToHash("Hit");
+        private static readonly int DeathTypeId = Animator.StringToHash("DeathType");
+        private static readonly int[] DeathStateIds =
+            { Animator.StringToHash("DeathBack"), Animator.StringToHash("DeathForward"), Animator.StringToHash("DeathHead") };
         private static readonly int LocomotionId = Animator.StringToHash("Locomotion");
-        private static readonly int DeathId = Animator.StringToHash("Death");
 
         [SerializeField] private Transform _model;
         [SerializeField] private Renderer[] _renderers = System.Array.Empty<Renderer>();
@@ -32,6 +37,13 @@ namespace HrdnLab.FpsWave.Enemies
         [SerializeField] private Animator _animator;
         [Tooltip("Velocità naturale della clip di corsa (m/s): sopra, la clip accelera in proporzione.")]
         [SerializeField, Min(0.1f)] private float _runClipSpeed = 4f;
+        [SerializeField, Min(0.1f)] private float _run2ClipSpeed = 4f;
+        [SerializeField, Min(1)] private int _attackVariants = 1;
+        [SerializeField] private EnemyGore _gore;
+        private float _variant;
+        private float _nextHitReact;
+        private bool _killReceived;
+        private float _deadSince = -1f;
 
         private Health _health;
         private EnemyAgent _agent;
@@ -52,7 +64,10 @@ namespace HrdnLab.FpsWave.Enemies
             _block = new MaterialPropertyBlock();
             _health.ClientHealthChanged += HandleHealthChanged;
             if (_agent != null)
+            {
                 _agent.ClientAttacked += HandleAttacked;
+                _agent.ClientKilled += HandleKilled;
+            }
             _charge = GetComponent<BruteCharge>();
             if (_charge != null)
                 _charge.ClientWindup += HandleWindup;
@@ -65,7 +80,10 @@ namespace HrdnLab.FpsWave.Enemies
             if (_health != null)
                 _health.ClientHealthChanged -= HandleHealthChanged;
             if (_agent != null)
+            {
                 _agent.ClientAttacked -= HandleAttacked;
+                _agent.ClientKilled -= HandleKilled;
+            }
             if (_charge != null)
                 _charge.ClientWindup -= HandleWindup;
         }
@@ -80,16 +98,25 @@ namespace HrdnLab.FpsWave.Enemies
             _lunge = 0f;
             _hurtFlash = 0f;
             _deathBlend = _health.IsDead ? 1f : 0f;
+            _killReceived = false;
+            _deadSince = -1f;
+            if (_gore != null)
+                _gore.ResetGore();
             if (_animator != null)
             {
                 _animator.enabled = true;
                 _animator.Rebind();
+                _variant = Random.value < 0.5f ? 0f : 1f;
+                _animator.SetFloat(VariantId, _variant);
                 // Sciame non sincronizzato: fase e ritmo un po' diversi per ognuno.
                 _animator.speed = Random.Range(0.92f, 1.08f);
                 if (_health.IsDead)
                 {
+                    int type = _agent != null ? Mathf.Clamp(_agent.ClientDeathType, 0, 2) : 0;
+                    _animator.SetInteger(DeathTypeId, type);
                     _animator.SetBool(DeadId, true);
-                    _animator.Play(DeathId, 0, 1f);
+                    _animator.Play(DeathStateIds[type], 0, 1f);
+                    _killReceived = true;
                 }
                 else
                 {
@@ -108,6 +135,12 @@ namespace HrdnLab.FpsWave.Enemies
         {
             if (next < previous)
                 _hurtFlash = 1f;
+            // Reazione al colpo (non letale), non più di una ogni tanto per non fermare la corsa sotto il fuoco.
+            if (_animator != null && next < previous && next > 0f && Time.time >= _nextHitReact)
+            {
+                _animator.SetTrigger(HitId);
+                _nextHitReact = Time.time + 1.3f;
+            }
             ApplyColor();
         }
 
@@ -115,7 +148,23 @@ namespace HrdnLab.FpsWave.Enemies
         {
             _lunge = 1f;
             if (_animator != null && !_health.IsDead)
+            {
+                _animator.SetInteger(AttackIndexId, Random.Range(0, _attackVariants));
                 _animator.SetTrigger(AttackId);
+            }
+        }
+
+        private void HandleKilled(Vector3 localPoint, Vector3 localDir, byte deathType)
+        {
+            _killReceived = true;
+            if (_animator != null)
+            {
+                _animator.enabled = true;
+                _animator.SetInteger(DeathTypeId, deathType);
+                _animator.SetBool(DeadId, true);
+            }
+            if (_gore != null)
+                _gore.Kill(transform.TransformPoint(localPoint), transform.TransformDirection(localDir), deathType == 2);
         }
 
         private void LateUpdate()
@@ -147,8 +196,14 @@ namespace HrdnLab.FpsWave.Enemies
             {
                 _animator.enabled = !far;
                 _animator.SetFloat(SpeedId, _speed);
-                _animator.SetFloat(RunRateId, Mathf.Max(1f, _speed / _runClipSpeed));
-                _animator.SetBool(DeadId, dead);
+                float clipSpeed = _variant > 0.5f ? _run2ClipSpeed : _runClipSpeed;
+                _animator.SetFloat(RunRateId, Mathf.Max(1f, _speed / clipSpeed));
+                // La caduta parte con l'RPC della morte (tipo giusto); se non arriva, dopo un attimo cade comunque.
+                if (dead && _deadSince < 0f)
+                    _deadSince = Time.time;
+                if (!dead)
+                    _deadSince = -1f;
+                _animator.SetBool(DeadId, dead && (_killReceived || Time.time - _deadSince > 0.25f));
                 return;
             }
             if (far)
@@ -195,10 +250,13 @@ namespace HrdnLab.FpsWave.Enemies
             _runSpeedForFullCycle = runSpeedForFullCycle;
         }
 
-        public void EditorSetAnimator(Animator animator, float runClipSpeed)
+        public void EditorSetAnimator(Animator animator, float runClipSpeed, float run2ClipSpeed, int attackVariants, EnemyGore gore)
         {
             _animator = animator;
             _runClipSpeed = runClipSpeed;
+            _run2ClipSpeed = run2ClipSpeed;
+            _attackVariants = attackVariants;
+            _gore = gore;
         }
 
         /// <summary>Per i modelli con texture: i colori moltiplicano la texture (bianco = colori originali).</summary>

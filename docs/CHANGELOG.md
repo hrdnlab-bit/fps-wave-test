@@ -3,6 +3,12 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Added (animazioni Mixamo, morti e smembramento del Runner, Matteo)
+- **Animazioni Mixamo** sul Runner (retarget in `tools/autorig/`): sprint e fast run a caso per nemico (5,1 e 4,6 m/s, accelerate oltre con `RunRate`), corsetta zombie alle velocità intermedie, idle zombie, tre attacchi (artigliata del mutante, swipe e colpo dall'alto, scelti a caso), reazione ai colpi (al massimo una ogni 1,3 s).
+- **Morti diverse in base al colpo**: colpo alla testa = crollo secco, dal davanti = cade all'indietro, alle spalle o alle gambe = cade in avanti. Il server manda alla morte punto del colpo e direzione nello spazio locale del nemico (`EnemyAgent.RpcKilled`, ~28 byte); cadavere 3 s.
+- **Smembramento** (`EnemyGore`, solo client): l'arto più vicino al colpo letale si stacca (testa sul colpo alla testa, braccio, avambraccio, coscia, gamba): l'osso si chiude sulla mesh, vola un pezzo fisico ricavato dalla mesh, moncone e spruzzo di sangue.
+- Strumenti di prova solo Editor/dev nell'EnemyDirector: **K** uccide il nemico più vicino con un colpo su una parte a caso, **F10** nemici senza danno (F9 su questo PC era preso da un altro programma).
+
 ### Added (corsa realistica del Runner, Matteo)
 - **Corsa da motion capture vera** (CMU 127_08) al posto di quella fatta a mano: retarget per direzione delle ossa (A-pose del modello contro T-pose della ripresa), loop di 0,61 s senza cuciture, sul posto, con un filo di curvatura in più da mostro. La clip va a 3,69 m/s; sopra quella velocità accelera in proporzione (parametro `RunRate`), così i piedi non scivolano a 6 m/s. Hitbox della testa ricalcolata sulla nuova posa di corsa.
 

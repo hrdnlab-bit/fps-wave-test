@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using FishNet;
 using FishNet.Managing;
 using FishNet.Object;
+using HrdnLab.FpsWave.Combat;
 using HrdnLab.FpsWave.Core;
 using UnityEngine;
 using UnityEngine.AI;
@@ -143,6 +144,17 @@ namespace HrdnLab.FpsWave.Enemies
             Keyboard keyboard = Keyboard.current;
             if (keyboard != null && keyboard[_toggleKey].wasPressedThisFrame)
                 ToggleSpawning();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            // Strumenti di prova (solo Editor/dev): K uccide il nemico più vicino alla camera con un colpo su una
+            // parte del corpo a caso (morti e smembramento), F10 nemici senza danno.
+            if (keyboard != null && keyboard.kKey.wasPressedThisFrame)
+                DebugKillNearest();
+            if (keyboard != null && keyboard.f10Key.wasPressedThisFrame)
+            {
+                EnemyAgent.DebugNoDamage = !EnemyAgent.DebugNoDamage;
+                Debug.Log($"[FpsWave][Server] Danno dei nemici {(EnemyAgent.DebugNoDamage ? "SPENTO" : "acceso")} (F10).");
+            }
+#endif
 
             UpdateVisibility(targets, now);
             ProcessPendingSpawns();
@@ -218,6 +230,39 @@ namespace HrdnLab.FpsWave.Enemies
         /// la sua parte alta o bassa (testa e gambe di un nemico lì). Massimo <see cref="_raycastsPerFrame"/> raggi per frame.
         /// I nodi fuori portata o troppo vicini ai player si scartano senza raggi.
         /// </summary>
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private static readonly Vector3[] DebugHitPoints =
+        {
+            new(0f, 1.55f, 0.18f), new(-0.32f, 1.15f, 0.15f), new(0.32f, 1.15f, 0.15f), new(-0.38f, 0.95f, 0.3f),
+            new(0.38f, 0.95f, 0.3f), new(-0.12f, 0.75f, 0.05f), new(0.12f, 0.35f, 0.05f), new(0f, 1.1f, 0.2f),
+        };
+
+        private void DebugKillNearest()
+        {
+            // Vicino al primo giocatore (la camera del player non è per forza taggata MainCamera).
+            List<EnemyTarget> targets = EnemyTarget.Active;
+            if (targets.Count == 0 || targets[0] == null)
+                return;
+            Vector3 from = targets[0].Position;
+            EnemyAgent best = null;
+            float bestDist = float.MaxValue;
+            Health bestHealth = null;
+            foreach (EnemyAgent enemy in _active)
+            {
+                if (enemy == null || !enemy.TryGetComponent(out Health health) || health.IsDead)
+                    continue;
+                float d = (enemy.transform.position - from).sqrMagnitude;
+                if (d < bestDist) { bestDist = d; best = enemy; bestHealth = health; }
+            }
+            if (best == null)
+                return;
+            int pick = UnityEngine.Random.Range(0, DebugHitPoints.Length);
+            Vector3 point = best.transform.TransformPoint(DebugHitPoints[pick]);
+            bestHealth.ApplyDamage(new DamageInfo(99999f, false, pick == 0, -1, point));
+            Debug.Log($"[FpsWave][Server] K: {best.name} ucciso, colpo {pick} {(pick == 0 ? "(testa)" : "")}.");
+        }
+#endif
+
         private void UpdateVisibility(List<EnemyTarget> targets, float now)
         {
             int count = _nodePositions.Length;

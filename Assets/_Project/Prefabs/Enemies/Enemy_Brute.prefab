@@ -775,6 +775,9 @@ MonoBehaviour:
   _animationCullDistance: 45
   _animator: {fileID: 0}
   _runClipSpeed: 4
+  _run2ClipSpeed: 4
+  _attackVariants: 1
+  _gore: {fileID: 0}
 --- !u!114 &1080630917469478908
 MonoBehaviour:
   m_ObjectHideFlags: 0

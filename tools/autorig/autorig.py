@@ -437,9 +437,123 @@ def mocap_run(path, extra):
     json.dump({"run_speed_model_units": speed, "loop_seconds": L * b.dt, "frames": n_out}, open(prev + "_run.json", "w"))
     print("action Run (mocap)", n_out)
 
-if mode == "runner":
+
+# --- animazioni da file FBX (Mixamo, scheletro "mixamorig:", "Without Skin"): retarget sulle nostre ossa
+def fbx_motion(path):
+    """Legge un FBX di animazione: posizioni (nf, nj, 3), rotazioni globali (nf, nj, 3, 3), riposo, indici, fps."""
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.fbx(filepath=path, automatic_bone_orientation=False)
+    new = [o for o in bpy.data.objects if o not in before]
+    src = [o for o in new if o.type == 'ARMATURE'][0]
+    act = src.animation_data.action
+    f0, f1 = [int(round(x)) for x in act.frame_range]
+    names = [b.name.split(":")[-1] for b in src.data.bones]
+    idx = {n: i for i, n in enumerate(names)}
+    def ortho(m):
+        m = np.array(m); u, _, vt = np.linalg.svd(m); return u @ vt
+    mw = src.matrix_world
+    P0 = np.array([(mw @ b.head_local)[:] for b in src.data.bones])
+    G0 = np.array([ortho((mw @ b.matrix_local).to_3x3()) for b in src.data.bones])
+    Ps, Gs = [], []
+    for f in range(f0, f1 + 1):
+        bpy.context.scene.frame_set(f)
+        Ps.append([(mw @ pb.head)[:] for pb in src.pose.bones])
+        Gs.append([ortho((mw @ pb.matrix).to_3x3()) for pb in src.pose.bones])
+    fps = bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
+    for o in new:
+        bpy.data.objects.remove(o, do_unlink=True)
+    bpy.data.actions.remove(act)
+    bpy.context.scene.frame_set(0)
+    return np.array(Ps), np.array(Gs), P0, G0, idx, fps
+
+RIG_REST = None
+def retarget_clip(name, path, hips_mode, extra=None):
+    """hips_mode: 'loop' (toglie la deriva), 'pin' (bacino fermo in orizzontale), 'keep' (tiene lo spostamento)."""
+    P, G, P0, G0, I, fps = fbx_motion(path)
+    nf = len(P)
+    # direzione "davanti" della sorgente dal riposo (piede -> punta) e rotazione verso -Y
+    fw = np.zeros(3)
+    for sd in ("Left", "Right"):
+        fw += P0[I[sd + "ToeBase"]] - P0[I[sd + "Foot"]]
+    fw[2] = 0; fw /= np.linalg.norm(fw)
+    ang = math.atan2(-1.0, 0.0) - math.atan2(fw[1], fw[0])
+    c, s_ = math.cos(ang), math.sin(ang); Rz = np.array([[c, -s_, 0], [s_, c, 0], [0, 0, 1]])
+    P = P @ Rz.T; P0 = P0 @ Rz.T
+    G = np.einsum("ab,fjbc->fjac", Rz, G); G0 = np.einsum("ab,jbc->jac", Rz, G0)
+    ground = min(P0[I["LeftFoot"], 2], P0[I["RightFoot"], 2])
+    k = (J["Hips"].z - J["LeftFoot"].z) / (P0[I["Hips"], 2] - ground)
+    rest = {bn.name: np.array(bn.matrix_local.to_3x3()) for bn in arm_data.bones}
+    rdir = {bn.name: np.array((bn.tail_local - bn.head_local).normalized()) for bn in arm_data.bones}
+    FWDv = np.array([0, -1, 0.]); UPv = np.array([0, 0, 1.])
+    MAP = {n: ("d", n) for n in ("Hips", "Spine", "Spine1", "Spine2", "Neck", "Head")}
+    for sd in ("Left", "Right"):
+        MAP[sd + "Shoulder"] = ("v", sd + "Shoulder", sd + "Arm", FWDv)
+        MAP[sd + "Arm"] = ("v", sd + "Arm", sd + "ForeArm", FWDv)
+        MAP[sd + "ForeArm"] = ("v", sd + "ForeArm", sd + "Hand", FWDv)
+        MAP[sd + "Hand"] = ("d", sd + "Hand")
+        MAP[sd + "UpLeg"] = ("v", sd + "UpLeg", sd + "Leg", FWDv)
+        MAP[sd + "Leg"] = ("v", sd + "Leg", sd + "Foot", FWDv)
+        MAP[sd + "Foot"] = ("v", sd + "Foot", sd + "ToeBase", UPv)
+        MAP[sd + "ToeBase"] = ("d", sd + "ToeBase")
+        for fg in ("Index", "Middle", "Thumb"):
+            for kk in (1, 2, 3):
+                if f"{sd}Hand{fg}{kk}" in I:
+                    MAP[f"{sd}Hand{fg}{kk}"] = ("d", f"{sd}Hand{fg}{kk}")
+
+    def frame(p, s2):
+        y = p / np.linalg.norm(p); z = s2 - (s2 @ y) * y; z /= np.linalg.norm(z); x = np.cross(y, z)
+        return np.stack([x, y, z], axis=1)
+
+    hip = P[:, I["Hips"]]
+    tx = np.polyfit(np.arange(nf), hip[:, 0], 1) if nf > 1 else None
+    ty = np.polyfit(np.arange(nf), hip[:, 1], 1) if nf > 1 else None
+    act = bpy.data.actions.new(name)
+    rig.animation_data_create(); rig.animation_data.action = act
+    step = fps / FPS
+    n_out = max(1, int(round((nf - 1) / step)))
+    for kf in range(n_out + 1):
+        f = min(nf - 1, int(round(kf * step)))
+        Wp = {}
+        for bn in arm_data.bones:
+            n = bn.name; Rb = rest[n]; m = MAP.get(n)
+            if m is None or m[1] not in I:
+                Wd = Wp[bn.parent.name] @ rest[bn.parent.name].T @ Rb
+            elif m[0] == "d":
+                j = I[m[1]]; Wd = G[f, j] @ G0[j].T @ Rb
+            else:
+                j, cj, sec = I[m[1]], I[m[2]], m[3]
+                Wd = frame(P[f, cj] - P[f, j], G[f, j] @ G0[j].T @ sec) @ frame(rdir[n], sec).T @ Rb
+            basis = Rb.T @ Wd if bn.parent is None else Rb.T @ rest[bn.parent.name] @ Wp[bn.parent.name].T @ Wd
+            Wp[n] = Wd
+            pbn = pb[n]; qq = Matrix(basis.tolist()).to_quaternion()
+            if extra and n.replace("Left", "").replace("Right", "") in extra:
+                ex, ey, ez = extra[n.replace("Left", "").replace("Right", "")]
+                qq = qq @ (q(ex, -ey, -ez) if n.startswith("Right") else q(ex, ey, ez))
+            pbn.rotation_quaternion = qq; pbn.location = (0, 0, 0)
+            pbn.keyframe_insert("rotation_quaternion", frame=kf)
+        off = hip[f] - P0[I["Hips"]]
+        if hips_mode == "loop":
+            off[0] = hip[f, 0] - np.polyval(tx, f); off[1] = hip[f, 1] - np.polyval(ty, f)
+        elif hips_mode == "pin":
+            off[0] = hip[f, 0] - hip[0, 0]; off[1] = hip[f, 1] - hip[0, 1]
+            off[:2] *= 0.25  # un accenno di affondo, ma il nemico resta dove lo mette il NavMesh
+        pb["Hips"].location = Vector(rest["Hips"].T @ (off * k))
+        pb["Hips"].keyframe_insert("location", frame=kf)
+    act.use_fake_user = True
+    speed = (np.linalg.norm(hip[-1, :2] - hip[0, :2]) / ((nf - 1) / fps) * k) if nf > 1 else 0
+    print("action", name, "(fbx)", n_out, "frames, src speed", round(float(speed), 3), "model-units/s")
+    return speed
+
+CLIPS = json.load(open(run_bvh)) if (run_bvh and run_bvh.endswith(".json")) else None
+if mode == "runner" and CLIPS:
+    info = {}
+    for c in CLIPS:
+        info[c["name"]] = retarget_clip(c["name"], c["file"], c.get("hips", "loop"), c.get("extra"))
+    json.dump(info, open(prev + "_clips.json", "w"))
+    rig.animation_data.action = None
+elif mode == "runner":
     keyed("Idle", 60, idle, True)
-    if run_bvh:
+    if run_bvh and run_bvh.endswith(".bvh"):
         # Runner: un filo più curvo in avanti e testa che guarda avanti, artigli chiusi (vedi mocap_run)
         mocap_run(run_bvh, {"Spine": (5, 0, 0), "Spine1": (4, 0, 0), "Neck": (-4, 0, 0), "Head": (-4, 0, 0),
                             "Arm": (0, 0, 12), "ForeArm": (0, 0, 8)})
@@ -473,6 +587,8 @@ def shot(name, ang):
 shot("rest_front", 0)
 if mode == "runner":
     for act, frames in (("Run", (0, 3, 6, 9, 12, 15)), ("Attack", (6, 9)), ("Death", (12, 36)), ("Idle", (0,))):
+        if act not in bpy.data.actions:
+            continue
         rig.animation_data.action = bpy.data.actions[act]
         for f in frames:
             sc.frame_set(f); shot(f"{act}_{f}", 90)

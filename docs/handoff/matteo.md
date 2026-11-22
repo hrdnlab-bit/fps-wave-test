@@ -29,7 +29,10 @@ Ultimo aggiornamento: 2026-11-22
 
 - Corsa del Runner da motion capture CMU 127_08 (retarget in `tools/autorig/`, `bvh.py`), `RunRate` per non far scivolare i piedi a 6 m/s.
 
+- Runner con animazioni Mixamo (corse, idle, 3 attacchi, reazione, 3 morti), morte scelta dal colpo (`RpcKilled`), smembramento client (`EnemyGore`). Debug: K uccide il più vicino, F10 niente danno.
+
 ## Verifiche
+- Mixamo + smembramento: compilazione 0 errori, test 91/91, Play: attacchi Mixamo, caduta, arto staccato (`Gib_RightLeg`) e sangue, nessuna eccezione.
 - Corsa mocap: Setup/6 pulito, test 91/91, Play: Runner in corsa con fase di volo, 430+ FPS.
 - Scheletri e animazioni: compilazione 0 errori, test 91/91 (rig del Pilot incluso), Play solo Host pulito: sciame di Runner animati (corsa, attacco), 450+ FPS.
 - Runner vero: Setup/6 pulito, test 91/91, Play solo Host (sciame visibile, in piedi, rivolto al giocatore).

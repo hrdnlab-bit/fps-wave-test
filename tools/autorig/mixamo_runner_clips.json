@@ -1,0 +1,59 @@
+[
+ {
+  "name": "Idle",
+  "file": "Zombie_Idle.fbx",
+  "hips": "pin"
+ },
+ {
+  "name": "Jog",
+  "file": "Zombie_Running.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "Run",
+  "file": "Sprint.fbx",
+  "hips": "loop",
+  "extra": "lean+claw"
+ },
+ {
+  "name": "Run2",
+  "file": "Fast_Run.fbx",
+  "hips": "loop",
+  "extra": "lean+claw"
+ },
+ {
+  "name": "Attack",
+  "file": "Mutant_Swiping.fbx",
+  "hips": "pin"
+ },
+ {
+  "name": "Attack2",
+  "file": "Zombie_Attack.fbx (swipe)",
+  "hips": "pin"
+ },
+ {
+  "name": "Attack3",
+  "file": "Zombie_Attack_Overhead.fbx",
+  "hips": "pin"
+ },
+ {
+  "name": "Hit",
+  "file": "Zombie_Reaction_Hit.fbx",
+  "hips": "pin"
+ },
+ {
+  "name": "DeathBack",
+  "file": "Zombie_Death.fbx",
+  "hips": "keep"
+ },
+ {
+  "name": "DeathForward",
+  "file": "Zombie_Dying.fbx",
+  "hips": "keep"
+ },
+ {
+  "name": "DeathHead",
+  "file": "Death_From_Front_Headshot.fbx",
+  "hips": "keep"
+ }
+]

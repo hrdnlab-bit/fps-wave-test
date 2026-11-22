@@ -72,6 +72,20 @@ namespace HrdnLab.FpsWave.Enemies
         /// <summary>Client: il nemico ha colpito (evento cosmetico per l'affondo).</summary>
         public event Action ClientAttacked;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        /// <summary>Solo prove (F10 nell'EnemyDirector): i nemici attaccano senza fare danno.</summary>
+        public static bool DebugNoDamage;
+#endif
+
+        /// <summary>
+        /// Morte vista dai client: punto del colpo letale e direzione del tiro nello spazio locale del nemico,
+        /// tipo di caduta (0 indietro, 1 in avanti, 2 colpo alla testa). Solo cosmetico (animazione, smembramento).
+        /// </summary>
+        public event Action<Vector3, Vector3, byte> ClientKilled;
+
+        /// <summary>Tipo di caduta dell'ultima morte ricevuta (per i client che arrivano dopo l'RPC).</summary>
+        public byte ClientDeathType { get; private set; }
+
         /// <summary>Client: nemici in gioco (per la scansione della tuta e i ping). Iterare con l'indice, niente allocazioni.</summary>
         public static List<EnemyAgent> ClientActive => s_clientActive;
         /// <summary>Morto secondo la salute replicata (valido anche sui client, dove l'AI non gira).</summary>
@@ -398,6 +412,9 @@ namespace HrdnLab.FpsWave.Enemies
             Vector3 to = target.Position + Vector3.up * 1.2f;
             if (Physics.Linecast(from, to, GameLayers.LineOfSightMask, QueryTriggerInteraction.Ignore))
                 return; // un muro in mezzo: niente colpi attraverso la geometria
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!DebugNoDamage)
+#endif
             target.Health.ApplyDamage(new DamageInfo(_definition.AttackDamage, false, false, -1, to));
             RpcAttacked();
         }
@@ -405,8 +422,35 @@ namespace HrdnLab.FpsWave.Enemies
         [ObserversRpc]
         private void RpcAttacked() => ClientAttacked?.Invoke();
 
+        [ObserversRpc]
+        private void RpcKilled(Vector3 localPoint, Vector3 localDir, byte deathType)
+        {
+            ClientDeathType = deathType;
+            ClientKilled?.Invoke(localPoint, localDir, deathType);
+        }
+
         private void HandleServerDied(Health health, DamageInfo info)
         {
+            // Da dove arrivava il colpo: dal giocatore che ha sparato, se lo troviamo; altrimenti dal davanti.
+            Vector3 shotDir = -transform.forward;
+            foreach (HrdnLab.FpsWave.Player.PlayerLife life in HrdnLab.FpsWave.Player.PlayerLife.All)
+            {
+                if (life != null && life.OwnerId == info.AttackerClientId)
+                {
+                    Vector3 d = info.Point - life.transform.position;
+                    d.y *= 0.3f;
+                    if (d.sqrMagnitude > 0.01f)
+                        shotDir = d.normalized;
+                    break;
+                }
+            }
+            Vector3 localPoint = transform.InverseTransformPoint(info.Point);
+            Vector3 localDir = transform.InverseTransformDirection(shotDir);
+            byte deathType = info.IsWeakspot ? (byte)2
+                : localPoint.y < 0.85f ? (byte)1          // gambe: crolla in avanti
+                : localDir.z > 0f ? (byte)1 : (byte)0;     // colpito da dietro: avanti; dal davanti: indietro
+            RpcKilled(localPoint, localDir, deathType);
+
             ReleaseSlot();
             SetHitboxesEnabled(false);
             _state = EnemyState.Dead;
