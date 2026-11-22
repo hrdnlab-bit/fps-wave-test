@@ -3,6 +3,11 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Changed (andature diverse e morte senza gambe, Matteo)
+- **Sei andature intere** al posto delle corse ibride (due delle tre erano in realtà la stessa clip): corsa piegata, corsa feroce, Zombie Run, barcollante, zoppicante, Mutant Run. Il server ne sceglie una per nemico (`SyncVar<byte>`, pesata: le veloci più frequenti) e la velocità di movimento cambia con l'andatura (6,2 / 5 / 4,4 / 3 / 2,8 / 2,8 m/s), così in un gruppo si vedono corse e ritmi diversi.
+- **Senza gambe il corpo cade**: perdendo una gamba lo zombie crolla a faccia in giù (non più barcollando in piedi) e poi striscia; ucciso senza gambe (da terra o da in piedi) crolla subito a terra invece di restare sospeso. Tolta la clip "barcollando" dalle morti alle gambe.
+- Hitbox della testa calcolata sulla media di tutte le andature. Debug: **L** colpisce gli stinchi (sx/dx a turno), J e L restano sullo stesso nemico finché è vivo.
+
 ### Added (zombie veloci, morti a caso e smembramento a colpi, Matteo)
 - **Corse da zombie veloce**: tre andature a caso per nemico, gambe da sprint e fast run di Mixamo con il busto da zombie (in avanti, braccia ad artiglio; la terza col busto del Mutant Run), retarget ibrido in `tools/autorig/` (`upper` in `mixamo_runner_clips.json`).
 - **Morte diversa per parte colpita e a caso**: 7 tipi (indietro, avanti, testa da davanti, testa da dietro, di lato a sinistra, a destra, gambe) con 21 animazioni Mixamo in tutto; il server sceglie tipo e variante (a volte crolla di lato anche colpito di fronte). Reazione al colpo in due varianti.

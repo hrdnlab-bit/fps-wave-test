@@ -5,8 +5,8 @@
   "hips": "pin"
  },
  {
-  "name": "Jog",
-  "file": "/tmp/mixamo/Zombie_Running.fbx",
+  "name": "Gait0",
+  "file": "/tmp/mixamo/Running_Lean.fbx",
   "hips": "loop",
   "extra": {
    "HandIndex1": [
@@ -38,13 +38,89 @@
     0,
     0,
     -28
+   ],
+   "Spine": [
+    16,
+    0,
+    0
+   ],
+   "Spine1": [
+    6,
+    0,
+    0
+   ],
+   "Neck": [
+    -10,
+    0,
+    0
+   ],
+   "Head": [
+    -10,
+    0,
+    0
    ]
   }
  },
  {
-  "name": "Run",
-  "file": "/tmp/mixamo/Sprint.fbx",
-  "upper": "/tmp/mixamo/Zombie_Run.fbx",
+  "name": "Gait1",
+  "file": "/tmp/mixamo/Running_Intention.fbx",
+  "hips": "loop",
+  "extra": {
+   "HandIndex1": [
+    0,
+    0,
+    -28
+   ],
+   "HandIndex2": [
+    0,
+    0,
+    -28
+   ],
+   "HandIndex3": [
+    0,
+    0,
+    -28
+   ],
+   "HandMiddle1": [
+    0,
+    0,
+    -28
+   ],
+   "HandMiddle2": [
+    0,
+    0,
+    -28
+   ],
+   "HandMiddle3": [
+    0,
+    0,
+    -28
+   ],
+   "Spine": [
+    16,
+    0,
+    0
+   ],
+   "Spine1": [
+    6,
+    0,
+    0
+   ],
+   "Neck": [
+    -10,
+    0,
+    0
+   ],
+   "Head": [
+    -10,
+    0,
+    0
+   ]
+  }
+ },
+ {
+  "name": "Gait2",
+  "file": "/tmp/mixamo/Zombie_Run.fbx",
   "hips": "loop",
   "extra": {
    "HandIndex1": [
@@ -95,9 +171,8 @@
   }
  },
  {
-  "name": "Run2",
-  "file": "/tmp/mixamo/Fast_Run.fbx",
-  "upper": "/tmp/mixamo/Zombie_Running_Fast.fbx",
+  "name": "Gait3",
+  "file": "/tmp/mixamo/Drunk_Run.fbx",
   "hips": "loop",
   "extra": {
    "HandIndex1": [
@@ -148,9 +223,8 @@
   }
  },
  {
-  "name": "Run3",
-  "file": "/tmp/mixamo/Sprint.fbx",
-  "upper": "/tmp/mixamo/Mutant_Run.fbx",
+  "name": "Gait4",
+  "file": "/tmp/mixamo/Injured_Run.fbx",
   "hips": "loop",
   "extra": {
    "HandIndex1": [
@@ -197,6 +271,43 @@
     -8,
     0,
     0
+   ]
+  }
+ },
+ {
+  "name": "Gait5",
+  "file": "/tmp/mixamo/Mutant_Run.fbx",
+  "hips": "loop",
+  "extra": {
+   "HandIndex1": [
+    0,
+    0,
+    -28
+   ],
+   "HandIndex2": [
+    0,
+    0,
+    -28
+   ],
+   "HandIndex3": [
+    0,
+    0,
+    -28
+   ],
+   "HandMiddle1": [
+    0,
+    0,
+    -28
+   ],
+   "HandMiddle2": [
+    0,
+    0,
+    -28
+   ],
+   "HandMiddle3": [
+    0,
+    0,
+    -28
    ]
   }
  },
@@ -212,7 +323,7 @@
  },
  {
   "name": "LegLost",
-  "file": "/tmp/mixamo/Zombie_Stumbling.fbx",
+  "file": "/tmp/mixamo/Falling_Forward_Death.fbx",
   "hips": "pin"
  },
  {
@@ -332,17 +443,22 @@
  },
  {
   "name": "Death_6_0",
-  "file": "/tmp/mixamo/Zombie_Stumbling.fbx",
+  "file": "/tmp/mixamo/D_Back_OneKnee.fbx",
   "hips": "keep"
  },
  {
   "name": "Death_6_1",
-  "file": "/tmp/mixamo/D_Back_OneKnee.fbx",
+  "file": "/tmp/mixamo/D_Head_OneKnee.fbx",
   "hips": "keep"
  },
  {
   "name": "Death_6_2",
   "file": "/tmp/mixamo/Death.fbx",
   "hips": "keep"
+ },
+ {
+  "name": "CrawlDeath",
+  "file": "/tmp/mixamo/Falling_Forward_Death.fbx",
+  "hips": "pin"
  }
 ]

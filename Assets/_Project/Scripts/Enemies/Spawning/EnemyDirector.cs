@@ -147,11 +147,13 @@ namespace HrdnLab.FpsWave.Enemies
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             // Strumenti di prova (solo Editor/dev): K uccide il nemico più vicino al giocatore con un colpo su una
             // parte del corpo a caso (morti e smembramento), J lo colpisce a un arto senza ucciderlo (arti che si
-            // staccano a forza di colpi), F10 nemici senza danno.
+            // staccano a forza di colpi), L agli stinchi (sx e dx a turno: senza gambe striscia), F10 nemici senza danno.
             if (keyboard != null && keyboard.kKey.wasPressedThisFrame)
                 DebugHitNearest(true);
             if (keyboard != null && keyboard.jKey.wasPressedThisFrame)
                 DebugHitNearest(false);
+            if (keyboard != null && keyboard.lKey.wasPressedThisFrame)
+                DebugHitNearest(false, true);
             if (keyboard != null && keyboard.f10Key.wasPressedThisFrame)
             {
                 EnemyAgent.DebugNoDamage = !EnemyAgent.DebugNoDamage;
@@ -242,7 +244,11 @@ namespace HrdnLab.FpsWave.Enemies
             new(-0.12f, 0.7f, 0.05f), new(0.12f, 0.7f, 0.05f), new(-0.12f, 0.3f, 0.05f), new(0.12f, 0.3f, 0.05f),
         };
 
-        private void DebugHitNearest(bool kill)
+        private EnemyAgent _debugTarget;
+
+        private int _debugLeg;
+
+        private void DebugHitNearest(bool kill, bool legs = false)
         {
             // Vicino al primo giocatore (la camera del player non è per forza taggata MainCamera).
             List<EnemyTarget> targets = EnemyTarget.Active;
@@ -259,11 +265,20 @@ namespace HrdnLab.FpsWave.Enemies
                 float d = (enemy.transform.position - from).sqrMagnitude;
                 if (d < bestDist) { bestDist = d; best = enemy; bestHealth = health; }
             }
+            // J resta sullo stesso nemico finché è vivo: così gli arti si staccano davvero (danno accumulato).
+            if (_debugTarget != null && _debugTarget.isActiveAndEnabled && !_debugTarget.ClientIsDead
+                && _debugTarget.TryGetComponent(out Health kept) && !kept.IsDead)
+            {
+                best = _debugTarget;
+                bestHealth = kept;
+            }
             if (best == null)
                 return;
-            int pick = kill ? UnityEngine.Random.Range(0, DebugHitPoints.Length) : UnityEngine.Random.Range(3, DebugHitPoints.Length);
+            _debugTarget = kill ? null : best;
+            int pick = legs ? 9 + (_debugLeg++ & 1)
+                : kill ? UnityEngine.Random.Range(0, DebugHitPoints.Length) : UnityEngine.Random.Range(3, DebugHitPoints.Length);
             Vector3 point = best.transform.TransformPoint(DebugHitPoints[pick]);
-            float amount = kill ? 99999f : bestHealth.Max * 0.2f;
+            float amount = kill ? 99999f : bestHealth.Max * (legs ? 0.38f : 0.2f);
             bestHealth.ApplyDamage(new DamageInfo(amount, false, pick == 0, -1, point));
             Debug.Log($"[FpsWave][Server] {(kill ? "K" : "J")}: {best.name} colpito al punto {pick}, arti persi 0x{best.LostLimbs:X}.");
         }

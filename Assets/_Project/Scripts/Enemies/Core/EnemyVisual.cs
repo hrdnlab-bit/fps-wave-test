@@ -27,6 +27,9 @@ namespace HrdnLab.FpsWave.Enemies
         private static readonly int CrawlId = Animator.StringToHash("Crawl");
         private static readonly int LegLostId = Animator.StringToHash("LegLost");
         private static readonly int CrawlLocoId = Animator.StringToHash("Crawl");
+        private static readonly int CrawlDeathId = Animator.StringToHash("CrawlDeath");
+        /// <summary>Velocità normalizzata (velocità / velocità della clip dell'andatura) a cui il blend arriva alla corsa piena.</summary>
+        private const float GaitBlendPoint = 0.4f;
         private static readonly int LocomotionId = Animator.StringToHash("Locomotion");
 
         [SerializeField] private Transform _model;
@@ -38,10 +41,8 @@ namespace HrdnLab.FpsWave.Enemies
         [SerializeField, Min(1f)] private float _animationCullDistance = 45f;
         [Tooltip("Modello con scheletro: corsa, attacco e morte vengono dalle clip (parametri Speed, Attack, Dead).")]
         [SerializeField] private Animator _animator;
-        [Tooltip("Velocità naturale della clip di corsa (m/s): sopra, la clip accelera in proporzione.")]
-        [SerializeField, Min(0.1f)] private float _runClipSpeed = 4f;
-        [SerializeField, Min(0.1f)] private float _run2ClipSpeed = 4f;
-        [SerializeField, Min(0.1f)] private float _run3ClipSpeed = 4f;
+        [Tooltip("Velocità naturale (m/s) della clip di ogni andatura: la clip segue la velocità vera (piedi che non scivolano).")]
+        [SerializeField] private float[] _gaitClipSpeeds = { 4f };
         [SerializeField, Min(0.05f)] private float _crawlClipSpeed = 0.36f;
         [SerializeField, Min(1)] private int _attackVariants = 1;
         [SerializeField, Min(1)] private int _hitVariants = 1;
@@ -50,7 +51,6 @@ namespace HrdnLab.FpsWave.Enemies
         [SerializeField] private EnemyGore _gore;
         private int _variant;
         private bool _crawling;
-        private float _freezeAt = -1f;
         private float _nextHitReact;
         private bool _killReceived;
         private float _deadSince = -1f;
@@ -112,7 +112,6 @@ namespace HrdnLab.FpsWave.Enemies
             _deathBlend = _health.IsDead ? 1f : 0f;
             _killReceived = false;
             _deadSince = -1f;
-            _freezeAt = -1f;
             ushort lost = _agent != null ? _agent.LostLimbs : (ushort)0;
             _crawling = EnemyHitRegions.IsCrippled(lost);
             if (_gore != null)
@@ -125,7 +124,8 @@ namespace HrdnLab.FpsWave.Enemies
             {
                 _animator.enabled = true;
                 _animator.Rebind();
-                _variant = Random.Range(0, 3); // tre corse da zombie veloce
+                // Andatura decisa dal server (la velocità di movimento dipende da questa).
+                _variant = _agent != null ? Mathf.Min(_agent.Gait, _gaitClipSpeeds.Length - 1) : 0;
                 _animator.SetFloat(VariantId, _variant);
                 _animator.SetBool(CrawlId, _crawling);
                 // Sciame non sincronizzato: fase e ritmo un po' diversi per ognuno.
@@ -135,8 +135,8 @@ namespace HrdnLab.FpsWave.Enemies
                     _killReceived = true;
                     if (_crawling)
                     {
-                        _animator.Play(CrawlLocoId, 0, Random.value);
-                        _animator.speed = 0f;
+                        _animator.SetBool(DeadId, true);
+                        _animator.Play(CrawlDeathId, 0, 1f);
                     }
                     else
                     {
@@ -216,8 +216,13 @@ namespace HrdnLab.FpsWave.Enemies
             _animator.enabled = true;
             if (_crawling)
             {
-                // Già a terra: si accascia dov'è (la posa di striscio si ferma un attimo dopo).
-                _freezeAt = Time.time + 0.15f;
+                // Senza gambe il corpo non può restare in piedi: crolla a faccia in giù. Da terra (striscio) si parte quasi
+                // dalla fine della caduta, da in piedi (gambe staccate dal colpo letale) a metà, così cade subito.
+                bool wasCrawling = _animator.GetCurrentAnimatorStateInfo(0).shortNameHash == CrawlLocoId
+                                   || _animator.GetNextAnimatorStateInfo(0).shortNameHash == CrawlLocoId;
+                _animator.SetBool(DeadId, true);
+                // Offset normalizzato nella clip (la clip parte in piedi): 0.78 = già a terra, 0.42 = sta crollando.
+                _animator.CrossFade(CrawlDeathId, 0.15f, 0, wasCrawling ? 0.78f : 0.42f);
                 return;
             }
             _animator.SetInteger(DeathTypeId, deathType);
@@ -254,11 +259,6 @@ namespace HrdnLab.FpsWave.Enemies
             {
                 _animator.enabled = !far;
                 _animator.SetFloat(SpeedId, _speed);
-                if (_freezeAt > 0f && Time.time >= _freezeAt)
-                {
-                    _animator.speed = 0f;
-                    _freezeAt = -1f;
-                }
                 if (_crawling)
                 {
                     // Striscio: la clip segue la velocità (ferma = si trascina piano sul posto).
@@ -266,8 +266,11 @@ namespace HrdnLab.FpsWave.Enemies
                 }
                 else
                 {
-                    float clipSpeed = _variant == 2 ? _run3ClipSpeed : _variant == 1 ? _run2ClipSpeed : _runClipSpeed;
-                    _animator.SetFloat(RunRateId, Mathf.Max(1f, _speed / clipSpeed));
+                    // Blend Idle -> andatura sulla velocità normalizzata, poi la clip segue la velocità vera.
+                    float clipSpeed = _gaitClipSpeeds.Length > 0 ? _gaitClipSpeeds[Mathf.Clamp(_variant, 0, _gaitClipSpeeds.Length - 1)] : 4f;
+                    float norm = _speed / Mathf.Max(0.1f, clipSpeed);
+                    _animator.SetFloat(SpeedId, norm);
+                    _animator.SetFloat(RunRateId, norm < GaitBlendPoint ? 1f : Mathf.Clamp(norm, 0.7f, 1.7f));
                 }
                 // La caduta parte con l'RPC della morte (tipo giusto); se non arriva, dopo un attimo cade comunque.
                 if (dead && _deadSince < 0f)
@@ -321,13 +324,11 @@ namespace HrdnLab.FpsWave.Enemies
             _runSpeedForFullCycle = runSpeedForFullCycle;
         }
 
-        public void EditorSetAnimator(Animator animator, float runClipSpeed, float run2ClipSpeed, float run3ClipSpeed,
+        public void EditorSetAnimator(Animator animator, float[] gaitClipSpeeds,
             float crawlClipSpeed, int attackVariants, int hitVariants, int[] deathVariants, EnemyGore gore)
         {
             _animator = animator;
-            _runClipSpeed = runClipSpeed;
-            _run2ClipSpeed = run2ClipSpeed;
-            _run3ClipSpeed = run3ClipSpeed;
+            _gaitClipSpeeds = gaitClipSpeeds;
             _crawlClipSpeed = crawlClipSpeed;
             _attackVariants = attackVariants;
             _hitVariants = hitVariants;

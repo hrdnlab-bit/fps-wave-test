@@ -416,8 +416,8 @@ Transform:
   m_GameObject: {fileID: 3128760179337919920}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.017226018, y: 0.6778638, z: 0.096431226}
-  m_LocalScale: {x: 0.55, y: 0.57786375, z: 0.45}
+  m_LocalPosition: {x: 0.005522702, y: 0.7659732, z: 0.09838504}
+  m_LocalScale: {x: 0.55, y: 0.6659732, z: 0.45}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2891849265525265338}
@@ -1288,7 +1288,7 @@ Transform:
   m_GameObject: {fileID: 8042410783428535215}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.01563984, y: 1.3907275, z: 0.072368436}
+  m_LocalPosition: {x: -0.017172253, y: 1.5669464, z: 0.1611539}
   m_LocalScale: {x: 0.27, y: 0.27, z: 0.27}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1538,6 +1538,20 @@ MonoBehaviour:
   _dismemberable: 1
   _crawlSpeed: 0.8
   _legLostStun: 1.1
+  _gaitSpeeds:
+  - 6.2
+  - 5
+  - 4.4
+  - 3
+  - 2.8
+  - 2.8
+  _gaitWeights:
+  - 0.24
+  - 0.22
+  - 0.2
+  - 0.12
+  - 0.12
+  - 0.1
 --- !u!114 &82047611274606584
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1562,9 +1576,13 @@ MonoBehaviour:
   _runSpeedForFullCycle: 6
   _animationCullDistance: 45
   _animator: {fileID: 5622307617425580837}
-  _runClipSpeed: 5.07
-  _run2ClipSpeed: 4.65
-  _run3ClipSpeed: 5.07
+  _gaitClipSpeeds:
+  - 5.16
+  - 3.9
+  - 3.24
+  - 2.13
+  - 2.03
+  - 1.95
   _crawlClipSpeed: 0.358
   _attackVariants: 3
   _hitVariants: 2

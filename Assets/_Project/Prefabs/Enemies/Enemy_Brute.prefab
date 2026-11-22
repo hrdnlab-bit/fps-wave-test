@@ -750,6 +750,8 @@ MonoBehaviour:
   _dismemberable: 0
   _crawlSpeed: 0.8
   _legLostStun: 1.1
+  _gaitSpeeds: []
+  _gaitWeights: []
 --- !u!114 &9007639350278287839
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -777,9 +779,8 @@ MonoBehaviour:
   _runSpeedForFullCycle: 3.5
   _animationCullDistance: 45
   _animator: {fileID: 0}
-  _runClipSpeed: 4
-  _run2ClipSpeed: 4
-  _run3ClipSpeed: 4
+  _gaitClipSpeeds:
+  - 4
   _crawlClipSpeed: 0.36
   _attackVariants: 1
   _hitVariants: 1

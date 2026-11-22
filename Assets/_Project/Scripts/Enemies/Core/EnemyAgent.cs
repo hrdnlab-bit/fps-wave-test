@@ -59,6 +59,12 @@ namespace HrdnLab.FpsWave.Enemies
         [Tooltip("Tempo a terra dopo la perdita della gamba prima di strisciare (caduta).")]
         [SerializeField, Min(0f)] private float _legLostStun = 1.1f;
 
+        [Header("Andature (modelli con più corse)")]
+        [Tooltip("Velocità (m/s) di ogni andatura: il server ne sceglie una per nemico. Vuoto = MoveSpeed della scheda.")]
+        [SerializeField] private float[] _gaitSpeeds = System.Array.Empty<float>();
+        [Tooltip("Probabilità relativa di ogni andatura (stessa lunghezza di Gait Speeds).")]
+        [SerializeField] private float[] _gaitWeights = System.Array.Empty<float>();
+
         private static readonly List<EnemyAgent> s_clientActive = new(48);
 
         private NavMeshAgent _agent;
@@ -80,6 +86,8 @@ namespace HrdnLab.FpsWave.Enemies
 
         /// <summary>Arti persi (bit = indice arto di <see cref="EnemyHitRegions"/>, bit 9 testa esplosa). Server-authoritative.</summary>
         private readonly SyncVar<ushort> _lostLimbs = new();
+        /// <summary>Andatura scelta dal server (indice della corsa nel controller): replicata una volta allo spawn.</summary>
+        private readonly SyncVar<byte> _gait = new();
         private readonly float[] _limbDamage = new float[EnemyHitRegions.LimbCount];
         private float _crawlFrom = -1f;
         private Transform _hitboxRoot;
@@ -113,6 +121,7 @@ namespace HrdnLab.FpsWave.Enemies
         public byte ClientDeathType { get; private set; }
         public byte ClientDeathVariant { get; private set; }
         public ushort LostLimbs => _lostLimbs.Value;
+        public byte Gait => _gait.Value;
         public bool IsCrippled => EnemyHitRegions.IsCrippled(_lostLimbs.Value);
         public bool Dismemberable => _dismemberable;
 
@@ -224,6 +233,7 @@ namespace HrdnLab.FpsWave.Enemies
             base.OnStartServer();
             SetHitboxesEnabled(true);
             _lostLimbs.Value = 0;
+            _gait.Value = PickGait();
             System.Array.Clear(_limbDamage, 0, _limbDamage.Length);
             _crawlFrom = -1f;
             ApplyCrippledHitboxes(false);
@@ -269,7 +279,7 @@ namespace HrdnLab.FpsWave.Enemies
 
         private void ApplyAgentSettings()
         {
-            _agent.speed = _definition.MoveSpeed;
+            _agent.speed = _gait.Value < _gaitSpeeds.Length ? _gaitSpeeds[_gait.Value] : _definition.MoveSpeed;
             _agent.acceleration = _definition.Acceleration;
             _agent.angularSpeed = _definition.AngularSpeed;
             _agent.radius = _definition.Radius;
@@ -283,6 +293,23 @@ namespace HrdnLab.FpsWave.Enemies
             _agent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance;
             // Priorità diverse: in un gruppo si superano invece di bloccarsi a vicenda.
             _agent.avoidancePriority = UnityEngine.Random.Range(30, 70);
+        }
+
+        private byte PickGait()
+        {
+            if (_gaitSpeeds.Length == 0)
+                return 0;
+            float total = 0f;
+            for (int i = 0; i < _gaitSpeeds.Length; i++)
+                total += i < _gaitWeights.Length ? Mathf.Max(0f, _gaitWeights[i]) : 1f;
+            float roll = UnityEngine.Random.value * total;
+            for (int i = 0; i < _gaitSpeeds.Length; i++)
+            {
+                roll -= i < _gaitWeights.Length ? Mathf.Max(0f, _gaitWeights[i]) : 1f;
+                if (roll <= 0f)
+                    return (byte)i;
+            }
+            return (byte)(_gaitSpeeds.Length - 1);
         }
 
         /// <summary>Un passo dell'AI (solo server). Chiamato dal director quando <see cref="NextThink"/> è scaduto.</summary>
@@ -662,6 +689,12 @@ namespace HrdnLab.FpsWave.Enemies
         public void EditorSetCorpseSeconds(float seconds) => _corpseSeconds = seconds;
 
         public void EditorSetDismemberable(bool value) => _dismemberable = value;
+
+        public void EditorSetGaits(float[] speeds, float[] weights)
+        {
+            _gaitSpeeds = speeds ?? System.Array.Empty<float>();
+            _gaitWeights = weights ?? System.Array.Empty<float>();
+        }
 #endif
     }
 }
