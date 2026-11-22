@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
-using HrdnLab.FpsWave.Audio;
 using HrdnLab.FpsWave.Combat;
 using HrdnLab.FpsWave.UI;
 using HrdnLab.FpsWave.Weapons;
@@ -243,15 +242,9 @@ namespace HrdnLab.FpsWave.Player
         private void RpcRevived(int helperClientId)
         {
             if (IsOwner)
-            {
-                GameAudio.Play2D(SoundId.ReviveDone);
                 SuitCallouts.Raise("VITALS RESTORED", CalloutKind.Positive);
-            }
             else if (helperClientId >= 0 && LocalPlayer != null && LocalPlayer.OwnerId == helperClientId)
-            {
-                GameAudio.Play2D(SoundId.ReviveDone);
                 SuitCallouts.Raise("OPERATOR REVIVED", CalloutKind.Positive);
-            }
         }
 
         // ---------------------------------------------------------------- Tutti
@@ -273,15 +266,7 @@ namespace HrdnLab.FpsWave.Player
                 return; // sull'host si gestisce una volta sola, dal lato client
             if (next == (byte)LifeState.Downed && previous == (byte)LifeState.Up)
             {
-                if (IsOwner)
-                {
-                    GameAudio.Play2D(SoundId.Downed);
-                    SuitCallouts.Raise("VITALS CRITICAL // YOU ARE DOWN", CalloutKind.Warning);
-                }
-                else
-                {
-                    SuitCallouts.Raise("OPERATOR DOWN", CalloutKind.Warning);
-                }
+                SuitCallouts.Raise(IsOwner ? "VITALS CRITICAL // YOU ARE DOWN" : "OPERATOR DOWN", CalloutKind.Warning);
             }
         }
 
@@ -313,8 +298,6 @@ namespace HrdnLab.FpsWave.Player
                 _nextReviveSend = Time.time + 0.15f;
                 RpcReviveHold(_reviveTarget);
             }
-            if (holding && !_wasHolding)
-                GameAudio.Play2D(SoundId.ReviveTick);
             _wasHolding = holding;
         }
 

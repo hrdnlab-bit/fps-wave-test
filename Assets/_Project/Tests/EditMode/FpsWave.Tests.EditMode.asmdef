@@ -4,8 +4,7 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "FpsWave.Runtime",
-        "FpsWave.Editor"
+        "FpsWave.Runtime"
     ],
     "includePlatforms": [
         "Editor"

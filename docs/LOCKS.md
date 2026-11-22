@@ -13,8 +13,7 @@ Regole:
 | `Assets/_Project/Prefabs/Player.prefab` | Matteo | `matteo/phase1-suit-brute` | 2026-11-22 | aggiunti SuitAbilities, PlayerLife, PlayerPing (Setup/6) |
 | `Assets/_Project/Prefabs/Enemies/**`, `Data/Enemies/**`, `Assets/DefaultPrefabObjects.asset` | Matteo | `matteo/phase1-suit-brute` | 2026-11-22 | Brute (piastre, nucleo, carica) |
 | `Assets/_Project/Scenes/Greybox.unity` | Matteo | `matteo/phase1-suit-brute` | 2026-11-22 | rigenerata da Setup/6 |
-| `Assets/_Project/Data/Weapons/**` | Matteo | `matteo/phase1-suit-brute` | 2026-11-22 | suoni dello sparo per arma (Setup/8) |
-| `Assets/_Project/Resources/**`, `Assets/ThirdParty/Audio/**`, `ThirdParty/_Own/Audio/**` | Matteo | `matteo/phase1-suit-brute` | 2026-11-22 | libreria dei suoni (Setup/9) |
+| `Assets/_Project/Data/Weapons/**` | Matteo | `matteo/phase1-suit-brute` | 2026-11-22 | profili rigenerati da Setup/8 |
 | Area interfaccia (`Scripts/UI/`) | Matteo | `matteo/m2-runner` | 2026-11-21 | HUD e menu nuovi; avvisare Manuel prima dell'overlay di debug (M0b) |
 | Area sensazione armi (`Scripts/Weapons/Feel/`) | Matteo | `matteo/m2-runner` | 2026-11-21 | nuova; tocca `PlayerWeapons`, `PlayerLook`, `ShotFxPool` (area di Manuel) |
 | Area nemici / spawn / wave (`Scripts/Enemies/`) | Matteo | `matteo/m2-runner` | 2026-11-21 | area dichiarata |

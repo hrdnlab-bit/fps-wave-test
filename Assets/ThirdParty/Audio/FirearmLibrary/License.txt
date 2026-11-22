@@ -1,3 +1,0 @@
-The Free Firearm Sound Library - Ben Jaszczak, Brian Nelson, Kevin Heras, Matthew Nanney.
-License: CC0 1.0 (no rights reserved). Source: https://opengameart.org/content/the-free-firearm-sound-library
-Files: AR-15 D_32P (near) / D_24P (mid), Walther PPQ X_39P (near) / X_31P (mid), renamed.

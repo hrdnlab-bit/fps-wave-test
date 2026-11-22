@@ -64,12 +64,6 @@ namespace HrdnLab.FpsWave.Weapons
         [Header("Sensazione (cosmetica: rinculo, molle, oscillazioni, energia, calore)")]
         [SerializeField] private WeaponFeel _feel = new();
 
-        [Header("Suoni")]
-        [Tooltip("Sparo sentito da chi spara (in testa).")]
-        [SerializeField] private HrdnLab.FpsWave.Audio.SoundId _fireSoundClose = HrdnLab.FpsWave.Audio.SoundId.RifleShotClose;
-        [Tooltip("Sparo sentito dagli altri (nel mondo, con la distanza).")]
-        [SerializeField] private HrdnLab.FpsWave.Audio.SoundId _fireSoundFar = HrdnLab.FpsWave.Audio.SoundId.RifleShotFar;
-
         public string Id => _id;
         public string DisplayName => _displayName;
         public WeaponSlot Slot => _slot;
@@ -121,15 +115,8 @@ namespace HrdnLab.FpsWave.Weapons
 
         /// <summary>Usato da <c>WeaponViewModelBuilder</c> per collegare il modello realistico.</summary>
         public WeaponFeel Feel => _feel ??= new WeaponFeel();
-        public HrdnLab.FpsWave.Audio.SoundId FireSoundClose => _fireSoundClose;
-        public HrdnLab.FpsWave.Audio.SoundId FireSoundFar => _fireSoundFar;
 
         public void EditorSetFeel(WeaponFeel feel) => _feel = feel;
-        public void EditorSetSounds(HrdnLab.FpsWave.Audio.SoundId close, HrdnLab.FpsWave.Audio.SoundId far)
-        {
-            _fireSoundClose = close;
-            _fireSoundFar = far;
-        }
 
         public void EditorSetViewModel(GameObject prefab, Vector3 hipOffset, Vector3 adsOffset)
         {

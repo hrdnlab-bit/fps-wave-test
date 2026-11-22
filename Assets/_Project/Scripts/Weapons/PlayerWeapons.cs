@@ -1,7 +1,6 @@
 using System;
 using FishNet.Connection;
 using FishNet.Object;
-using HrdnLab.FpsWave.Audio;
 using HrdnLab.FpsWave.Combat;
 using HrdnLab.FpsWave.Core;
 using HrdnLab.FpsWave.Player;
@@ -331,7 +330,6 @@ namespace HrdnLab.FpsWave.Weapons
             Vector3 muzzle = _muzzle != null ? _muzzle.position : origin;
             if (state.Definition.Automatic && _localTracerCounter++ % 3 == 0)
                 _fx?.Tracer(muzzle, end, state.Definition.Feel.MuzzleColor);
-            GameAudio.Play2D(state.Definition.FireSoundClose);
             if (hitSomething)
             {
                 // Sui personaggi niente segno permanente: resterebbe sospeso in aria quando il nemico si muove o sparisce.
@@ -342,15 +340,10 @@ namespace HrdnLab.FpsWave.Weapons
                         _fx?.SparkImpact(hit.point, hit.normal);
                     else
                         _fx?.FleshImpact(hit.point, hit.normal);
-                    if (plate)
-                        GameAudio.PlayAt(SoundId.ArmorPlateHit, hit.point);
-                    else if (!zone.Owner.IsDead)
-                        GameAudio.Play2D(SoundId.HitMarker); // tick immediato (predetto), i suoni speciali arrivano con la conferma
                 }
                 else
                 {
                     _fx?.Impact(hit.point, hit.normal);
-                    GameAudio.PlayAt(SoundId.ImpactSurface, hit.point, 0.8f);
                 }
             }
             if (_feel != null)
@@ -604,16 +597,8 @@ namespace HrdnLab.FpsWave.Weapons
             else if (HitConfirm.Has(flags, HitFlags.Critical))
                 LocalHitMarker?.Invoke(HitMarkerType.Critical);
 
-            if (HitConfirm.Has(flags, HitFlags.Kill))
-                GameAudio.Play2D(SoundId.KillConfirm);
-            else if (HitConfirm.Has(flags, HitFlags.ArmorBreak))
-            {
-                GameAudio.Play2D(SoundId.ArmorPlateBreak);
-                HrdnLab.FpsWave.UI.SuitCallouts.Show("ARMOR BREACHED // WEAK POINT EXPOSED", HrdnLab.FpsWave.UI.CalloutKind.Positive);
-            }
-            else if (!HitConfirm.Has(flags, HitFlags.ArmorHit)
-                     && (HitConfirm.Has(flags, HitFlags.Weakspot) || HitConfirm.Has(flags, HitFlags.Critical)))
-                GameAudio.Play2D(SoundId.HitMarkerPrecision);
+            if (!HitConfirm.Has(flags, HitFlags.Kill) && HitConfirm.Has(flags, HitFlags.ArmorBreak))
+                HrdnLab.FpsWave.UI.SuitCallouts.Raise("ARMOR BREACHED // WEAK POINT EXPOSED", HrdnLab.FpsWave.UI.CalloutKind.Positive);
             LocalHitConfirmed?.Invoke(point, damage, flags);
         }
 
@@ -627,9 +612,6 @@ namespace HrdnLab.FpsWave.Weapons
             Color energy = weaponIndex < _loadout.Length && _loadout[weaponIndex] != null
                 ? _loadout[weaponIndex].Feel.MuzzleColor : Color.white;
             _fx.Tracer(start, end, energy); // anche gli altri vedono il colore dell'arma
-            if (weaponIndex < _loadout.Length && _loadout[weaponIndex] != null)
-                GameAudio.PlayAt(_loadout[weaponIndex].FireSoundFar, origin);
-            GameAudio.PlayAt(SoundId.ImpactSurface, end, 0.6f);
         }
 
 #if UNITY_EDITOR

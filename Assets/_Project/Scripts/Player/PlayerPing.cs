@@ -1,6 +1,5 @@
 using System;
 using FishNet.Object;
-using HrdnLab.FpsWave.Audio;
 using HrdnLab.FpsWave.Core;
 using HrdnLab.FpsWave.Enemies;
 using UnityEngine;
@@ -75,7 +74,6 @@ namespace HrdnLab.FpsWave.Player
         [ObserversRpc]
         private void RpcBroadcast(int pingerId, Vector3 point, NetworkObject target)
         {
-            GameAudio.Play2D(SoundId.Ping);
             ClientPinged?.Invoke(new PingInfo(pingerId, point, target, IsOwner));
         }
     }

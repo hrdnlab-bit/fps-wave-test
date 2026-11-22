@@ -8,7 +8,7 @@ namespace HrdnLab.FpsWave.Enemies
     /// <summary>
     /// Corazza a piastre di un nemico, autorevole sul server: salute di ogni piastra solo sul server,
     /// piastre rotte replicate in una maschera di bit (un byte, max 8 piastre). Ai client arriva solo il cambio di maschera:
-    /// nascondono la piastra, spengono il suo collider e fanno partire detriti e suono.
+    /// nascondono la piastra, spengono il suo collider e fanno partire i detriti.
     /// Riutilizzata dal pool: tutto torna intero in <see cref="OnStartServer"/>.
     /// </summary>
     [RequireComponent(typeof(Health))]

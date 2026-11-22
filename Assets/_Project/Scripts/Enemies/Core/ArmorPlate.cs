@@ -1,4 +1,3 @@
-using HrdnLab.FpsWave.Audio;
 using HrdnLab.FpsWave.Combat;
 using UnityEngine;
 
@@ -6,7 +5,7 @@ namespace HrdnLab.FpsWave.Enemies
 {
     /// <summary>
     /// Piastra di corazza su un nemico (figlio con <see cref="HitZone"/>): finché è intera assorbe quasi tutto il danno
-    /// (ne passa solo una parte al corpo); rotta, sparisce con detriti e suono e scopre ciò che c'è sotto
+    /// (ne passa solo una parte al corpo); rotta, sparisce con detriti e scopre ciò che c'è sotto
     /// (di solito un punto debole luminoso). Stato e salute delle piastre li tiene <see cref="EnemyArmor"/>.
     /// </summary>
     [RequireComponent(typeof(HitZone))]
@@ -36,12 +35,11 @@ namespace HrdnLab.FpsWave.Enemies
                 Zone.Collider.enabled = !broken;
         }
 
-        /// <summary>Client: effetto di rottura (detriti, suono). Le dimensioni dei detriti seguono la piastra.</summary>
+        /// <summary>Client: effetto di rottura (detriti). Le dimensioni dei detriti seguono la piastra.</summary>
         public void PlayBreakFx()
         {
             Vector3 size = transform.lossyScale;
             ArmorDebris.Burst(transform.position, transform.forward, Mathf.Max(size.x, size.y), _debrisColor);
-            GameAudio.PlayAt(SoundId.ArmorPlateBreak, transform.position);
         }
 
 #if UNITY_EDITOR

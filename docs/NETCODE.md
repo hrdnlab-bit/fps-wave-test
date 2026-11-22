@@ -66,6 +66,5 @@ Co-op PvE tra amici: l'obiettivo è **reattività locale** e **economia autorevo
 - `PlayerLife` (Player): stato `SyncVar<byte>`, avanzamento della rianimazione e tempo rimasto `SyncVar<float>` (il tempo a 4 Hz). Chi rianima manda `ServerRpc(PlayerLife)` ogni 0.15 s mentre tiene premuto; il server controlla distanza e stato.
 - `PlayerPing`: `ServerRpc(Vector3, NetworkObject)` limitato dal server, poi `ObserversRpc` a tutti (≈20 byte per ping).
 - `EnemyArmor` (Brute): salute delle piastre solo sul server, piastre rotte in una `SyncVar<byte>` (maschera); la conferma colpo porta due flag in più (`ArmorHit`, `ArmorBreak`).
-- `BruteCharge`: solo server (movimento con `NavMeshAgent.Move`), due `ObserversRpc` cosmetici (preparazione, impatto) e un `TargetRpc` al proprietario colpito per lo spintone (`PlayerMotor.TargetKnockback`). La tolleranza della validazione colpi usa la velocità di carica (`IEnemyAbility.ServerSpeedOverride`).
-- Suoni: solo locali; gli spari degli altri partono da `RpcShotFx` già esistente.
+- `BruteCharge`: solo server (movimento con `NavMeshAgent.Move`), un `ObserversRpc` cosmetico (preparazione) e un `TargetRpc` al proprietario colpito per lo spintone (`PlayerMotor.TargetKnockback`). La tolleranza della validazione colpi usa la velocità di carica (`IEnemyAbility.ServerSpeedOverride`).
 - Protocollo di rete alla versione 3.

@@ -1,7 +1,6 @@
 using System;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
-using HrdnLab.FpsWave.Audio;
 using HrdnLab.FpsWave.Combat;
 using HrdnLab.FpsWave.Enemies;
 using HrdnLab.FpsWave.UI;
@@ -21,7 +20,7 @@ namespace HrdnLab.FpsWave.Player
     /// - Overcharge (V): scatto, sprint più veloce per qualche secondo;
     /// - Armor mode (F): danni subiti ridotti, movimento un po' più lento;
     /// - Pulse scan (Q): rivela a tutta la squadra i nemici nel raggio, anche dietro i muri.
-    /// Il client chiede, il server valida (vivo, energia, ricarica) e avvisa tutti con un RPC (suoni, scansione).
+    /// Il client chiede, il server valida (vivo, energia, ricarica) e avvisa tutti con un RPC (scansione, messaggi).
     /// Gestisce anche lo scudo temporaneo dato dalla rianimazione (<see cref="ServerGrantShield"/>).
     /// I valori si ritoccano qui; più avanti le mod potranno modificarli tramite StatBlock.
     /// </summary>
@@ -163,8 +162,7 @@ namespace HrdnLab.FpsWave.Player
 
         private static void Deny(string message)
         {
-            GameAudio.Play2D(SoundId.AbilityDenied);
-            SuitCallouts.Show(message, CalloutKind.Warning);
+            SuitCallouts.Raise(message, CalloutKind.Warning);
         }
 
         // ---------------------------------------------------------------- Server
@@ -242,17 +240,6 @@ namespace HrdnLab.FpsWave.Player
         private void RpcActivated(byte abilityByte, Vector3 position)
         {
             var ability = (SuitAbility)abilityByte;
-            SoundId sound = ability switch
-            {
-                SuitAbility.Overcharge => SoundId.AbilityOvercharge,
-                SuitAbility.ArmorMode => SoundId.AbilityArmor,
-                _ => SoundId.AbilityScan,
-            };
-            if (IsOwner)
-                GameAudio.Play2D(sound);
-            else
-                GameAudio.PlayAt(sound, position);
-
             if (ability != SuitAbility.PulseScan)
             {
                 if (IsOwner)

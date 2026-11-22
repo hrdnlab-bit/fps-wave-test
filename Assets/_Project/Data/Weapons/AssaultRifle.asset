@@ -82,5 +82,3 @@ MonoBehaviour:
     HeatDecay: 0.45
     HeatDecayDelay: 0.25
     MuzzleLightIntensity: 5
-  _fireSoundClose: 1
-  _fireSoundFar: 2

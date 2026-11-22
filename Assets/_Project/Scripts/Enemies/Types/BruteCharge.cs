@@ -1,6 +1,5 @@
 using System;
 using FishNet.Object;
-using HrdnLab.FpsWave.Audio;
 using HrdnLab.FpsWave.Combat;
 using HrdnLab.FpsWave.Core;
 using HrdnLab.FpsWave.Player;
@@ -11,7 +10,7 @@ namespace HrdnLab.FpsWave.Enemies
 {
     /// <summary>
     /// Carica del Brute (solo server, il resto dell'AI resta quella di <see cref="EnemyAgent"/>):
-    /// a media distanza e con il bersaglio in vista si ferma, si prepara (telegrafata a tutti con suono e affondo),
+    /// a media distanza e con il bersaglio in vista si ferma, si prepara (telegrafata a tutti con l'affondo all'indietro),
     /// poi carica in linea retta sul NavMesh. Chi viene preso subisce un colpo pesante e uno spintone;
     /// contro un muro la carica si interrompe. Dopo la carica resta fermo un attimo (finestra per i punti deboli).
     /// </summary>
@@ -127,17 +126,17 @@ namespace HrdnLab.FpsWave.Enemies
                     Vector3 position = transform.position;
                     if (NavMesh.Raycast(position, position + move * 3f, out _, NavMesh.AllAreas))
                     {
-                        EndCharge(now, true); // muro o bordo: si ferma contro l'ostacolo
+                        EndCharge(now); // muro o bordo: si ferma contro l'ostacolo
                         break;
                     }
                     _nav.Move(move);
                     if (TryHitPlayer(position))
                     {
-                        EndCharge(now, true);
+                        EndCharge(now);
                         break;
                     }
                     if (now >= _phaseEnd)
-                        EndCharge(now, false);
+                        EndCharge(now);
                     break;
 
                 case Phase.Recover:
@@ -171,23 +170,15 @@ namespace HrdnLab.FpsWave.Enemies
             return false;
         }
 
-        private void EndCharge(float now, bool impact)
+        private void EndCharge(float now)
         {
             _phase = Phase.Recover;
             _phaseEnd = now + _recover;
             _nav.velocity = Vector3.zero;
-            if (impact)
-                RpcImpact(transform.position + _direction);
+
         }
 
         [ObserversRpc]
-        private void RpcWindup()
-        {
-            GameAudio.PlayAt(SoundId.BruteWindup, transform.position);
-            ClientWindup?.Invoke();
-        }
-
-        [ObserversRpc]
-        private void RpcImpact(Vector3 position) => GameAudio.PlayAt(SoundId.BruteChargeImpact, position);
+        private void RpcWindup() => ClientWindup?.Invoke();
     }
 }
