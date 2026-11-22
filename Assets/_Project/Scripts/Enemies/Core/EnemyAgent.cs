@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using FishNet.Object;
+using FishNet.Object.Synchronizing;
 using HrdnLab.FpsWave.Combat;
 using HrdnLab.FpsWave.Core;
 using UnityEngine;
@@ -50,6 +51,14 @@ namespace HrdnLab.FpsWave.Enemies
         [SerializeField, Min(1f)] private float _stuckRecycleSeconds = 8f;
         [SerializeField, Min(0f)] private float _corpseSeconds = 0.6f;
 
+        [Header("Smembramento (solo modelli con scheletro)")]
+        [Tooltip("Arti staccabili a colpi, morte diversa per parte colpita. Spento per i nemici greybox/corazzati (Brute).")]
+        [SerializeField] private bool _dismemberable;
+        [Tooltip("Velocità strisciando dopo aver perso una gamba (m/s).")]
+        [SerializeField, Min(0.1f)] private float _crawlSpeed = 0.8f;
+        [Tooltip("Tempo a terra dopo la perdita della gamba prima di strisciare (caduta).")]
+        [SerializeField, Min(0f)] private float _legLostStun = 1.1f;
+
         private static readonly List<EnemyAgent> s_clientActive = new(48);
 
         private NavMeshAgent _agent;
@@ -69,6 +78,15 @@ namespace HrdnLab.FpsWave.Enemies
         private float _stuckTime;
         private float _despawnAt = -1f;
 
+        /// <summary>Arti persi (bit = indice arto di <see cref="EnemyHitRegions"/>, bit 9 testa esplosa). Server-authoritative.</summary>
+        private readonly SyncVar<ushort> _lostLimbs = new();
+        private readonly float[] _limbDamage = new float[EnemyHitRegions.LimbCount];
+        private float _crawlFrom = -1f;
+        private Transform _hitboxRoot;
+        private Vector3 _hitboxRootPos;
+        private Quaternion _hitboxRootRot;
+        private Vector2 _bodyCenter;
+
         /// <summary>Client: il nemico ha colpito (evento cosmetico per l'affondo).</summary>
         public event Action ClientAttacked;
 
@@ -79,12 +97,24 @@ namespace HrdnLab.FpsWave.Enemies
 
         /// <summary>
         /// Morte vista dai client: punto del colpo letale e direzione del tiro nello spazio locale del nemico,
-        /// tipo di caduta (0 indietro, 1 in avanti, 2 colpo alla testa). Solo cosmetico (animazione, smembramento).
+        /// tipo di caduta (EnemyHitRegions.Death*) e variante a caso. Solo cosmetico (animazione, smembramento).
+        /// La maschera degli arti arriva insieme (vedi <see cref="ClientLimbsChanged"/>).
         /// </summary>
-        public event Action<Vector3, Vector3, byte> ClientKilled;
+        public event Action<Vector3, Vector3, byte, byte> ClientKilled;
 
-        /// <summary>Tipo di caduta dell'ultima morte ricevuta (per i client che arrivano dopo l'RPC).</summary>
+        /// <summary>
+        /// Client: arti persi cambiati (maschera completa, punto e direzione locali del colpo, con effetti).
+        /// Arriva con gli RPC di taglio e di morte: chi lo ascolta applica solo i bit nuovi.
+        /// Chi entra dopo legge <see cref="LostLimbs"/> in OnStartClient e li applica in silenzio.
+        /// </summary>
+        public event Action<ushort, Vector3, Vector3, bool> ClientLimbsChanged;
+
+        /// <summary>Tipo e variante dell'ultima morte ricevuta (per i client che arrivano dopo l'RPC).</summary>
         public byte ClientDeathType { get; private set; }
+        public byte ClientDeathVariant { get; private set; }
+        public ushort LostLimbs => _lostLimbs.Value;
+        public bool IsCrippled => EnemyHitRegions.IsCrippled(_lostLimbs.Value);
+        public bool Dismemberable => _dismemberable;
 
         /// <summary>Client: nemici in gioco (per la scansione della tuta e i ping). Iterare con l'indice, niente allocazioni.</summary>
         public static List<EnemyAgent> ClientActive => s_clientActive;
@@ -118,8 +148,26 @@ namespace HrdnLab.FpsWave.Enemies
             for (int i = 0; i < _hitboxes.Length; i++)
                 _hitboxes[i] = _health.GetZone(i) != null ? _health.GetZone(i).Collider : null;
 
+            if (_hitboxes.Length > 0 && _hitboxes[0] != null)
+            {
+                _hitboxRoot = _hitboxes[0].transform.parent;
+                Vector3 c = _hitboxes[0].transform.localPosition;
+                _bodyCenter = new Vector2(c.x, c.z);
+            }
+            if (_hitboxRoot != null && _hitboxRoot != transform)
+            {
+                _hitboxRootPos = _hitboxRoot.localPosition;
+                _hitboxRootRot = _hitboxRoot.localRotation;
+            }
+            else
+            {
+                _hitboxRoot = null;
+            }
+
             _health.ServerDied += HandleServerDied;
+            _health.ServerDamaged += HandleServerDamaged;
             _health.ClientHealthChanged += HandleClientHealthChanged;
+            _lostLimbs.OnChange += HandleLostLimbsChanged;
         }
 
         private void OnDestroy()
@@ -127,8 +175,10 @@ namespace HrdnLab.FpsWave.Enemies
             if (_health != null)
             {
                 _health.ServerDied -= HandleServerDied;
+                _health.ServerDamaged -= HandleServerDamaged;
                 _health.ClientHealthChanged -= HandleClientHealthChanged;
             }
+            _lostLimbs.OnChange -= HandleLostLimbsChanged;
             s_clientActive.Remove(this);
         }
 
@@ -144,6 +194,7 @@ namespace HrdnLab.FpsWave.Enemies
             if (!s_clientActive.Contains(this))
                 s_clientActive.Add(this);
             SetHitboxesEnabled(!_health.IsDead);
+            ApplyCrippledHitboxes(IsCrippled);
         }
 
         /// <summary>
@@ -172,6 +223,10 @@ namespace HrdnLab.FpsWave.Enemies
         {
             base.OnStartServer();
             SetHitboxesEnabled(true);
+            _lostLimbs.Value = 0;
+            System.Array.Clear(_limbDamage, 0, _limbDamage.Length);
+            _crawlFrom = -1f;
+            ApplyCrippledHitboxes(false);
             ApplyAgentSettings();
             _agent.enabled = true;
             _agent.Warp(transform.position);
@@ -237,6 +292,20 @@ namespace HrdnLab.FpsWave.Enemies
             _lastThink = now;
             if (_state == EnemyState.Dead)
                 return;
+
+            // Appena persa una gamba: a terra un attimo (caduta), poi striscia piano.
+            if (_crawlFrom >= 0f)
+            {
+                if (now < _crawlFrom)
+                {
+                    _nextThink = now + _thinkIntervalNear;
+                    return;
+                }
+                _crawlFrom = -1f;
+                _agent.speed = _crawlSpeed;
+                _agent.isStopped = false;
+                _hasDestination = false;
+            }
 
             if (!_agent.isOnNavMesh)
             {
@@ -423,16 +492,18 @@ namespace HrdnLab.FpsWave.Enemies
         private void RpcAttacked() => ClientAttacked?.Invoke();
 
         [ObserversRpc]
-        private void RpcKilled(Vector3 localPoint, Vector3 localDir, byte deathType)
+        private void RpcKilled(Vector3 localPoint, Vector3 localDir, byte deathType, byte variant, ushort mask)
         {
             ClientDeathType = deathType;
-            ClientKilled?.Invoke(localPoint, localDir, deathType);
+            ClientDeathVariant = variant;
+            // Prima gli arti (con effetti), poi la caduta: la SyncVar potrebbe arrivare dopo l'RPC.
+            ClientLimbsChanged?.Invoke(mask, localPoint, localDir, true);
+            ClientKilled?.Invoke(localPoint, localDir, deathType, variant);
         }
 
-        private void HandleServerDied(Health health, DamageInfo info)
+        /// <summary>Direzione del tiro (dal giocatore che ha sparato, se lo troviamo; altrimenti dal davanti), in spazio mondo.</summary>
+        private Vector3 ShotDirection(in DamageInfo info)
         {
-            // Da dove arrivava il colpo: dal giocatore che ha sparato, se lo troviamo; altrimenti dal davanti.
-            Vector3 shotDir = -transform.forward;
             foreach (HrdnLab.FpsWave.Player.PlayerLife life in HrdnLab.FpsWave.Player.PlayerLife.All)
             {
                 if (life != null && life.OwnerId == info.AttackerClientId)
@@ -440,16 +511,137 @@ namespace HrdnLab.FpsWave.Enemies
                     Vector3 d = info.Point - life.transform.position;
                     d.y *= 0.3f;
                     if (d.sqrMagnitude > 0.01f)
-                        shotDir = d.normalized;
+                        return d.normalized;
                     break;
                 }
             }
+            return -transform.forward;
+        }
+
+        /// <summary>Parte colpita, nello spazio "in piedi" delle hitbox (vale anche quando striscia, con le hitbox ruotate).</summary>
+        private HitRegion ClassifyHit(in DamageInfo info)
+        {
+            Transform space = _hitboxRoot != null ? _hitboxRoot : transform;
+            Vector3 p = space.InverseTransformPoint(info.Point);
+            p.x -= _bodyCenter.x;
+            p.z -= _bodyCenter.y;
+            HitRegion region = EnemyHitRegions.Classify(p, info.IsWeakspot, _definition != null ? _definition.Height : 1.8f);
+            // Un arto già perso non si ricolpisce: il colpo va al busto.
+            if (region != HitRegion.Head && EnemyHitRegions.IsLost(_lostLimbs.Value, EnemyHitRegions.LimbIndex(region)))
+                region = HitRegion.Body;
+            return region;
+        }
+
+        /// <summary>Server, a ogni colpo (prima della morte): accumula il danno sull'arto e lo stacca oltre la soglia.</summary>
+        private void HandleServerDamaged(Health health, DamageInfo info)
+        {
+            if (!_dismemberable || _state == EnemyState.Dead)
+                return;
+            HitRegion region = ClassifyHit(info);
+            int limb = EnemyHitRegions.LimbIndex(region);
+            if (limb <= 0) // busto o testa: nessun arto da vivo
+                return;
+            _limbDamage[limb] += info.Amount * health.ServerDamageScale;
+            if (health.IsDead)
+                return; // il colpo letale lo decide HandleServerDied
+            float threshold = EnemyHitRegions.SeverThreshold(region) * health.Max;
+            if (_limbDamage[limb] >= threshold)
+                ServerSever(limb, info);
+        }
+
+        private void ServerSever(int limb, in DamageInfo info)
+        {
+            ushort before = _lostLimbs.Value;
+            ushort after = (ushort)(before | (1 << limb));
+            if (after == before)
+                return;
+            _lostLimbs.Value = after;
+            RpcSevered(after, transform.InverseTransformPoint(info.Point), transform.InverseTransformDirection(ShotDirection(info)));
+            if (!EnemyHitRegions.IsCrippled(before) && EnemyHitRegions.IsCrippled(after))
+            {
+                // Senza una gamba: cade e striscia, hitbox basse (stessa posa sui client, dalla maschera).
+                ApplyCrippledHitboxes(true);
+                _crawlFrom = Time.time + _legLostStun;
+                if (_agent.enabled && _agent.isOnNavMesh)
+                {
+                    _agent.isStopped = true;
+                    _agent.velocity = Vector3.zero;
+                }
+                ReleaseSlot();
+                if (_state == EnemyState.Attack)
+                    _state = EnemyState.Chase;
+            }
+        }
+
+        [ObserversRpc]
+        private void RpcSevered(ushort mask, Vector3 localPoint, Vector3 localDir) =>
+            ClientLimbsChanged?.Invoke(mask, localPoint, localDir, true);
+
+        private void HandleLostLimbsChanged(ushort previous, ushort next, bool asServer)
+        {
+            if (asServer && IsClientInitialized)
+                return; // l'host lo riceve anche come client
+            // Solo le hitbox: gli arti si staccano con gli RPC (con effetti), chi arriva dopo li applica in OnStartClient.
+            ApplyCrippledHitboxes(EnemyHitRegions.IsCrippled(next));
+        }
+
+        /// <summary>
+        /// Strisciando le hitbox si sdraiano in avanti (busto lungo +Z a terra, testa davanti), uguali su server e client.
+        /// </summary>
+        private void ApplyCrippledHitboxes(bool crippled)
+        {
+            if (_hitboxRoot == null)
+                return;
+            if (crippled)
+            {
+                _hitboxRoot.localRotation = _hitboxRootRot * Quaternion.Euler(78f, 0f, 0f);
+                _hitboxRoot.localPosition = _hitboxRootPos + new Vector3(0f, 0.28f, -0.15f);
+            }
+            else
+            {
+                _hitboxRoot.localRotation = _hitboxRootRot;
+                _hitboxRoot.localPosition = _hitboxRootPos;
+            }
+        }
+
+        private void HandleServerDied(Health health, DamageInfo info)
+        {
+            Vector3 shotDir = ShotDirection(info);
             Vector3 localPoint = transform.InverseTransformPoint(info.Point);
             Vector3 localDir = transform.InverseTransformDirection(shotDir);
-            byte deathType = info.IsWeakspot ? (byte)2
-                : localPoint.y < 0.85f ? (byte)1          // gambe: crolla in avanti
-                : localDir.z > 0f ? (byte)1 : (byte)0;     // colpito da dietro: avanti; dal davanti: indietro
-            RpcKilled(localPoint, localDir, deathType);
+            byte deathType;
+            ushort mask = _lostLimbs.Value;
+            if (_dismemberable)
+            {
+                HitRegion region = ClassifyHit(info);
+                int limb = EnemyHitRegions.LimbIndex(region);
+                float roll = UnityEngine.Random.value;
+                if (region == HitRegion.Head)
+                {
+                    // Colpo alla testa letale: di solito esplode, a volte vola via intera, a volte resta.
+                    if (roll < 0.65f)
+                        mask |= (1 << 0) | (1 << EnemyHitRegions.HeadExplodedBit);
+                    else if (roll < 0.85f)
+                        mask |= 1 << 0;
+                }
+                else if (limb > 0)
+                {
+                    // Arto: si stacca se già malridotto, altrimenti a volte. Busto: mai.
+                    float threshold = EnemyHitRegions.SeverThreshold(region) * health.Max;
+                    if (_limbDamage[limb] >= threshold * 0.5f || UnityEngine.Random.value < 0.55f)
+                        mask |= (ushort)(1 << limb);
+                }
+                deathType = EnemyHitRegions.ChooseDeathType(region, localDir, UnityEngine.Random.value);
+                if (mask != _lostLimbs.Value)
+                    _lostLimbs.Value = mask;
+            }
+            else
+            {
+                deathType = info.IsWeakspot ? EnemyHitRegions.DeathHeadFront
+                    : localDir.z > 0f ? EnemyHitRegions.DeathForward : EnemyHitRegions.DeathBack;
+            }
+            RpcKilled(localPoint, localDir, deathType, (byte)UnityEngine.Random.Range(0, 256), mask);
+            _crawlFrom = -1f;
 
             ReleaseSlot();
             SetHitboxesEnabled(false);
@@ -468,6 +660,8 @@ namespace HrdnLab.FpsWave.Enemies
 
         /// <summary>Tempo a terra prima del riciclo (più lungo con l'animazione di morte del modello vero).</summary>
         public void EditorSetCorpseSeconds(float seconds) => _corpseSeconds = seconds;
+
+        public void EditorSetDismemberable(bool value) => _dismemberable = value;
 #endif
     }
 }

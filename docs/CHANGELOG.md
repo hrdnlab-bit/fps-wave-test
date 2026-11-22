@@ -3,6 +3,14 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Added (zombie veloci, morti a caso e smembramento a colpi, Matteo)
+- **Corse da zombie veloce**: tre andature a caso per nemico, gambe da sprint e fast run di Mixamo con il busto da zombie (in avanti, braccia ad artiglio; la terza col busto del Mutant Run), retarget ibrido in `tools/autorig/` (`upper` in `mixamo_runner_clips.json`).
+- **Morte diversa per parte colpita e a caso**: 7 tipi (indietro, avanti, testa da davanti, testa da dietro, di lato a sinistra, a destra, gambe) con 21 animazioni Mixamo in tutto; il server sceglie tipo e variante (a volte crolla di lato anche colpito di fronte). Reazione al colpo in due varianti.
+- **Arti che si staccano a forza di colpi** (`EnemyHitRegions`, server): danno accumulato per arto, oltre la soglia (braccio 34% della salute, avambraccio 26%, coscia 45%, stinco 36%) l'arto si stacca anche da vivo. Senza una gamba lo zombie crolla e **striscia** (0,8 m/s, attacco da terra, hitbox sdraiate). Colpi al busto: mai arti staccati.
+- **Colpo alla testa letale**: la testa **esplode** (65%: schegge di cranio, brandelli, nube di sangue), vola via intera (20%) o resta (15%).
+- **Monconi realistici** al posto della sfera rossa: carne frastagliata, pelle strappata e osso che sporge, della misura dell'arto, anche sull'estremità del pezzo che vola.
+- Debug: **J** colpisce il nemico più vicino a un arto senza ucciderlo (per vedere gli arti staccarsi da vivi), K uccide con un colpo su una parte a caso, F10 niente danno.
+
 ### Added (animazioni Mixamo, morti e smembramento del Runner, Matteo)
 - **Animazioni Mixamo** sul Runner (retarget in `tools/autorig/`): sprint e fast run a caso per nemico (5,1 e 4,6 m/s, accelerate oltre con `RunRate`), corsetta zombie alle velocità intermedie, idle zombie, tre attacchi (artigliata del mutante, swipe e colpo dall'alto, scelti a caso), reazione ai colpi (al massimo una ogni 1,3 s).
 - **Morti diverse in base al colpo**: colpo alla testa = crollo secco, dal davanti = cade all'indietro, alle spalle o alle gambe = cade in avanti. Il server manda alla morte punto del colpo e direzione nello spazio locale del nemico (`EnemyAgent.RpcKilled`, ~28 byte); cadavere 3 s.

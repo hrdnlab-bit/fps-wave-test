@@ -467,10 +467,30 @@ def fbx_motion(path):
     return np.array(Ps), np.array(Gs), P0, G0, idx, fps
 
 RIG_REST = None
-def retarget_clip(name, path, hips_mode, extra=None):
-    """hips_mode: 'loop' (toglie la deriva), 'pin' (bacino fermo in orizzontale), 'keep' (tiene lo spostamento)."""
+def align_motion(P, G, P0, G0, I):
+    """Ruota la sorgente perché guardi -Y (dal riposo: piede -> punta)."""
+    fw = np.zeros(3)
+    for sd in ("Left", "Right"):
+        fw += P0[I[sd + "ToeBase"]] - P0[I[sd + "Foot"]]
+    fw[2] = 0; fw /= np.linalg.norm(fw)
+    ang = math.atan2(-1.0, 0.0) - math.atan2(fw[1], fw[0])
+    c, s_ = math.cos(ang), math.sin(ang); Rz = np.array([[c, -s_, 0], [s_, c, 0], [0, 0, 1]])
+    return P @ Rz.T, np.einsum("ab,fjbc->fjac", Rz, G), P0 @ Rz.T, np.einsum("ab,jbc->jac", Rz, G0)
+
+UPPER = {"Spine1", "Spine2", "Neck", "Head"} | {f"{sd}{b}" for sd in ("Left", "Right") for b in
+         ("Shoulder", "Arm", "ForeArm", "Hand", "HandIndex1", "HandIndex2", "HandIndex3", "HandMiddle1", "HandMiddle2",
+          "HandMiddle3", "HandThumb1", "HandThumb2", "HandThumb3")}
+
+def retarget_clip(name, path, hips_mode, extra=None, upper=None):
+    """hips_mode: 'loop' (toglie la deriva), 'pin' (bacino fermo in orizzontale), 'keep' (tiene lo spostamento).
+    upper: secondo FBX in loop da cui prendere busto alto, testa e braccia (fase normalizzata sul ciclo delle gambe)."""
     P, G, P0, G0, I, fps = fbx_motion(path)
     nf = len(P)
+    U = None
+    if upper:
+        Pu, Gu, P0u, G0u, Iu, _ = fbx_motion(upper)
+        Pu, Gu, P0u, G0u = align_motion(Pu, Gu, P0u, G0u, Iu)
+        U = (Pu, Gu, P0u, G0u, Iu)
     # direzione "davanti" della sorgente dal riposo (piede -> punta) e rotazione verso -Y
     fw = np.zeros(3)
     for sd in ("Left", "Right"):
@@ -516,13 +536,18 @@ def retarget_clip(name, path, hips_mode, extra=None):
         Wp = {}
         for bn in arm_data.bones:
             n = bn.name; Rb = rest[n]; m = MAP.get(n)
-            if m is None or m[1] not in I:
+            if U is not None and n in UPPER:
+                SP, SG, S0, SI = U[0], U[1], U[3], U[4]
+                sf = int(round(f / max(1, nf - 1) * (len(SP) - 1))) % len(SP)
+            else:
+                SP, SG, S0, SI, sf = P, G, G0, I, f
+            if m is None or m[1] not in SI:
                 Wd = Wp[bn.parent.name] @ rest[bn.parent.name].T @ Rb
             elif m[0] == "d":
-                j = I[m[1]]; Wd = G[f, j] @ G0[j].T @ Rb
+                j = SI[m[1]]; Wd = SG[sf, j] @ S0[j].T @ Rb
             else:
-                j, cj, sec = I[m[1]], I[m[2]], m[3]
-                Wd = frame(P[f, cj] - P[f, j], G[f, j] @ G0[j].T @ sec) @ frame(rdir[n], sec).T @ Rb
+                j, cj, sec = SI[m[1]], SI[m[2]], m[3]
+                Wd = frame(SP[sf, cj] - SP[sf, j], SG[sf, j] @ S0[j].T @ sec) @ frame(rdir[n], sec).T @ Rb
             basis = Rb.T @ Wd if bn.parent is None else Rb.T @ rest[bn.parent.name] @ Wp[bn.parent.name].T @ Wd
             Wp[n] = Wd
             pbn = pb[n]; qq = Matrix(basis.tolist()).to_quaternion()
@@ -548,7 +573,7 @@ CLIPS = json.load(open(run_bvh)) if (run_bvh and run_bvh.endswith(".json")) else
 if mode == "runner" and CLIPS:
     info = {}
     for c in CLIPS:
-        info[c["name"]] = retarget_clip(c["name"], c["file"], c.get("hips", "loop"), c.get("extra"))
+        info[c["name"]] = retarget_clip(c["name"], c["file"], c.get("hips", "loop"), c.get("extra"), c.get("upper"))
     json.dump(info, open(prev + "_clips.json", "w"))
     rig.animation_data.action = None
 elif mode == "runner":

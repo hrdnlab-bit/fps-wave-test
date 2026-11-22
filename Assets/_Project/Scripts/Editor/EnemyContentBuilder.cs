@@ -69,7 +69,9 @@ namespace HrdnLab.FpsWave.Editor
             // oltre, la clip accelera (piedi senza scivolare). Run2 è la seconda andatura a caso, Jog la corsetta.
             public float RunClipSpeed = 4f;
             public float Run2ClipSpeed = 4f;
+            public float Run3ClipSpeed = 4f;
             public float JogClipSpeed = 2.5f;
+            public float CrawlClipSpeed = 0.36f;
             // Corazza a piastre (opzionale): ogni piastra assorbe i colpi finché non si rompe.
             public PlateSpec[] Plates;
             public Color ArmorColor;
@@ -101,8 +103,9 @@ namespace HrdnLab.FpsWave.Editor
                 AgentRadius = 0.35f, AgentHeight = 1.8f,
                 ModelDir = "Assets/ThirdParty/_Own/Runner",
                 ModelYaw = 180f, // l'FBX da Blender guarda -Z dopo la conversione degli assi
-                // Mixamo: Sprint 2,817, Fast Run 2,583, Zombie Running 1,413 unità/s x scala 1,799
-                RunClipSpeed = 5.07f, Run2ClipSpeed = 4.65f, JogClipSpeed = 2.54f,
+                // Gambe Mixamo (busto da zombie, tools/autorig): Sprint 2,817, Fast Run 2,583, Zombie Running 1,413,
+                // Zombie Crawl 0,199 unità/s x scala 1,799. Run = Sprint, Run2 = Fast Run, Run3 = Sprint (busto Mutant).
+                RunClipSpeed = 5.07f, Run2ClipSpeed = 4.65f, Run3ClipSpeed = 5.07f, JogClipSpeed = 2.54f, CrawlClipSpeed = 0.358f,
             },
             new EnemyTypeSpec
             {
@@ -274,8 +277,16 @@ namespace HrdnLab.FpsWave.Editor
                 {
                     var gore = modelAnimator.gameObject.AddComponent<EnemyGore>();
                     gore.EditorSetup(modelAnimator.GetComponentInChildren<SkinnedMeshRenderer>(true));
-                    int attacks = modelAnimator.runtimeAnimatorController.animationClips.Count(c => c.name.StartsWith("Attack"));
-                    visual.EditorSetAnimator(modelAnimator, spec.RunClipSpeed, spec.Run2ClipSpeed, Mathf.Max(1, attacks), gore);
+                    var states = ((AnimatorController)modelAnimator.runtimeAnimatorController).layers[0].stateMachine.states
+                        .Select(st => st.state.name).ToArray();
+                    int attacks = states.Count(n => n.StartsWith("Attack"));
+                    int hits = states.Count(n => n.StartsWith("Hit"));
+                    var deaths = new int[EnemyHitRegions.DeathTypeCount];
+                    for (int t = 0; t < deaths.Length; t++)
+                        deaths[t] = Mathf.Max(1, states.Count(n => n.StartsWith($"Death_{t}_")));
+                    visual.EditorSetAnimator(modelAnimator, spec.RunClipSpeed, spec.Run2ClipSpeed, spec.Run3ClipSpeed, spec.CrawlClipSpeed,
+                        Mathf.Max(1, attacks), Mathf.Max(1, hits), deaths, gore);
+                    enemy.EditorSetDismemberable(true); // arti staccabili, crollo a terra senza gamba
                     enemy.EditorSetCorpseSeconds(3f); // caduta Mixamo ~2 s, poi qualche istante a terra
                 }
             }
@@ -652,16 +663,25 @@ namespace HrdnLab.FpsWave.Editor
                 AnimationClip[] clips = AssetDatabase.LoadAllAssetsAtPath(fbx).OfType<AnimationClip>()
                     .Where(c => !c.name.StartsWith("__preview__")).ToArray();
                 AnimationClip Clip(string n) => clips.FirstOrDefault(c => c.name == n);
+                var deathSets = new AnimationClip[EnemyHitRegions.DeathTypeCount][];
+                string[] legacy = { "DeathBack", "DeathForward", "DeathHead", "DeathHead", "DeathBack", "DeathForward", "DeathForward" };
+                for (int t = 0; t < deathSets.Length; t++)
+                {
+                    deathSets[t] = clips.Where(c => c.name.StartsWith($"Death_{t}_")).OrderBy(c => c.name).ToArray();
+                    if (deathSets[t].Length == 0) // FBX vecchio (tre morti) o tipo mancante
+                        deathSets[t] = new[] { Clip(legacy[t]) ?? Clip("Death") ?? clips.FirstOrDefault(c => c.name.StartsWith("Death")) };
+                }
                 var set = new ClipSet
                 {
-                    Idle = Clip("Idle"), Jog = Clip("Jog"), Run = Clip("Run"), Run2 = Clip("Run2") ?? Clip("Run"),
+                    Idle = Clip("Idle"), Jog = Clip("Jog"), Run = Clip("Run"), Run2 = Clip("Run2") ?? Clip("Run"), Run3 = Clip("Run3"),
                     Attacks = new[] { Clip("Attack"), Clip("Attack2"), Clip("Attack3") }.Where(c => c != null).ToArray(),
-                    Hit = Clip("Hit"),
-                    Deaths = new[] { Clip("DeathBack") ?? Clip("Death"), Clip("DeathForward") ?? Clip("Death"), Clip("DeathHead") ?? Clip("Death") },
+                    Hits = new[] { Clip("Hit"), Clip("Hit2") }.Where(c => c != null).ToArray(),
+                    Crawl = Clip("Crawl"), CrawlAttack = Clip("CrawlAttack"), LegLost = Clip("LegLost"),
+                    Deaths = deathSets,
                 };
                 AnimationClip run = set.Run;
                 AnimationClip idle = set.Idle;
-                if (set.Idle != null && set.Run != null && set.Attacks.Length > 0 && set.Deaths.All(d => d != null))
+                if (set.Idle != null && set.Run != null && set.Attacks.Length > 0 && set.Deaths.All(d => d.All(c => c != null)))
                 {
                     animator.runtimeAnimatorController = BuildController(spec, set);
                     animator.applyRootMotion = false;
@@ -719,17 +739,19 @@ namespace HrdnLab.FpsWave.Editor
 
         private sealed class ClipSet
         {
-            public AnimationClip Idle, Jog, Run, Run2, Hit;
-            public AnimationClip[] Attacks, Deaths;
+            public AnimationClip Idle, Jog, Run, Run2, Run3, Crawl, CrawlAttack, LegLost;
+            public AnimationClip[] Attacks, Hits;
+            public AnimationClip[][] Deaths; // [tipo EnemyHitRegions.Death*][variante]
 
-            public AnimationClip[] All => new[] { Idle, Jog, Run, Run2, Hit }.Concat(Attacks).Concat(Deaths)
-                .Where(c => c != null).Distinct().ToArray();
+            public AnimationClip[] All => new[] { Idle, Jog, Run, Run2, Run3, Crawl, CrawlAttack, LegLost }.Concat(Attacks).Concat(Hits)
+                .Concat(Deaths.SelectMany(d => d)).Where(c => c != null).Distinct().ToArray();
         }
 
         /// <summary>
         /// Controller generato. Locomotion: blend sulla velocità (m/s) Idle -> Jog -> corsa, la corsa è un blend su
-        /// Variant (Run/Run2, scelto a caso per nemico) e accelera con RunRate. Attacchi: trigger Attack + AttackIndex.
-        /// Hit: trigger (reazione al colpo). Morte: bool Dead + DeathType (0 indietro, 1 avanti, 2 testa) da qualsiasi stato.
+        /// Variant (Run/Run2/Run3, scelta a caso per nemico) e accelera con RunRate. Attacchi: trigger Attack + AttackIndex.
+        /// Hit: trigger + HitIndex (reazione al colpo). Gamba persa: trigger LegLost (crollo) e bool Crawl (striscia,
+        /// attacca da terra). Morte: bool Dead + DeathType + DeathVariant da qualsiasi stato (non strisciando: lì si ferma).
         /// Si ricrea solo se clip o parametri non coincidono, per non sporcare git a ogni Setup.
         /// </summary>
         private static AnimatorController BuildController(EnemyTypeSpec spec, ClipSet set)
@@ -738,7 +760,7 @@ namespace HrdnLab.FpsWave.Editor
             string path = $"{AnimationsDir}/{spec.Name}.controller";
             AnimationClip[] all = set.All;
             var existing = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
-            if (existing != null && existing.parameters.Any(p => p.name == "DeathType")
+            if (existing != null && existing.parameters.Any(p => p.name == "DeathVariant")
                 && existing.animationClips.Distinct().Count() == all.Length && all.All(c => existing.animationClips.Contains(c))
                 && existing.layers[0].stateMachine.defaultState?.motion is BlendTree bt
                 && bt.children.Length > 0 && Mathf.Approximately(bt.children[^1].threshold, spec.RunClipSpeed))
@@ -754,8 +776,12 @@ namespace HrdnLab.FpsWave.Editor
             controller.AddParameter("Attack", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("AttackIndex", AnimatorControllerParameterType.Int);
             controller.AddParameter("Hit", AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("HitIndex", AnimatorControllerParameterType.Int);
             controller.AddParameter("Dead", AnimatorControllerParameterType.Bool);
             controller.AddParameter("DeathType", AnimatorControllerParameterType.Int);
+            controller.AddParameter("DeathVariant", AnimatorControllerParameterType.Int);
+            controller.AddParameter("Crawl", AnimatorControllerParameterType.Bool);
+            controller.AddParameter("LegLost", AnimatorControllerParameterType.Trigger);
             AnimatorStateMachine sm = controller.layers[0].stateMachine;
 
             AnimatorState locomotion = controller.CreateBlendTreeInController("Locomotion", out BlendTree tree, 0);
@@ -772,6 +798,7 @@ namespace HrdnLab.FpsWave.Editor
             runs.useAutomaticThresholds = false;
             runs.AddChild(set.Run, 0f);
             runs.AddChild(set.Run2, 1f);
+            runs.AddChild(set.Run3 ?? set.Run, 2f);
             locomotion.speedParameterActive = true; // RunRate: la corsa accelera oltre la velocità della clip
             locomotion.speedParameter = "RunRate";
             sm.defaultState = locomotion;
@@ -792,13 +819,14 @@ namespace HrdnLab.FpsWave.Editor
                 back.duration = 0.25f;
             }
 
-            if (set.Hit != null)
+            for (int i = 0; i < set.Hits.Length; i++)
             {
-                AnimatorState hit = sm.AddState("Hit");
-                hit.motion = set.Hit;
+                AnimatorState hit = sm.AddState(i == 0 ? "Hit" : $"Hit{i + 1}");
+                hit.motion = set.Hits[i];
                 hit.speed = 1.4f;
                 AnimatorStateTransition go = locomotion.AddTransition(hit);
                 go.AddCondition(AnimatorConditionMode.If, 0f, "Hit");
+                go.AddCondition(AnimatorConditionMode.Equals, i, "HitIndex");
                 go.hasExitTime = false;
                 go.duration = 0.08f;
                 AnimatorStateTransition back = hit.AddTransition(locomotion);
@@ -807,18 +835,58 @@ namespace HrdnLab.FpsWave.Editor
                 back.duration = 0.2f;
             }
 
-            string[] deathNames = { "DeathBack", "DeathForward", "DeathHead" };
-            for (int i = 0; i < 3; i++)
+            // Gamba persa: crollo (da qualsiasi stato in piedi), poi striscio con attacco da terra.
+            if (set.Crawl != null)
             {
-                AnimatorState death = sm.AddState(deathNames[i]);
-                death.motion = set.Deaths[i];
-                death.speed = 1.2f;
-                AnimatorStateTransition toDeath = sm.AddAnyStateTransition(death);
-                toDeath.AddCondition(AnimatorConditionMode.If, 0f, "Dead");
-                toDeath.AddCondition(AnimatorConditionMode.Equals, i, "DeathType");
-                toDeath.canTransitionToSelf = false;
-                toDeath.hasExitTime = false;
-                toDeath.duration = 0.12f;
+                AnimatorState crawl = sm.AddState("Crawl");
+                crawl.motion = set.Crawl;
+                crawl.speedParameterActive = true;
+                crawl.speedParameter = "RunRate";
+                AnimatorState fall = sm.AddState("LegLost");
+                fall.motion = set.LegLost ?? set.Crawl;
+                fall.speed = 1.3f;
+                AnimatorStateTransition toFall = sm.AddAnyStateTransition(fall);
+                toFall.AddCondition(AnimatorConditionMode.If, 0f, "LegLost");
+                toFall.AddCondition(AnimatorConditionMode.IfNot, 0f, "Dead");
+                toFall.canTransitionToSelf = false;
+                toFall.hasExitTime = false;
+                toFall.duration = 0.1f;
+                AnimatorStateTransition fallToCrawl = fall.AddTransition(crawl);
+                fallToCrawl.hasExitTime = true;
+                fallToCrawl.exitTime = 0.85f;
+                fallToCrawl.duration = 0.3f;
+                if (set.CrawlAttack != null)
+                {
+                    AnimatorState bite = sm.AddState("CrawlAttack");
+                    bite.motion = set.CrawlAttack;
+                    bite.speed = 1.3f;
+                    AnimatorStateTransition go = crawl.AddTransition(bite);
+                    go.AddCondition(AnimatorConditionMode.If, 0f, "Attack");
+                    go.hasExitTime = false;
+                    go.duration = 0.12f;
+                    AnimatorStateTransition back = bite.AddTransition(crawl);
+                    back.hasExitTime = true;
+                    back.exitTime = 0.85f;
+                    back.duration = 0.2f;
+                }
+            }
+
+            for (int t = 0; t < set.Deaths.Length; t++)
+            {
+                for (int v = 0; v < set.Deaths[t].Length; v++)
+                {
+                    AnimatorState death = sm.AddState($"Death_{t}_{v}");
+                    death.motion = set.Deaths[t][v];
+                    death.speed = 1.15f;
+                    AnimatorStateTransition toDeath = sm.AddAnyStateTransition(death);
+                    toDeath.AddCondition(AnimatorConditionMode.If, 0f, "Dead");
+                    toDeath.AddCondition(AnimatorConditionMode.IfNot, 0f, "Crawl");
+                    toDeath.AddCondition(AnimatorConditionMode.Equals, t, "DeathType");
+                    toDeath.AddCondition(AnimatorConditionMode.Equals, v, "DeathVariant");
+                    toDeath.canTransitionToSelf = false;
+                    toDeath.hasExitTime = false;
+                    toDeath.duration = 0.12f;
+                }
             }
             EditorUtility.SetDirty(controller);
             return controller;
@@ -863,7 +931,7 @@ namespace HrdnLab.FpsWave.Editor
             {
                 string shortName = clip.takeName.Contains("|") ? clip.takeName[(clip.takeName.LastIndexOf('|') + 1)..] : clip.takeName;
                 clip.name = shortName;
-                clip.loopTime = shortName is "Idle" or "Run" or "Run2" or "Jog";
+                clip.loopTime = shortName is "Idle" or "Run" or "Run2" or "Run3" or "Jog" or "Crawl";
                 clip.loopPose = false;
                 clip.lockRootRotation = false;
                 clip.lockRootHeightY = false;

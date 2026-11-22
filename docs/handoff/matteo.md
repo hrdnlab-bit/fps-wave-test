@@ -31,7 +31,10 @@ Ultimo aggiornamento: 2026-11-22
 
 - Runner con animazioni Mixamo (corse, idle, 3 attacchi, reazione, 3 morti), morte scelta dal colpo (`RpcKilled`), smembramento client (`EnemyGore`). Debug: K uccide il più vicino, F10 niente danno.
 
+- Zombie veloci e smembramento server: 3 corse ibride (gambe sprint + busto zombie), 7 tipi di morte con 21 varianti, `EnemyHitRegions` (logica pura + 11 test), arti staccati a forza di colpi con `SyncVar<ushort>` e `RpcSevered`, striscio senza gamba, testa che esplode/vola, monconi procedurali (carne, pelle, osso). Debug J (colpo a un arto non letale). Zip `Runner_Unity.zip` da rigirare a Manuel (FBX nuovo con 34 clip).
+
 ## Verifiche
+- Zombie veloci e smembramento: compilazione 0 errori, test 102/102, Setup/6 pulito (controller con 21 morti, Crawl, LegLost; Brute escluso), Play: arti staccati da vivi con J (stinco sx 0x40, poi dx 0x140), zombie a terra che strisciano, morti con K, nessuna eccezione. Monconi nuovi visti solo da lontano: da guardare da vicino in gioco.
 - Mixamo + smembramento: compilazione 0 errori, test 91/91, Play: attacchi Mixamo, caduta, arto staccato (`Gib_RightLeg`) e sangue, nessuna eccezione.
 - Corsa mocap: Setup/6 pulito, test 91/91, Play: Runner in corsa con fase di volo, 430+ FPS.
 - Scheletri e animazioni: compilazione 0 errori, test 91/91 (rig del Pilot incluso), Play solo Host pulito: sciame di Runner animati (corsa, attacco), 450+ FPS.

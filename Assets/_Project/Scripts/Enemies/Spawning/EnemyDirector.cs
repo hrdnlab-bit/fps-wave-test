@@ -145,10 +145,13 @@ namespace HrdnLab.FpsWave.Enemies
             if (keyboard != null && keyboard[_toggleKey].wasPressedThisFrame)
                 ToggleSpawning();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // Strumenti di prova (solo Editor/dev): K uccide il nemico più vicino alla camera con un colpo su una
-            // parte del corpo a caso (morti e smembramento), F10 nemici senza danno.
+            // Strumenti di prova (solo Editor/dev): K uccide il nemico più vicino al giocatore con un colpo su una
+            // parte del corpo a caso (morti e smembramento), J lo colpisce a un arto senza ucciderlo (arti che si
+            // staccano a forza di colpi), F10 nemici senza danno.
             if (keyboard != null && keyboard.kKey.wasPressedThisFrame)
-                DebugKillNearest();
+                DebugHitNearest(true);
+            if (keyboard != null && keyboard.jKey.wasPressedThisFrame)
+                DebugHitNearest(false);
             if (keyboard != null && keyboard.f10Key.wasPressedThisFrame)
             {
                 EnemyAgent.DebugNoDamage = !EnemyAgent.DebugNoDamage;
@@ -231,13 +234,15 @@ namespace HrdnLab.FpsWave.Enemies
         /// I nodi fuori portata o troppo vicini ai player si scartano senza raggi.
         /// </summary>
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // Punti nello spazio del nemico (+Z davanti): 0 testa, 1-2 busto, 3-6 braccia, 7-10 gambe.
         private static readonly Vector3[] DebugHitPoints =
         {
-            new(0f, 1.55f, 0.18f), new(-0.32f, 1.15f, 0.15f), new(0.32f, 1.15f, 0.15f), new(-0.38f, 0.95f, 0.3f),
-            new(0.38f, 0.95f, 0.3f), new(-0.12f, 0.75f, 0.05f), new(0.12f, 0.35f, 0.05f), new(0f, 1.1f, 0.2f),
+            new(0f, 1.62f, 0.15f), new(0f, 1.2f, 0.2f), new(0.05f, 1.05f, 0.18f),
+            new(-0.25f, 1.3f, 0.05f), new(0.25f, 1.3f, 0.05f), new(-0.24f, 1.05f, 0.32f), new(0.24f, 1.05f, 0.32f),
+            new(-0.12f, 0.7f, 0.05f), new(0.12f, 0.7f, 0.05f), new(-0.12f, 0.3f, 0.05f), new(0.12f, 0.3f, 0.05f),
         };
 
-        private void DebugKillNearest()
+        private void DebugHitNearest(bool kill)
         {
             // Vicino al primo giocatore (la camera del player non è per forza taggata MainCamera).
             List<EnemyTarget> targets = EnemyTarget.Active;
@@ -256,10 +261,11 @@ namespace HrdnLab.FpsWave.Enemies
             }
             if (best == null)
                 return;
-            int pick = UnityEngine.Random.Range(0, DebugHitPoints.Length);
+            int pick = kill ? UnityEngine.Random.Range(0, DebugHitPoints.Length) : UnityEngine.Random.Range(3, DebugHitPoints.Length);
             Vector3 point = best.transform.TransformPoint(DebugHitPoints[pick]);
-            bestHealth.ApplyDamage(new DamageInfo(99999f, false, pick == 0, -1, point));
-            Debug.Log($"[FpsWave][Server] K: {best.name} ucciso, colpo {pick} {(pick == 0 ? "(testa)" : "")}.");
+            float amount = kill ? 99999f : bestHealth.Max * 0.2f;
+            bestHealth.ApplyDamage(new DamageInfo(amount, false, pick == 0, -1, point));
+            Debug.Log($"[FpsWave][Server] {(kill ? "K" : "J")}: {best.name} colpito al punto {pick}, arti persi 0x{best.LostLimbs:X}.");
         }
 #endif
 

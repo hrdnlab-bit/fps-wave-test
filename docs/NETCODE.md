@@ -76,4 +76,7 @@ Co-op PvE tra amici: l'obiettivo è **reattività locale** e **economia autorevo
 - I traccianti degli altri partono dalla volata dell'arma in terza persona (`IThirdPersonMuzzle`), solo lato client.
 
 ## Morte dei nemici (cosmetica)
-- `EnemyAgent.RpcKilled(Vector3 puntoLocale, Vector3 direzioneLocale, byte tipo)` (ObserversRpc, ~28 byte per morte): tipo di caduta (0 indietro, 1 avanti, 2 testa) e punto del colpo letale. I client scelgono animazione e arto da staccare (`EnemyGore`); se l'RPC arriva dopo la SyncVar della salute, la caduta aspetta fino a 0,25 s.
+- `EnemyAgent.RpcKilled(Vector3 puntoLocale, Vector3 direzioneLocale, byte tipo, byte variante, ushort arti)` (ObserversRpc, ~31 byte per morte): tipo di caduta (`EnemyHitRegions.Death*`, 0-6), variante a caso (i client la riducono alle clip che hanno), maschera degli arti persi e punto del colpo letale. Se l'RPC arriva dopo la SyncVar della salute, la caduta aspetta fino a 0,25 s.
+- `EnemyAgent._lostLimbs` (`SyncVar<ushort>`, reliable): arti persi (bit 0-8 come `HitRegion`, bit 9 testa esplosa). Decide tutto il server (parte colpita dal punto del colpo nello spazio delle hitbox, danno accumulato per arto); i client la usano per le hitbox sdraiate quando striscia e, se entrano dopo, per chiudere gli arti in silenzio in `OnStartClient`.
+- `EnemyAgent.RpcSevered(ushort arti, Vector3 puntoLocale, Vector3 direzioneLocale)` (ObserversRpc, ~27 byte, solo quando un arto si stacca da vivo): effetti del taglio (pezzo che vola, sangue). I pezzi sono oggetti locali, mai di rete.
+- Senza gamba: velocità e hitbox cambiano sul server (hitbox ruotate di 78° in avanti), i client ricavano la stessa posa dalla maschera.
