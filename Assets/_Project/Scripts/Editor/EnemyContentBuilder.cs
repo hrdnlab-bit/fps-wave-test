@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using FishNet.Component.Transforming;
 using FishNet.Object;
 using HrdnLab.FpsWave.Combat;
@@ -8,6 +9,7 @@ using HrdnLab.FpsWave.Player;
 using HrdnLab.FpsWave.UI;
 using HrdnLab.FpsWave.Weapons;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.AI;
@@ -25,6 +27,7 @@ namespace HrdnLab.FpsWave.Editor
     public static class EnemyContentBuilder
     {
         private const string MaterialsDir = "Assets/_Project/Art/Materials";
+        private const string AnimationsDir = "Assets/_Project/Art/Animations";
         private const string EnemyDataDir = "Assets/_Project/Data/Enemies";
         private const string EnemyPrefabsDir = "Assets/_Project/Prefabs/Enemies";
         private const string PlayerPrefabPath = "Assets/_Project/Prefabs/Player.prefab";
@@ -92,6 +95,7 @@ namespace HrdnLab.FpsWave.Editor
                 BodyColor = new Color(0.55f, 0.13f, 0.1f), BodyScale = new Vector3(0.55f, 0.75f, 0.45f), HeadSize = 0.32f,
                 AgentRadius = 0.35f, AgentHeight = 1.8f,
                 ModelDir = "Assets/ThirdParty/_Own/Runner",
+                ModelYaw = 180f, // l'FBX da Blender guarda -Z dopo la conversione degli assi
             },
             new EnemyTypeSpec
             {
@@ -250,14 +254,20 @@ namespace HrdnLab.FpsWave.Editor
             float armX = bodyScale.x * 0.58f;
 
             Renderer[] bodyRenderers;
-            bool realModel = TryBuildRealModel(spec, model, out Renderer[] modelRenderers, out Vector3 modelHead, out float modelHeadSize);
+            bool realModel = TryBuildRealModel(spec, model, out Renderer[] modelRenderers, out Animator modelAnimator,
+                out Vector3 modelHead, out float modelHeadSize, out Vector3 modelChest);
             if (realModel)
             {
                 bodyRenderers = modelRenderers;
                 headPos = modelHead;
                 headScale = Vector3.one * modelHeadSize;
                 bodyScale.y = Mathf.Max(0.3f, (headPos.y - modelHeadSize * 0.5f - 0.1f) * 0.5f);
-                bodyPos = new Vector3(0f, bodyScale.y + 0.1f, 0f);
+                bodyPos = new Vector3(modelChest.x, bodyScale.y + 0.1f, modelChest.z);
+                if (modelAnimator != null)
+                {
+                    visual.EditorSetAnimator(modelAnimator);
+                    enemy.EditorSetCorpseSeconds(1.5f); // la clip di morte dura 1,2 s
+                }
             }
             else
             {
@@ -529,68 +539,72 @@ namespace HrdnLab.FpsWave.Editor
         // ------------------------------------------------------------------ Modelli veri
 
         /// <summary>
-        /// Se nella cartella del tipo c'è il modello (statico, senza scheletro), lo mette sotto <paramref name="model"/>
-        /// come semplici MeshFilter/MeshRenderer (niente prefab annidato: su un PC senza i binari il prefab resta valido
-        /// e il nemico è solo invisibile), girato di <see cref="EnemyTypeSpec.ModelYaw"/>, alto quanto l'agente, piedi a 0.
-        /// Ricava anche la testa (vertici più alti) per la hitbox del punto debole.
+        /// Se nella cartella del tipo c'è il modello, lo mette sotto <paramref name="model"/> girato di
+        /// <see cref="EnemyTypeSpec.ModelYaw"/>, alto quanto l'agente, piedi a 0.
+        /// Senza scheletro: semplici MeshFilter/MeshRenderer. Con scheletro: copia spacchettata della gerarchia
+        /// (ossa + SkinnedMeshRenderer + Animator con controller generato dalle clip Idle/Run/Attack/Death).
+        /// In entrambi i casi niente prefab annidato: su un PC senza i binari il prefab resta valido (nemico invisibile).
+        /// La testa (hitbox del punto debole) si ricava dai vertici più alti e, con le animazioni, dalla posa media di corsa.
         /// </summary>
-        private static bool TryBuildRealModel(EnemyTypeSpec spec, Transform model, out Renderer[] renderers, out Vector3 headCenter, out float headSize)
+        private static bool TryBuildRealModel(EnemyTypeSpec spec, Transform model, out Renderer[] renderers, out Animator animator,
+            out Vector3 headCenter, out float headSize, out Vector3 chest)
         {
             renderers = null;
+            animator = null;
             headCenter = default;
+            chest = Vector3.zero;
             headSize = spec.HeadSize;
             if (string.IsNullOrEmpty(spec.ModelDir))
                 return false;
             string fbx = $"{spec.ModelDir}/{spec.Name}.fbx";
-            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(fbx);
-            if (asset == null)
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(fbx) == null)
             {
                 Debug.LogWarning($"[FpsWave] {spec.Name}: modello {fbx} assente (docs/ASSETS.md), uso la sagoma greybox.");
                 return false;
             }
             ConfigureModelImporter(fbx);
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(fbx);
             Material material = ModelMaterial(spec);
+            bool skinned = asset.GetComponentInChildren<SkinnedMeshRenderer>(true) != null;
 
-            // Parti del modello con le loro trasformazioni, nello spazio del modello girato.
-            Quaternion yaw = Quaternion.Euler(0f, spec.ModelYaw, 0f);
-            // La rotazione di conversione degli assi dell'FBX (es. -90 su X) sta spesso sulla radice importata:
-            // si tiene, misurando tutto nello spazio del mondo con la radice nell'origine.
-            var temp = Object.Instantiate(asset);
-            temp.transform.position = Vector3.zero;
-            var parts = new List<(Mesh mesh, Matrix4x4 m)>();
-            foreach (MeshFilter mf in temp.GetComponentsInChildren<MeshFilter>(true))
-            {
-                if (mf.sharedMesh != null)
-                    parts.Add((mf.sharedMesh, Matrix4x4.Rotate(yaw) * mf.transform.localToWorldMatrix));
-            }
-            foreach (SkinnedMeshRenderer smr in temp.GetComponentsInChildren<SkinnedMeshRenderer>(true))
-            {
-                if (smr.sharedMesh != null)
-                    parts.Add((smr.sharedMesh, Matrix4x4.Rotate(yaw) * smr.transform.localToWorldMatrix));
-            }
-            Object.DestroyImmediate(temp);
-            if (parts.Count == 0)
-                return false;
+            var inst = (GameObject)PrefabUtility.InstantiatePrefab(asset);
+            PrefabUtility.UnpackPrefabInstance(inst, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            inst.name = spec.Name + "_Model";
+            inst.transform.SetParent(model, false);
+            inst.transform.localPosition = Vector3.zero;
+            inst.transform.localRotation = Quaternion.Euler(0f, spec.ModelYaw, 0f) * inst.transform.localRotation;
 
-            // Limiti e vertici per scala, posizione e testa.
+            // Vertici in posa di riposo (= posa di bind), nello spazio del nemico.
             var points = new List<Vector3>();
             int triangles = 0;
-            foreach (var (mesh, m) in parts)
+            foreach (Renderer r in inst.GetComponentsInChildren<Renderer>(true))
             {
-                Vector3[] v = mesh.vertices;
-                for (int i = 0; i < v.Length; i++)
-                    points.Add(m.MultiplyPoint3x4(v[i]));
-                triangles += (int)(mesh.GetIndexCount(0) / 3);
-                for (int sub = 1; sub < mesh.subMeshCount; sub++)
+                Mesh mesh = null;
+                if (r is SkinnedMeshRenderer smr)
+                    mesh = smr.sharedMesh;
+                else if (r.TryGetComponent(out MeshFilter mf))
+                    mesh = mf.sharedMesh;
+                if (mesh == null)
+                    continue;
+                Matrix4x4 m = model.worldToLocalMatrix * r.transform.localToWorldMatrix;
+                foreach (Vector3 v in mesh.vertices)
+                    points.Add(m.MultiplyPoint3x4(v));
+                for (int sub = 0; sub < mesh.subMeshCount; sub++)
                     triangles += (int)(mesh.GetIndexCount(sub) / 3);
+            }
+            if (points.Count == 0)
+            {
+                Object.DestroyImmediate(inst);
+                return false;
             }
             var bounds = new Bounds(points[0], Vector3.zero);
             foreach (Vector3 p in points)
                 bounds.Encapsulate(p);
             float scale = spec.AgentHeight / Mathf.Max(0.01f, bounds.size.y);
             var offset = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z);
+            inst.transform.localScale *= scale;
+            inst.transform.localPosition = offset * scale;
 
-            // Testa: i vertici nel 9% più alto; centro e grandezza (sfera che li contiene quasi tutti).
             float topBand = bounds.max.y - bounds.size.y * 0.09f;
             Vector3 sum = Vector3.zero;
             int count = 0;
@@ -603,46 +617,195 @@ namespace HrdnLab.FpsWave.Editor
             headCenter = new Vector3((headTop.x + offset.x) * scale, spec.AgentHeight - headSize * 0.5f, (headTop.z + offset.z) * scale);
 
             var list = new List<Renderer>();
-            for (int i = 0; i < parts.Count; i++)
+            foreach (Renderer r in inst.GetComponentsInChildren<Renderer>(true))
             {
-                var (mesh, m) = parts[i];
-                var go = new GameObject(parts.Count == 1 ? "Mesh" : $"Mesh_{i}");
-                go.transform.SetParent(model, false);
-                // m = R*T*S dello spazio del modello: lo si porta nello spazio del nemico (offset e scala uniforme).
-                Matrix4x4 final = Matrix4x4.Scale(Vector3.one * scale) * Matrix4x4.Translate(offset) * m;
-                go.transform.localPosition = final.GetColumn(3);
-                go.transform.localRotation = final.rotation;
-                go.transform.localScale = final.lossyScale;
-                go.AddComponent<MeshFilter>().sharedMesh = mesh;
-                var mr = go.AddComponent<MeshRenderer>();
-                var materials = new Material[Mathf.Max(1, mesh.subMeshCount)];
-                for (int k = 0; k < materials.Length; k++)
-                    materials[k] = material;
-                mr.sharedMaterials = materials;
-                list.Add(mr);
+                var slots = new Material[Mathf.Max(1, r.sharedMaterials.Length)];
+                for (int k = 0; k < slots.Length; k++)
+                    slots[k] = material;
+                r.sharedMaterials = slots;
+                if (r is SkinnedMeshRenderer smr)
+                {
+                    smr.quality = SkinQuality.Bone2; // decine a schermo
+                    smr.updateWhenOffscreen = false;
+                    smr.skinnedMotionVectors = false;
+                    Bounds lb = smr.localBounds; // largo abbastanza anche per il corpo steso a terra
+                    lb.Expand(lb.size.magnitude * 0.8f);
+                    smr.localBounds = lb;
+                }
+                list.Add(r);
             }
             renderers = list.ToArray();
-            Debug.Log($"[FpsWave] {spec.Name}: modello vero ({triangles} triangoli, {parts.Count} parti, scala {scale:0.###}), testa a {headCenter}.");
+
+            animator = inst.GetComponent<Animator>();
+            if (skinned && animator != null)
+            {
+                AnimationClip[] clips = AssetDatabase.LoadAllAssetsAtPath(fbx).OfType<AnimationClip>()
+                    .Where(c => !c.name.StartsWith("__preview__")).ToArray();
+                AnimationClip Clip(string n) => clips.FirstOrDefault(c => c.name == n);
+                AnimationClip idle = Clip("Idle"), run = Clip("Run"), attack = Clip("Attack"), death = Clip("Death");
+                if (idle != null && run != null && attack != null && death != null)
+                {
+                    animator.runtimeAnimatorController = BuildController(spec, idle, run, attack, death);
+                    animator.applyRootMotion = false;
+                    animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+
+                    // Hitbox fisse (uguali sul server): testa e busto nella posa media di corsa.
+                    Transform head = FindDeep(inst.transform, "Head"), spine = FindDeep(inst.transform, "Spine1");
+                    if (head != null && spine != null)
+                    {
+                        Vector3 headLocal = head.InverseTransformPoint(model.TransformPoint(headCenter));
+                        Vector3 h = Vector3.zero, c = Vector3.zero;
+                        const int samples = 8;
+                        for (int i = 0; i < samples; i++)
+                        {
+                            run.SampleAnimation(inst, run.length * i / samples);
+                            h += model.InverseTransformPoint(head.TransformPoint(headLocal));
+                            c += model.InverseTransformPoint(spine.position);
+                        }
+                        headCenter = h / samples;
+                        chest = c / samples;
+                        chest.y = 0f;
+                    }
+                    idle.SampleAnimation(inst, 0f);
+                }
+                else
+                {
+                    Debug.LogWarning($"[FpsWave] {spec.Name}: scheletro senza le clip Idle/Run/Attack/Death, resta fermo.");
+                    animator.enabled = false;
+                    animator = null;
+                }
+            }
+            else if (animator != null)
+            {
+                Object.DestroyImmediate(animator);
+                animator = null;
+            }
+
+            Debug.Log($"[FpsWave] {spec.Name}: modello vero ({triangles} triangoli, {(skinned ? "con scheletro" : "statico")}, " +
+                      $"scala {scale:0.###}), testa a {headCenter}.");
             return true;
         }
 
+        private static Transform FindDeep(Transform root, string name)
+        {
+            if (root.name == name)
+                return root;
+            foreach (Transform child in root)
+            {
+                Transform found = FindDeep(child, name);
+                if (found != null)
+                    return found;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Controller generato: Locomotion (blend Idle/Run sul parametro Speed in m/s), Attack (trigger) e Death
+        /// (bool Dead, da qualsiasi stato). Si ricrea solo se le clip non coincidono, per non sporcare git a ogni Setup.
+        /// </summary>
+        private static AnimatorController BuildController(EnemyTypeSpec spec, AnimationClip idle, AnimationClip run,
+            AnimationClip attack, AnimationClip death)
+        {
+            EnsureFolder(AnimationsDir);
+            string path = $"{AnimationsDir}/{spec.Name}.controller";
+            var existing = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+            if (existing != null && existing.animationClips.Length == 4 && existing.animationClips.Contains(run)
+                && existing.animationClips.Contains(death) && existing.animationClips.Contains(attack)
+                && existing.animationClips.Contains(idle))
+                return existing;
+            if (existing != null)
+                AssetDatabase.DeleteAsset(path);
+
+            AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(path);
+            controller.AddParameter("Speed", AnimatorControllerParameterType.Float);
+            controller.AddParameter("Attack", AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("Dead", AnimatorControllerParameterType.Bool);
+            AnimatorStateMachine sm = controller.layers[0].stateMachine;
+
+            AnimatorState locomotion = controller.CreateBlendTreeInController("Locomotion", out BlendTree tree, 0);
+            tree.blendType = BlendTreeType.Simple1D;
+            tree.blendParameter = "Speed";
+            tree.useAutomaticThresholds = false;
+            tree.AddChild(idle, 0f);
+            tree.AddChild(run, spec.MoveSpeed);
+            sm.defaultState = locomotion;
+
+            AnimatorState attackState = sm.AddState("Attack");
+            attackState.motion = attack;
+            AnimatorState deathState = sm.AddState("Death");
+            deathState.motion = death;
+
+            AnimatorStateTransition toAttack = locomotion.AddTransition(attackState);
+            toAttack.AddCondition(AnimatorConditionMode.If, 0f, "Attack");
+            toAttack.hasExitTime = false;
+            toAttack.duration = 0.05f;
+            AnimatorStateTransition back = attackState.AddTransition(locomotion);
+            back.hasExitTime = true;
+            back.exitTime = 0.85f;
+            back.duration = 0.15f;
+            AnimatorStateTransition toDeath = sm.AddAnyStateTransition(deathState);
+            toDeath.AddCondition(AnimatorConditionMode.If, 0f, "Dead");
+            toDeath.canTransitionToSelf = false;
+            toDeath.hasExitTime = false;
+            toDeath.duration = 0.1f;
+            EditorUtility.SetDirty(controller);
+            return controller;
+        }
+
+        /// <summary>
+        /// Generic con Avatar dal modello (serve allo SkinnedMeshRenderer e alle clip), assi già convertiti,
+        /// niente materiali importati; le clip dell'FBX ("Armature|Run") prendono il nome breve e Idle/Run sono in loop.
+        /// </summary>
         private static void ConfigureModelImporter(string path)
         {
             if (AssetImporter.GetAtPath(path) is not ModelImporter importer)
                 return;
-            bool changed = importer.animationType != ModelImporterAnimationType.None
-                           || importer.importAnimation || importer.importCameras || importer.importLights
+            bool changed = importer.animationType != ModelImporterAnimationType.Generic
+                           || importer.avatarSetup != ModelImporterAvatarSetup.CreateFromThisModel
+                           || !importer.importAnimation || !importer.bakeAxisConversion
+                           || importer.importCameras || importer.importLights
                            || importer.materialImportMode != ModelImporterMaterialImportMode.None
                            || importer.meshCompression != ModelImporterMeshCompression.Medium;
-            if (!changed)
+            if (changed)
+            {
+                importer.animationType = ModelImporterAnimationType.Generic;
+                importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+                importer.importAnimation = true;
+                importer.bakeAxisConversion = true;
+                importer.importCameras = false;
+                importer.importLights = false;
+                importer.importBlendShapes = false;
+                importer.materialImportMode = ModelImporterMaterialImportMode.None;
+                importer.meshCompression = ModelImporterMeshCompression.Medium;
+                importer.animationCompression = ModelImporterAnimationCompression.Optimal;
+                importer.SaveAndReimport();
+            }
+
+            ModelImporterClipAnimation[] clips = importer.defaultClipAnimations;
+            if (clips == null || clips.Length == 0)
                 return;
-            importer.animationType = ModelImporterAnimationType.None;
-            importer.importAnimation = false;
-            importer.importCameras = false;
-            importer.importLights = false;
-            importer.materialImportMode = ModelImporterMaterialImportMode.None;
-            importer.meshCompression = ModelImporterMeshCompression.Medium;
-            importer.SaveAndReimport();
+            bool rename = false;
+            foreach (ModelImporterClipAnimation clip in clips)
+            {
+                string shortName = clip.takeName.Contains("|") ? clip.takeName[(clip.takeName.LastIndexOf('|') + 1)..] : clip.takeName;
+                clip.name = shortName;
+                clip.loopTime = shortName is "Idle" or "Run";
+                clip.loopPose = false;
+                clip.lockRootRotation = false;
+                clip.lockRootHeightY = false;
+                clip.lockRootPositionXZ = false;
+            }
+            ModelImporterClipAnimation[] current = importer.clipAnimations;
+            if (current == null || current.Length != clips.Length)
+                rename = true;
+            else
+                for (int i = 0; i < clips.Length; i++)
+                    rename |= current[i].name != clips[i].name || current[i].loopTime != clips[i].loopTime;
+            if (rename)
+            {
+                importer.clipAnimations = clips;
+                importer.SaveAndReimport();
+            }
         }
 
         private static Material ModelMaterial(EnemyTypeSpec spec)

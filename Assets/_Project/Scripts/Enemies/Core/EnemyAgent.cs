@@ -421,6 +421,9 @@ namespace HrdnLab.FpsWave.Enemies
 
 #if UNITY_EDITOR
         public void EditorSetup(EnemyDefinition definition) => _definition = definition;
+
+        /// <summary>Tempo a terra prima del riciclo (più lungo con l'animazione di morte del modello vero).</summary>
+        public void EditorSetCorpseSeconds(float seconds) => _corpseSeconds = seconds;
 #endif
     }
 }

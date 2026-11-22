@@ -66,6 +66,7 @@ Modelli e texture delle armi **non sono nel repo**: la licenza Fab non permette 
    Poi, una volta aperto Unity, esegui **FpsWave > Setup > 7. Build UI** (genera le texture del HUD in `Assets/ThirdParty/_Own/Hud/`).
 5. Sempre con Unity chiuso, il personaggio del player (AIRO, modello nostro): scarica `AIRO_Pilot_Unity.zip` dal Drive condiviso da Manuel ed estrailo **nella cartella del progetto** (contiene `Assets/ThirdParty/_Own/AIRO/AIRO_Pilot.fbx` e `Textures/`). Una volta aperto Unity esegui **FpsWave > Setup > 9. Build Player Character (AIRO)**: rigenera le mesh derivate (fuori da git) e `git status` deve restare pulito.
 6. Allo stesso modo il modello del Runner: estrai `Runner_Unity.zip` (lo condivide Matteo) nella cartella del progetto (contiene `Assets/ThirdParty/_Own/Runner/Runner.fbx` e `Textures/`), poi **FpsWave > Setup > 6. Build Enemies**. Senza lo zip il Runner resta la sagoma rossa di prova.
+7. Il nuovo personaggio del player (Pilot): estrai `Pilot_Unity.zip` (lo condivide Matteo) nella cartella del progetto (contiene `Assets/ThirdParty/_Own/Pilot/`), poi **Setup > 9** e di nuovo **6, 7, 8**. Senza lo zip `Setup/9` usa AIRO.
 
 ---
 

@@ -14,6 +14,11 @@ namespace HrdnLab.FpsWave.Enemies
     public sealed class EnemyVisual : NetworkBehaviour
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int SpeedId = Animator.StringToHash("Speed");
+        private static readonly int AttackId = Animator.StringToHash("Attack");
+        private static readonly int DeadId = Animator.StringToHash("Dead");
+        private static readonly int LocomotionId = Animator.StringToHash("Locomotion");
+        private static readonly int DeathId = Animator.StringToHash("Death");
 
         [SerializeField] private Transform _model;
         [SerializeField] private Renderer[] _renderers = System.Array.Empty<Renderer>();
@@ -22,6 +27,8 @@ namespace HrdnLab.FpsWave.Enemies
         [SerializeField] private Color _deadColor = new(0.12f, 0.1f, 0.1f);
         [SerializeField, Min(0f)] private float _runSpeedForFullCycle = 6f;
         [SerializeField, Min(1f)] private float _animationCullDistance = 45f;
+        [Tooltip("Modello con scheletro: corsa, attacco e morte vengono dalle clip (parametri Speed, Attack, Dead).")]
+        [SerializeField] private Animator _animator;
 
         private Health _health;
         private EnemyAgent _agent;
@@ -70,7 +77,27 @@ namespace HrdnLab.FpsWave.Enemies
             _lunge = 0f;
             _hurtFlash = 0f;
             _deathBlend = _health.IsDead ? 1f : 0f;
-            ApplyPose();
+            if (_animator != null)
+            {
+                _animator.enabled = true;
+                _animator.Rebind();
+                // Sciame non sincronizzato: fase e ritmo un po' diversi per ognuno.
+                _animator.speed = Random.Range(0.92f, 1.08f);
+                if (_health.IsDead)
+                {
+                    _animator.SetBool(DeadId, true);
+                    _animator.Play(DeathId, 0, 1f);
+                }
+                else
+                {
+                    _animator.Play(LocomotionId, 0, Random.value);
+                }
+                _animator.Update(0f);
+            }
+            else
+            {
+                ApplyPose();
+            }
             ApplyColor();
         }
 
@@ -81,7 +108,12 @@ namespace HrdnLab.FpsWave.Enemies
             ApplyColor();
         }
 
-        private void HandleAttacked() => _lunge = 1f;
+        private void HandleAttacked()
+        {
+            _lunge = 1f;
+            if (_animator != null && !_health.IsDead)
+                _animator.SetTrigger(AttackId);
+        }
 
         private void LateUpdate()
         {
@@ -107,7 +139,15 @@ namespace HrdnLab.FpsWave.Enemies
             }
 
             Camera cam = Camera.main;
-            if (!dead && cam != null && (cam.transform.position - position).sqrMagnitude > _animationCullDistance * _animationCullDistance)
+            bool far = !dead && cam != null && (cam.transform.position - position).sqrMagnitude > _animationCullDistance * _animationCullDistance;
+            if (_animator != null)
+            {
+                _animator.enabled = !far;
+                _animator.SetFloat(SpeedId, _speed);
+                _animator.SetBool(DeadId, dead);
+                return;
+            }
+            if (far)
                 return;
 
             _phase += dt * Mathf.Lerp(0f, 11f, Mathf.Clamp01(_speed / Mathf.Max(0.1f, _runSpeedForFullCycle)));
@@ -150,6 +190,8 @@ namespace HrdnLab.FpsWave.Enemies
             _aliveColor = aliveColor;
             _runSpeedForFullCycle = runSpeedForFullCycle;
         }
+
+        public void EditorSetAnimator(Animator animator) => _animator = animator;
 
         /// <summary>Per i modelli con texture: i colori moltiplicano la texture (bianco = colori originali).</summary>
         public void EditorSetup(Transform model, Renderer[] renderers, Color aliveColor, Color hurtColor, Color deadColor, float runSpeedForFullCycle)

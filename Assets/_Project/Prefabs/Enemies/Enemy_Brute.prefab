@@ -773,6 +773,7 @@ MonoBehaviour:
   _deadColor: {r: 0.12, g: 0.1, b: 0.1, a: 1}
   _runSpeedForFullCycle: 3.5
   _animationCullDistance: 45
+  _animator: {fileID: 0}
 --- !u!114 &1080630917469478908
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -17,9 +17,15 @@ namespace HrdnLab.FpsWave.Editor
     /// </summary>
     public static class PlayerCharacterBuilder
     {
-        private const string AiroDir = "Assets/ThirdParty/_Own/AIRO";
-        private const string AiroFbx = AiroDir + "/AIRO_Pilot.fbx";
-        private const string AiroTextures = AiroDir + "/Textures";
+        // Modello del player: il nuovo "Pilot" (Tripo + rig automatico, Matteo) se i binari ci sono, altrimenti AIRO.
+        // Stesse ossa (nomi stile Mixamo) e stesse texture (<prefisso>BaseColor/Normal/MetallicSmoothness/AO/Emission).
+        private const string PilotDir = "Assets/ThirdParty/_Own/Pilot";
+        private const string LegacyAiroDir = "Assets/ThirdParty/_Own/AIRO";
+        private static bool UsePilot => System.IO.File.Exists(PilotDir + "/Pilot.fbx");
+        private static string AiroDir => UsePilot ? PilotDir : LegacyAiroDir;
+        private static string AiroFbx => UsePilot ? PilotDir + "/Pilot.fbx" : LegacyAiroDir + "/AIRO_Pilot.fbx";
+        private static string AiroTextures => AiroDir + "/Textures";
+        private static string TexturePrefix => UsePilot ? "Pilot_" : "AIRO_";
         private const string ArtDir = "Assets/_Project/Art/Characters/AIRO";
         private const string MeshesDir = "Assets/_Project/Art/Meshes/Weapons";
         private const string CharactersPrefabDir = "Assets/_Project/Prefabs/Characters";
@@ -139,7 +145,7 @@ namespace HrdnLab.FpsWave.Editor
                 AssetDatabase.CreateAsset(mat, path);
             }
             mat.shader = Shader.Find(LitShader);
-            Texture2D Tex(string n) => AssetDatabase.LoadAssetAtPath<Texture2D>($"{AiroTextures}/AIRO_{n}.png");
+            Texture2D Tex(string n) => AssetDatabase.LoadAssetAtPath<Texture2D>($"{AiroTextures}/{TexturePrefix}{n}.png");
 
             mat.SetFloat("_WorkflowMode", 1f);
             mat.SetTexture("_BaseMap", Tex("BaseColor"));
@@ -197,8 +203,8 @@ namespace HrdnLab.FpsWave.Editor
                 if (Mathf.Abs(k - 1f) > 0.05f)
                     instance.transform.localScale *= k;
             }
-            // Piedi a terra.
-            float minY = instance.GetComponentsInChildren<Renderer>(true).Min(r => r.bounds.min.y);
+            // Piedi a terra: dai vertici veri (i bounds dello SkinnedMeshRenderer sono larghi e alzerebbero il corpo).
+            float minY = instance.GetComponentsInChildren<Renderer>(true).Min(LowestVertexY);
             instance.transform.position -= Vector3.up * minY;
 
             // L'Animator aggiunto dall'import Generic non serve: le ossa sono mosse da CharacterRig.
@@ -562,6 +568,28 @@ namespace HrdnLab.FpsWave.Editor
             if (AssetDatabase.AssetPathToGUID(path) != guid)
                 Debug.LogWarning($"[FpsWave] {path}: GUID non fissato ({AssetDatabase.AssetPathToGUID(path)}), i prefab funzionano ma cambieranno su altri PC.");
             return saved;
+        }
+
+        private static float LowestVertexY(Renderer renderer)
+        {
+            Mesh mesh = null;
+            bool baked = false;
+            if (renderer is SkinnedMeshRenderer smr && smr.sharedMesh != null)
+            {
+                mesh = new Mesh();
+                smr.BakeMesh(mesh, false);
+                baked = true;
+            }
+            else if (renderer.TryGetComponent(out MeshFilter mf))
+                mesh = mf.sharedMesh;
+            if (mesh == null)
+                return renderer.bounds.min.y;
+            float min = float.MaxValue;
+            foreach (Vector3 v in mesh.vertices)
+                min = Mathf.Min(min, renderer.transform.TransformPoint(v).y);
+            if (baked)
+                Object.DestroyImmediate(mesh);
+            return min;
         }
 
         private static Transform FindByName(Transform parent, string name)

@@ -3,6 +3,10 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Added (scheletri e animazioni, Matteo)
+- **Runner animato**: scheletro e clip Idle, Run, Attack, Death fatti in Blender con `tools/autorig/autorig.py`; `Setup/6` crea l'Animator con il controller `Runner.controller` (blend Idle/Run sulla velocità, trigger Attack, bool Dead). Fase e ritmo casuali per non avere lo sciame sincronizzato; Animator spento oltre la distanza di animazione; cadavere 1,5 s per vedere la caduta. Hitbox della testa e del busto nella posa media di corsa (fisse, uguali sul server).
+- **Nuovo personaggio del player (Pilot)**: modello Tripo con lo stesso scheletro di AIRO, preso da `Setup/9` se i binari ci sono (gambe, mira e mani sull'arma di Manuel funzionano uguali, 12/12 test del rig). Piedi a terra calcolati dai vertici veri (prima i bounds larghi dello SkinnedMeshRenderer alzavano il corpo).
+
 ### Added (modello del Runner, Matteo)
 - **Runner con il modello vero**: mutante bio-meccanico (visore fuso, pelle cremisi, tubi sulla schiena) al posto della capsula, generato da immagine AI + Tripo 3D e ridotto a 15k triangoli per lo sciame. Mesh statica: si muove con l'animazione procedurale di `EnemyVisual` (inclinazione, oscillazione, affondo, caduta). Hitbox della testa ricavata dal modello (testa protesa in avanti). `Setup/6` usa il modello se i binari ci sono (`EnemyTypeSpec.ModelDir`), altrimenti la sagoma greybox.
 

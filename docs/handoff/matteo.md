@@ -24,7 +24,11 @@ Ultimo aggiornamento: 2026-11-22
 
 - Runner con il modello vero (Tripo, ridotto a 15k triangoli in Blender nel cloud): `EnemyContentBuilder.TryBuildRealModel`, colori della salute che moltiplicano la texture (`EnemyVisual.EditorSetup` con 3 colori). Binari in `Assets/ThirdParty/_Own/Runner/` (zip `Runner_Unity.zip` in Download da girare a Manuel). Personaggio principale di Tripo in attesa: senza scheletro, serve il rig di Mixamo.
 
+- Scheletri e animazioni: Runner con rig e clip Idle/Run/Attack/Death (Animator generato da `Setup/6`, `EnemyVisual` guida Speed/Attack/Dead), nuovo personaggio Pilot con rig automatico preso da `Setup/9` al posto di AIRO (area di Manuel, da rivedere con lui). Script `tools/autorig/`. Zip `Runner_Unity.zip` e `Pilot_Unity.zip` in Download da girare a Manuel.
+- Nota per Manuel: dopo un secondo `Setup/9` nella stessa sessione i prefab delle armi in terza persona risultano senza mesh fino al riavvio di Unity (GUID fisso riscritto nel .meta); i test del grip falliscono finché non si riavvia.
+
 ## Verifiche
+- Scheletri e animazioni: compilazione 0 errori, test 91/91 (rig del Pilot incluso), Play solo Host pulito: sciame di Runner animati (corsa, attacco), 450+ FPS.
 - Runner vero: Setup/6 pulito, test 91/91, Play solo Host (sciame visibile, in piedi, rivolto al giocatore).
 - Dopo il merge con AIRO: compilazione 0 errori, test EditMode 91/91 (con i test del rig di Manuel), Play solo Host pulito (HUD con la tuta, corpo AIRO).
 - Fase 1: compilazione 0 errori, test EditMode 67/67 (dopo aver tolto i suoni); Play solo Host: abilità (energia, tinte, voce), ping, a terra con dissanguamento e rialzo da soli, Brute con piastre colpite (numeri acciaio) e rotte (nucleo scoperto, voce "ARMOR BREACHED"); host + client (MPPM): connessione pulita, HUD del client con tuta, dissanguamento → morte → ritorno del client. **Da provare a mano**: rianimazione tenendo premuto E (non riuscito a creare il momento "uno a terra, l'altro in piedi" con il player virtuale).
