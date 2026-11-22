@@ -50,8 +50,11 @@ namespace HrdnLab.FpsWave.Enemies
         [SerializeField, Min(1f)] private float _stuckRecycleSeconds = 8f;
         [SerializeField, Min(0f)] private float _corpseSeconds = 0.6f;
 
+        private static readonly List<EnemyAgent> s_clientActive = new(48);
+
         private NavMeshAgent _agent;
         private Health _health;
+        private IEnemyAbility _ability;
         private Collider[] _hitboxes = System.Array.Empty<Collider>();
         private EnemyTarget _target;
         private EnemyTarget _slotTarget;
@@ -69,6 +72,10 @@ namespace HrdnLab.FpsWave.Enemies
         /// <summary>Client: il nemico ha colpito (evento cosmetico per l'affondo).</summary>
         public event Action ClientAttacked;
 
+        /// <summary>Client: nemici in gioco (per la scansione della tuta e i ping). Iterare con l'indice, niente allocazioni.</summary>
+        public static List<EnemyAgent> ClientActive => s_clientActive;
+        /// <summary>Morto secondo la salute replicata (valido anche sui client, dove l'AI non gira).</summary>
+        public bool ClientIsDead => _health == null || _health.IsDead;
         public EnemyDefinition Definition => _definition;
         public EnemyState State => _state;
         public EnemyTarget Target => _target;
@@ -76,12 +83,17 @@ namespace HrdnLab.FpsWave.Enemies
         public bool WantsRecycle { get; private set; }
         public float NextThink => _nextThink;
         public float DespawnAt => _despawnAt;
-        public float ServerSpeed => _agent != null && _agent.enabled ? _agent.velocity.magnitude : 0f;
+        public float ServerSpeed => Mathf.Max(_agent != null && _agent.enabled ? _agent.velocity.magnitude : 0f,
+            _ability != null ? _ability.ServerSpeedOverride : 0f);
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => s_clientActive.Clear();
 
         private void Awake()
         {
             _agent = GetComponent<NavMeshAgent>();
             _health = GetComponent<Health>();
+            _ability = GetComponent<IEnemyAbility>();
             _agent.enabled = false; // solo il server lo attiva
             if (_definition != null)
                 _health.SetMaxHealth(_definition.MaxHealth); // su tutti i peer, prima dello spawn
@@ -103,11 +115,20 @@ namespace HrdnLab.FpsWave.Enemies
                 _health.ServerDied -= HandleServerDied;
                 _health.ClientHealthChanged -= HandleClientHealthChanged;
             }
+            s_clientActive.Remove(this);
+        }
+
+        public override void OnStopClient()
+        {
+            base.OnStopClient();
+            s_clientActive.Remove(this);
         }
 
         public override void OnStartClient()
         {
             base.OnStartClient();
+            if (!s_clientActive.Contains(this))
+                s_clientActive.Add(this);
             SetHitboxesEnabled(!_health.IsDead);
         }
 
@@ -118,8 +139,13 @@ namespace HrdnLab.FpsWave.Enemies
         private void SetHitboxesEnabled(bool enabled)
         {
             for (int i = 0; i < _hitboxes.Length; i++)
-                if (_hitboxes[i] != null)
-                    _hitboxes[i].enabled = enabled;
+            {
+                if (_hitboxes[i] == null)
+                    continue;
+                // Le piastre di corazza rotte restano spente (le gestisce EnemyArmor).
+                bool brokenPlate = _hitboxes[i].TryGetComponent(out ArmorPlate plate) && plate.IsBroken;
+                _hitboxes[i].enabled = enabled && !brokenPlate;
+            }
         }
 
         private void HandleClientHealthChanged(float previous, float next)
@@ -224,6 +250,16 @@ namespace HrdnLab.FpsWave.Enemies
                 }
                 _stuckTime = 0f;
                 _nextThink = now + _thinkIntervalFar;
+                return;
+            }
+
+            // Abilità del tipo (es. carica del Brute): se agisce, l'AI base aspetta.
+            if (_ability != null && _ability.ServerOverrides(now, _target))
+            {
+                ReleaseSlot();
+                _hasDestination = false;
+                _stuckTime = 0f;
+                _nextThink = now + _thinkIntervalClose;
                 return;
             }
 

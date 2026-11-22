@@ -28,6 +28,8 @@ namespace HrdnLab.FpsWave.Combat
         public float Normalized => _maxHealth > 0f ? _current.Value / _maxHealth : 0f;
         public bool IsDead => _current.Value <= 0f;
         public int HitZoneCount => _hitZones.Length;
+        /// <summary>Solo server: moltiplicatore dei danni subiti (armatura della tuta, scudo della rianimazione). 1 = normale.</summary>
+        public float ServerDamageScale { get; set; } = 1f;
 
         private void Awake()
         {
@@ -62,7 +64,7 @@ namespace HrdnLab.FpsWave.Combat
         {
             if (IsDead || info.Amount <= 0f)
                 return false;
-            float next = Mathf.Max(0f, _current.Value - info.Amount);
+            float next = Mathf.Max(0f, _current.Value - info.Amount * ServerDamageScale);
             _current.Value = next;
             ServerDamaged?.Invoke(this, info);
             if (next > 0f)
@@ -73,6 +75,10 @@ namespace HrdnLab.FpsWave.Combat
 
         [Server]
         public void ResetHealth() => _current.Value = _maxHealth;
+
+        /// <summary>Imposta la salute corrente (solo server), es. rianimazione con una parte della salute.</summary>
+        [Server]
+        public void ServerSetHealth(float value) => _current.Value = Mathf.Clamp(value, 0f, _maxHealth);
 
         /// <summary>
         /// Imposta la salute massima da una scheda dati (es. <c>EnemyDefinition</c>). Va chiamato su tutti i peer

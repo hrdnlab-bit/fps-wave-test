@@ -60,3 +60,12 @@ Co-op PvE tra amici: l'obiettivo è **reattività locale** e **economia autorevo
 - Interest management per distanza non ancora attivo (Greybox piccola: tutti vedono tutto); da aggiungere con la mappa vasta (M7).
 - Conferma colpo: `TargetRpc` a chi ha sparato per ogni colpo andato a segno (punto 12 byte + danno `ushort` + flag `byte` critico/testa/uccisione); alimenta i numeri di danno e l'hit marker confermato. Con il fucile a 600 colpi/min sono ~200 B/s nel caso peggiore.
 - `RpcShotFx` (tracciante per gli altri giocatori) porta l'indice dell'arma per il colore dell'energia (1 byte). Rinculo, molle, tremore e calore sono solo locali: nessun dato in rete. Protocollo di rete alla versione 2.
+
+## Fase 1 (tuta, a terra, ping, Brute)
+- `SuitAbilities` (Player): energia `SyncVar<float>` replicata a passi di 1 punto, flag delle abilità attive `SyncVar<byte>`; il client chiede con `ServerRpc(byte)`, il server valida (vivo, energia, ricarica) e avvisa tutti con `ObserversRpc(byte, Vector3)` (suoni e scansione). Riduzione dei danni via `Health.ServerDamageScale` (solo server).
+- `PlayerLife` (Player): stato `SyncVar<byte>`, avanzamento della rianimazione e tempo rimasto `SyncVar<float>` (il tempo a 4 Hz). Chi rianima manda `ServerRpc(PlayerLife)` ogni 0.15 s mentre tiene premuto; il server controlla distanza e stato.
+- `PlayerPing`: `ServerRpc(Vector3, NetworkObject)` limitato dal server, poi `ObserversRpc` a tutti (≈20 byte per ping).
+- `EnemyArmor` (Brute): salute delle piastre solo sul server, piastre rotte in una `SyncVar<byte>` (maschera); la conferma colpo porta due flag in più (`ArmorHit`, `ArmorBreak`).
+- `BruteCharge`: solo server (movimento con `NavMeshAgent.Move`), due `ObserversRpc` cosmetici (preparazione, impatto) e un `TargetRpc` al proprietario colpito per lo spintone (`PlayerMotor.TargetKnockback`). La tolleranza della validazione colpi usa la velocità di carica (`IEnemyAbility.ServerSpeedOverride`).
+- Suoni: solo locali; gli spari degli altri partono da `RpcShotFx` già esistente.
+- Protocollo di rete alla versione 3.

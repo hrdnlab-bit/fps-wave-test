@@ -1,3 +1,4 @@
+using HrdnLab.FpsWave.Audio;
 using HrdnLab.FpsWave.Player;
 using HrdnLab.FpsWave.Stats;
 using UnityEngine;
@@ -107,6 +108,10 @@ namespace HrdnLab.FpsWave.Weapons
             var kick = new Vector2(Random.Range(0.4f, 1f), Random.Range(-1f, 1f)) * size;
             _look.AddRecoilKick(kick, 0f, 30f, 7f);
             _look.AddTrauma(0.12f);
+            GameAudio.Play2D(SoundId.EnemyHitPlayer, 0.8f);
+            float max = _health.Max;
+            if (max > 0f && previous / max > 0.25f && next / max <= 0.25f)
+                HrdnLab.FpsWave.UI.SuitCallouts.Raise("ARMOR INTEGRITY CRITICAL", HrdnLab.FpsWave.UI.CalloutKind.Warning);
         }
 
         /// <summary>Cambio arma: nuovo profilo, raffica e calore azzerati, l'arma entra dal basso.</summary>
@@ -244,7 +249,11 @@ namespace HrdnLab.FpsWave.Weapons
             // ~2.7 correndo, come nei Call of Duty): un passo ogni ~2.2 m camminando e ~2.6 m correndo alle velocità del gioco.
             _bobWeight = Mathf.Lerp(_bobWeight, grounded ? Mathf.Clamp01(speed / 4.5f) : 0f, RecoilMath.ExpBlend(5f, dt));
             float stepLength = Mathf.Lerp(2.2f, 2.6f, _sprint);
+            float phaseBefore = _bobPhase;
             _bobPhase = (_bobPhase + speed * dt / stepLength * Mathf.PI) % (Mathf.PI * 2f);
+            // Un passo ogni mezzo ciclo: suono di passo sincronizzato con l'ondeggio dell'arma.
+            if (grounded && speed > 1.2f && Mathf.FloorToInt(phaseBefore / Mathf.PI) != Mathf.FloorToInt(_bobPhase / Mathf.PI))
+                GameAudio.Play2D(SoundId.Footstep, crouching ? 0.25f : Mathf.Lerp(0.4f, 0.75f, _sprint));
             float amp = _feel.BobAmount * _bobWeight * steady;
             float big = 1f + 1.1f * _sprint;
             float s1 = Mathf.Sin(_bobPhase);
@@ -266,6 +275,8 @@ namespace HrdnLab.FpsWave.Weapons
             if (grounded && !_wasGrounded)
             {
                 float impact = Mathf.Clamp01(-_fallSpeed / 10f);
+                if (impact > 0.15f)
+                    GameAudio.Play2D(SoundId.Land, Mathf.Lerp(0.4f, 1f, impact));
                 _posSpring.AddImpulse(new Vector3(0f, -0.05f, 0f) * (impact * Mathf.Sqrt(_feel.PositionStiffness)));
                 _rotSpring.AddImpulse(new Vector3(6f, 0f, 0f) * (impact * Mathf.Sqrt(_feel.RotationStiffness)));
                 _fallSpeed = 0f;

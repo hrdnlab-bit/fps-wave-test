@@ -51,6 +51,11 @@ namespace HrdnLab.FpsWave.Player
         public float SpeedMultiplier { get; set; } = 1f;
         /// <summary>Corsa impedita dall'arma (si spara o si mira): come nei Call of Duty, premere il grilletto interrompe lo sprint.</summary>
         public bool SprintBlocked { get; set; }
+        /// <summary>Moltiplicatore delle abilità della tuta (Overcharge, Armor mode). 1 = normale.</summary>
+        public float AbilitySpeedMultiplier { get; set; } = 1f;
+        /// <summary>A terra (PlayerLife): si striscia accovacciati, niente corsa né salto.</summary>
+        public bool Downed { get; set; }
+        [SerializeField, Range(0.1f, 1f)] private float _downedSpeedMultiplier = 0.45f;
         public bool IsGrounded => _controller != null && _controller.isGrounded;
         public bool IsSprinting { get; private set; }
         public bool IsCrouching => _isCrouching;
@@ -96,12 +101,12 @@ namespace HrdnLab.FpsWave.Player
                 return;
 
             Vector2 move = _input != null ? _input.MoveInput : Vector2.zero;
-            bool wantsCrouch = _input != null && _input.CrouchHeld;
+            bool wantsCrouch = (_input != null && _input.CrouchHeld) || Downed;
             UpdateCrouch(wantsCrouch, dt);
 
-            IsSprinting = !_isCrouching && _input != null && _input.SprintHeld && move.y > 0.1f && SpeedMultiplier >= 0.99f && !SprintBlocked;
+            IsSprinting = !_isCrouching && _input != null && _input.SprintHeld && move.y > 0.1f && SpeedMultiplier >= 0.99f && !SprintBlocked && !Downed;
             float targetSpeed = _isCrouching ? _crouchSpeed : IsSprinting ? _sprintSpeed : _walkSpeed;
-            targetSpeed *= SpeedMultiplier;
+            targetSpeed *= SpeedMultiplier * AbilitySpeedMultiplier * (Downed ? _downedSpeedMultiplier : 1f);
 
             Vector3 wishDir = transform.right * move.x + transform.forward * move.y;
             Vector3 targetHorizontal = wishDir * targetSpeed;
@@ -113,7 +118,7 @@ namespace HrdnLab.FpsWave.Player
             {
                 if (_velocity.y < 0f)
                     _velocity.y = -2f; // mantiene il contatto col terreno sulle discese
-                if (_input != null && _input.JumpPressed && !_isCrouching)
+                if (_input != null && _input.JumpPressed && !_isCrouching && !Downed)
                     _velocity.y = Mathf.Sqrt(2f * -_gravity * _jumpHeight);
             }
             _velocity.y += _gravity * dt;
@@ -124,6 +129,17 @@ namespace HrdnLab.FpsWave.Player
             if ((flags & CollisionFlags.Above) != 0 && _velocity.y > 0f)
                 _velocity.y = 0f;
         }
+
+        /// <summary>Spinta improvvisa (carica del Brute): sommata alla velocità del proprietario.</summary>
+        public void AddImpulse(Vector3 impulse)
+        {
+            if (IsOwner)
+                _velocity += impulse;
+        }
+
+        /// <summary>Server → proprietario: spintone (la posizione è simulata dal proprietario).</summary>
+        [TargetRpc]
+        public void TargetKnockback(FishNet.Connection.NetworkConnection connection, Vector3 impulse) => AddImpulse(impulse);
 
         private void UpdateCrouch(bool wantsCrouch, float dt)
         {

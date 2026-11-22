@@ -58,6 +58,7 @@ namespace HrdnLab.FpsWave.Editor
             WireBootScene(playerPrefab.GetComponent<NetworkObject>());
             UiBuilder.Build(); // HUD sul Player e menu di gioco nella scena Boot
             WeaponFeelSetup.Apply(applyPresets: true); // sensazione delle armi: driver sul Player + profili di partenza
+            AudioContentBuilder.Build(); // suoni: spari rifiniti + libreria (se gli asset audio sono installati)
 
             EditorBuildSettings.scenes = new[]
             {

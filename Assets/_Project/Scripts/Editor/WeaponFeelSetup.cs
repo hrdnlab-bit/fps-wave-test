@@ -36,6 +36,10 @@ namespace HrdnLab.FpsWave.Editor
                     if (definition == null)
                         continue;
                     definition.EditorSetFeel(definition.Automatic ? WeaponFeel.AutomaticPreset() : WeaponFeel.SemiAutoPreset());
+                    if (definition.Automatic)
+                        definition.EditorSetSounds(HrdnLab.FpsWave.Audio.SoundId.RifleShotClose, HrdnLab.FpsWave.Audio.SoundId.RifleShotFar);
+                    else
+                        definition.EditorSetSounds(HrdnLab.FpsWave.Audio.SoundId.PistolShotClose, HrdnLab.FpsWave.Audio.SoundId.PistolShotFar);
                     EditorUtility.SetDirty(definition);
                     weapons++;
                 }

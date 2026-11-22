@@ -1,6 +1,7 @@
 using System;
 using FishNet.Connection;
 using FishNet.Object;
+using HrdnLab.FpsWave.Audio;
 using HrdnLab.FpsWave.Combat;
 using HrdnLab.FpsWave.Core;
 using HrdnLab.FpsWave.Player;
@@ -88,6 +89,10 @@ namespace HrdnLab.FpsWave.Weapons
         /// <summary>Armi della dotazione e indice di quella impugnata (per la striscia delle armi nel HUD).</summary>
         public System.Collections.Generic.IReadOnlyList<WeaponDefinition> Loadout => _loadout;
         public int EquippedIndex => _localEquipped;
+        /// <summary>A terra (PlayerLife): si usa solo la secondaria.</summary>
+        public bool ForceSecondary { get; set; }
+        /// <summary>Morto in attesa di tornare in vita: niente spari.</summary>
+        public bool WeaponsDisabled { get; set; }
         /// <summary>Mira con curva morbida (ease in/out) per posa dell'arma e FOV: entra e esce come nei Call of Duty.</summary>
         public float AimEased => _aim * _aim * (3f - 2f * _aim);
 
@@ -181,13 +186,24 @@ namespace HrdnLab.FpsWave.Weapons
             if (_input == null)
                 return;
 
-            if (_input.Weapon1Pressed) EquipLocal(0, true);
+            if (ForceSecondary)
+            {
+                int secondary = SecondaryIndex();
+                if (secondary >= 0 && secondary != _localEquipped)
+                    EquipLocal(secondary, true);
+            }
+            else if (_input.Weapon1Pressed) EquipLocal(0, true);
             else if (_input.Weapon2Pressed) EquipLocal(1, true);
             else if (_input.SwitchWeaponPressed) EquipLocal(NextSlot(), true);
 
             WeaponState state = Current;
             if (state == null)
                 return;
+            if (WeaponsDisabled)
+            {
+                _aim = 0f;
+                return;
+            }
 
             if (_input.ReloadPressed)
                 RequestReload(state, now);
@@ -243,6 +259,14 @@ namespace HrdnLab.FpsWave.Weapons
                 if (!state.Definition.Automatic)
                     break;
             }
+        }
+
+        private int SecondaryIndex()
+        {
+            for (int i = 0; i < _loadout.Length; i++)
+                if (_loadout[i] != null && _loadout[i].Slot == WeaponSlot.Secondary)
+                    return i;
+            return -1;
         }
 
         private int NextSlot()
@@ -307,13 +331,27 @@ namespace HrdnLab.FpsWave.Weapons
             Vector3 muzzle = _muzzle != null ? _muzzle.position : origin;
             if (state.Definition.Automatic && _localTracerCounter++ % 3 == 0)
                 _fx?.Tracer(muzzle, end, state.Definition.Feel.MuzzleColor);
+            GameAudio.Play2D(state.Definition.FireSoundClose);
             if (hitSomething)
             {
                 // Sui personaggi niente segno permanente: resterebbe sospeso in aria quando il nemico si muove o sparisce.
                 if (zone != null)
-                    _fx?.FleshImpact(hit.point, hit.normal);
+                {
+                    bool plate = zone.TryGetComponent(out HrdnLab.FpsWave.Enemies.ArmorPlate armorPlate) && !armorPlate.IsBroken;
+                    if (plate)
+                        _fx?.SparkImpact(hit.point, hit.normal);
+                    else
+                        _fx?.FleshImpact(hit.point, hit.normal);
+                    if (plate)
+                        GameAudio.PlayAt(SoundId.ArmorPlateHit, hit.point);
+                    else if (!zone.Owner.IsDead)
+                        GameAudio.Play2D(SoundId.HitMarker); // tick immediato (predetto), i suoni speciali arrivano con la conferma
+                }
                 else
+                {
                     _fx?.Impact(hit.point, hit.normal);
+                    GameAudio.PlayAt(SoundId.ImpactSurface, hit.point, 0.8f);
+                }
             }
             if (_feel != null)
             {
@@ -530,10 +568,20 @@ namespace HrdnLab.FpsWave.Weapons
             bool crit = DamageCalculator.RollCritical(stats.Get(StatType.CritChance), UnityEngine.Random.value);
             float damage = DamageCalculator.Compute(stats.Get(StatType.Damage), zone.DamageMultiplier, zone.IsWeakspot,
                 stats.Get(StatType.WeakspotMultiplier), crit, stats.Get(StatType.CritMultiplier));
-            bool killed = health.ApplyDamage(new DamageInfo(damage, crit, zone.IsWeakspot, OwnerId, end));
+            // Corazza a piastre: una piastra intera assorbe il colpo e al corpo arriva solo una parte.
+            float shown = damage;
+            bool armorHit = false, armorBreak = false;
+            if (target.TryGetComponent(out HrdnLab.FpsWave.Enemies.EnemyArmor armor)
+                && armor.ServerAbsorb(zone.Index, damage, out float bodyDamage, out armorBreak))
+            {
+                armorHit = true;
+                damage = bodyDamage;
+            }
+            bool killed = damage > 0f && health.ApplyDamage(new DamageInfo(damage, crit, zone.IsWeakspot && !armorHit, OwnerId, end));
 
             // Conferma per ogni colpo andato a segno (≈20 byte): numeri di danno e, per kill/critico, l'hit marker confermato.
-            RpcConfirmHit(Owner, end, HitConfirm.PackDamage(damage), (byte)HitConfirm.MakeFlags(crit, zone.IsWeakspot, killed));
+            RpcConfirmHit(Owner, end, HitConfirm.PackDamage(shown),
+                (byte)HitConfirm.MakeFlags(crit, zone.IsWeakspot && !armorHit, killed, armorHit, armorBreak));
             return ShotRejectReason.None;
         }
 
@@ -555,6 +603,17 @@ namespace HrdnLab.FpsWave.Weapons
                 LocalHitMarker?.Invoke(HitMarkerType.Kill);
             else if (HitConfirm.Has(flags, HitFlags.Critical))
                 LocalHitMarker?.Invoke(HitMarkerType.Critical);
+
+            if (HitConfirm.Has(flags, HitFlags.Kill))
+                GameAudio.Play2D(SoundId.KillConfirm);
+            else if (HitConfirm.Has(flags, HitFlags.ArmorBreak))
+            {
+                GameAudio.Play2D(SoundId.ArmorPlateBreak);
+                HrdnLab.FpsWave.UI.SuitCallouts.Show("ARMOR BREACHED // WEAK POINT EXPOSED", HrdnLab.FpsWave.UI.CalloutKind.Positive);
+            }
+            else if (!HitConfirm.Has(flags, HitFlags.ArmorHit)
+                     && (HitConfirm.Has(flags, HitFlags.Weakspot) || HitConfirm.Has(flags, HitFlags.Critical)))
+                GameAudio.Play2D(SoundId.HitMarkerPrecision);
             LocalHitConfirmed?.Invoke(point, damage, flags);
         }
 
@@ -568,6 +627,9 @@ namespace HrdnLab.FpsWave.Weapons
             Color energy = weaponIndex < _loadout.Length && _loadout[weaponIndex] != null
                 ? _loadout[weaponIndex].Feel.MuzzleColor : Color.white;
             _fx.Tracer(start, end, energy); // anche gli altri vedono il colore dell'arma
+            if (weaponIndex < _loadout.Length && _loadout[weaponIndex] != null)
+                GameAudio.PlayAt(_loadout[weaponIndex].FireSoundFar, origin);
+            GameAudio.PlayAt(SoundId.ImpactSurface, end, 0.6f);
         }
 
 #if UNITY_EDITOR

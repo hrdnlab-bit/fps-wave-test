@@ -25,6 +25,8 @@ namespace HrdnLab.FpsWave.Enemies
 
         private Health _health;
         private EnemyAgent _agent;
+        private BruteCharge _charge;
+        private float _windup;
         private MaterialPropertyBlock _block;
         private Vector3 _lastPosition;
         private float _speed;
@@ -41,7 +43,12 @@ namespace HrdnLab.FpsWave.Enemies
             _health.ClientHealthChanged += HandleHealthChanged;
             if (_agent != null)
                 _agent.ClientAttacked += HandleAttacked;
+            _charge = GetComponent<BruteCharge>();
+            if (_charge != null)
+                _charge.ClientWindup += HandleWindup;
         }
+
+        private void HandleWindup() => _windup = 1f;
 
         private void OnDestroy()
         {
@@ -49,6 +56,8 @@ namespace HrdnLab.FpsWave.Enemies
                 _health.ClientHealthChanged -= HandleHealthChanged;
             if (_agent != null)
                 _agent.ClientAttacked -= HandleAttacked;
+            if (_charge != null)
+                _charge.ClientWindup -= HandleWindup;
         }
 
         public override void OnStartClient()
@@ -90,6 +99,7 @@ namespace HrdnLab.FpsWave.Enemies
             bool dead = _health.IsDead;
             _deathBlend = Mathf.MoveTowards(_deathBlend, dead ? 1f : 0f, dt * 4f);
             _lunge = Mathf.MoveTowards(_lunge, 0f, dt * 4f);
+            _windup = Mathf.MoveTowards(_windup, 0f, dt * 1.3f);
             if (_hurtFlash > 0f)
             {
                 _hurtFlash = Mathf.MoveTowards(_hurtFlash, 0f, dt * 6f);
@@ -112,7 +122,7 @@ namespace HrdnLab.FpsWave.Enemies
             // Movimenti contenuti: le hitbox restano ferme (uguali sul server), il corpo visibile non deve allontanarsene.
             float bob = Mathf.Abs(Mathf.Sin(_phase)) * 0.05f * run;
             float sway = Mathf.Sin(_phase) * 4f * run;
-            float lean = 7f * run + 14f * _lunge;
+            float lean = 7f * run + 14f * _lunge - 16f * Mathf.Sin(_windup * Mathf.PI); // carica: si piega indietro e poi scatta
             Quaternion alive = Quaternion.Euler(lean, 0f, sway);
             Quaternion dead = Quaternion.Euler(-88f, 0f, 0f);
             _model.localRotation = Quaternion.Slerp(alive, dead, _deathBlend);

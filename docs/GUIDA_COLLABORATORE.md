@@ -64,6 +64,11 @@ Modelli e texture delle armi **non sono nel repo**: la licenza Fab non permette 
    powershell -ExecutionPolicy Bypass -File tools\setup-ui-assets.ps1
    ```
    Poi, una volta aperto Unity, esegui **FpsWave > Setup > 7. Build UI** (genera le texture del HUD in `Assets/ThirdParty/_Own/Hud/`).
+5. Suoni (tutti gratuiti CC0): scarica a mano da https://kenney.nl/assets/impact-sounds e https://kenney.nl/assets/sci-fi-sounds (Download → "Continue without donating"), lascia i due zip in Download, poi con Unity chiuso:
+   ```
+   powershell -ExecutionPolicy Bypass -File tools\setup-audio-assets.ps1
+   ```
+   Lo script scarica da solo gli spari (194 MB) e i suoni d'interfaccia. In Unity esegui **FpsWave > Setup > 9. Build Audio**.
 
 ---
 

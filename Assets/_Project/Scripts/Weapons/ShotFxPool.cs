@@ -34,6 +34,7 @@ namespace HrdnLab.FpsWave.Weapons
         private int _nextFlesh;
         private Material _fleshMaterial;
         private MaterialPropertyBlock _tracerBlock;
+        private MaterialPropertyBlock _fleshBlock;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         /// <summary>Restituisce il pool della scena corrente, creandolo al primo uso.</summary>
@@ -150,8 +151,16 @@ namespace HrdnLab.FpsWave.Weapons
         }
 
         /// <summary>Colpo su un personaggio: effetto brevissimo, mai lasciato in scena.</summary>
-        public void FleshImpact(Vector3 point, Vector3 normal)
+        public void FleshImpact(Vector3 point, Vector3 normal) => FleshImpact(point, normal, new Color(0.7f, 0.04f, 0.02f));
+
+        /// <summary>Colpo su metallo (piastre di corazza): stessa scintilla breve, color brace invece che sangue.</summary>
+        public void SparkImpact(Vector3 point, Vector3 normal) => FleshImpact(point, normal, new Color(2.2f, 1.4f, 0.5f));
+
+        private void FleshImpact(Vector3 point, Vector3 normal, Color color)
         {
+            _fleshBlock ??= new MaterialPropertyBlock();
+            _fleshBlock.SetColor(BaseColorId, color);
+            _flesh[_nextFlesh].GetComponent<Renderer>().SetPropertyBlock(_fleshBlock);
             Transform t = _flesh[_nextFlesh];
             _fleshExpiry[_nextFlesh] = Time.time + FleshLifetime;
             _nextFlesh = (_nextFlesh + 1) % FleshCount;

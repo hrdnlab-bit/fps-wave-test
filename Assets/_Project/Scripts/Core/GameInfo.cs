@@ -8,6 +8,6 @@ namespace HrdnLab.FpsWave.Core
     public static class GameInfo
     {
         public const string Version = "0.2.0";
-        public const int ProtocolVersion = 2; // 2: conferma colpo con danno, EnemyTarget sul player, colore del tracciante
+        public const int ProtocolVersion = 3; // 3: tuta, a terra/rianimazione, ping, corazza del Brute; 2: conferma colpo con danno, colore del tracciante
     }
 }

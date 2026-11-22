@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 229cee6398f4c044ab72cdf240e18820, type: 3}
+  m_Name: Enemy_Brute
+  m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Enemies.EnemyDefinition
+  _id: brute
+  _displayName: Brute
+  _prefab: {fileID: 861807191099803955, guid: 5183a60e314cce849817d1fc36225fc2, type: 3}
+  _maxHealth: 600
+  _moveSpeed: 3.5
+  _acceleration: 30
+  _angularSpeed: 720
+  _radius: 0.6
+  _height: 2.5
+  _attackDamage: 25
+  _attackInterval: 1.6
+  _attackWindup: 0.35
+  _attackRange: 2.4
+  _stopDistance: 1.9
+  _spawnWeight: 0.12
+  _groupSize: {x: 1, y: 1}
+  _budgetCost: 6
+  _firstWave: 3
+  _poolPrewarm: 4

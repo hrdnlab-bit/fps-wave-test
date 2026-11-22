@@ -368,3 +368,174 @@
 .hitmarker--weak .hm-tick { background-color: rgb(255, 189, 51); }
 .hitmarker--crit .hm-tick { background-color: rgb(255, 236, 38); }
 .hitmarker--kill .hm-tick { background-color: rgb(255, 72, 56); width: 16px; left: -8px; }
+
+/* --- tuta: energia e abilità ---------------------------------------------------- */
+.suit-row {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 8px;
+}
+.energy-track {
+    flex-grow: 1;
+    height: 5px;
+    background-color: rgba(120, 215, 255, 0.12);
+    overflow: hidden;
+}
+.energy-fill {
+    height: 100%;
+    width: 100%;
+    background-color: rgb(120, 215, 255);
+}
+.energy-value {
+    font-size: 13px;
+    width: 40px;
+    -unity-text-align: middle-right;
+    color: rgba(170, 225, 248, 0.8);
+}
+.ability-row {
+    flex-direction: row;
+    margin-top: 6px;
+}
+.ability-chip {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 10px;
+    padding: 1px 6px 1px 1px;
+    border-width: 1px;
+    border-color: rgba(200, 240, 255, 0.35);
+    background-color: rgba(0, 14, 22, 0.25);
+}
+.chip-key {
+    font-size: 11px;
+    width: 18px;
+    height: 18px;
+    margin-right: 6px;
+    -unity-text-align: middle-center;
+    color: rgb(8, 22, 30);
+    background-color: rgba(200, 240, 255, 0.85);
+    text-shadow: 0 0 0 rgba(0, 0, 0, 0);
+}
+.chip-label {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: rgba(222, 244, 252, 0.85);
+}
+.chip--active { border-color: rgb(120, 215, 255); background-color: rgba(120, 215, 255, 0.22); }
+.chip--active .chip-key { background-color: rgb(120, 215, 255); }
+.chip--cooldown, .chip--low { opacity: 0.4; }
+.chip--low .chip-key { background-color: rgba(255, 150, 120, 0.8); }
+
+.tint-armor {
+    background-image: url("/Assets/ThirdParty/_Own/Hud/damage_vignette.png");
+    -unity-background-image-tint-color: rgba(90, 190, 255, 0.35);
+    opacity: 0;
+}
+.tint-boost {
+    background-image: url("/Assets/ThirdParty/_Own/Hud/damage_vignette.png");
+    -unity-background-image-tint-color: rgba(255, 220, 140, 0.35);
+    opacity: 0;
+}
+
+/* --- voce della tuta ------------------------------------------------------------ */
+.callout {
+    margin-top: 10px;
+    font-size: 16px;
+    letter-spacing: 4px;
+    color: rgb(170, 230, 255);
+}
+.callout--warning { color: rgb(255, 150, 120); }
+.callout--positive { color: rgb(150, 255, 210); }
+
+/* --- indicatori nel mondo -------------------------------------------------------- */
+.marker-layer { overflow: hidden; }
+.marker {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    align-items: center;
+}
+.marker-icon {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    left: -6px;
+    top: -6px;
+    rotate: 45deg;
+    border-width: 2px;
+    border-color: rgb(120, 215, 255);
+    background-color: rgba(120, 215, 255, 0.25);
+}
+.marker-kind {
+    position: absolute;
+    top: -30px;
+    left: -60px;
+    width: 120px;
+    -unity-text-align: middle-center;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: rgb(170, 230, 255);
+}
+.marker-label {
+    position: absolute;
+    top: 9px;
+    left: -60px;
+    width: 120px;
+    -unity-text-align: middle-center;
+    font-size: 12px;
+    color: rgba(222, 244, 252, 0.85);
+}
+.marker--enemy .marker-icon { border-color: rgb(255, 96, 84); background-color: rgba(255, 96, 84, 0.3); }
+.marker--enemy .marker-kind { color: rgb(255, 130, 118); }
+.marker--scan .marker-icon {
+    width: 9px; height: 9px; left: -4px; top: -4px;
+    border-color: rgb(255, 96, 84);
+    background-color: rgba(255, 96, 84, 0.45);
+}
+.marker--downed .marker-icon { border-color: rgb(255, 196, 92); background-color: rgba(255, 196, 92, 0.35); }
+.marker--downed .marker-kind { color: rgb(255, 204, 110); }
+.marker--edge .marker-kind { display: none; }
+
+/* --- a terra e rianimazione ------------------------------------------------------- */
+.downed-panel {
+    position: absolute;
+    left: 0; right: 0;
+    top: 66%;
+    align-items: center;
+}
+.downed-title {
+    font-size: 34px;
+    letter-spacing: 8px;
+    color: rgb(255, 110, 96);
+}
+.downed-panel--dead .downed-title { color: rgba(222, 244, 252, 0.7); }
+.downed-detail {
+    font-size: 15px;
+    letter-spacing: 3px;
+    margin-top: 2px;
+    color: rgba(255, 210, 200, 0.85);
+}
+.revive-track {
+    width: 260px;
+    height: 4px;
+    margin-top: 8px;
+    background-color: rgba(255, 196, 92, 0.15);
+    overflow: hidden;
+}
+.revive-fill {
+    height: 100%;
+    width: 0%;
+    background-color: rgb(255, 196, 92);
+}
+.revive-prompt {
+    position: absolute;
+    left: 0; right: 0;
+    top: 58%;
+    align-items: center;
+}
+.revive-text {
+    font-size: 17px;
+    letter-spacing: 4px;
+    color: rgb(255, 210, 130);
+}
