@@ -17,6 +17,7 @@ namespace HrdnLab.FpsWave.Enemies
         private static readonly int SpeedId = Animator.StringToHash("Speed");
         private static readonly int AttackId = Animator.StringToHash("Attack");
         private static readonly int DeadId = Animator.StringToHash("Dead");
+        private static readonly int RunRateId = Animator.StringToHash("RunRate");
         private static readonly int LocomotionId = Animator.StringToHash("Locomotion");
         private static readonly int DeathId = Animator.StringToHash("Death");
 
@@ -29,6 +30,8 @@ namespace HrdnLab.FpsWave.Enemies
         [SerializeField, Min(1f)] private float _animationCullDistance = 45f;
         [Tooltip("Modello con scheletro: corsa, attacco e morte vengono dalle clip (parametri Speed, Attack, Dead).")]
         [SerializeField] private Animator _animator;
+        [Tooltip("Velocità naturale della clip di corsa (m/s): sopra, la clip accelera in proporzione.")]
+        [SerializeField, Min(0.1f)] private float _runClipSpeed = 4f;
 
         private Health _health;
         private EnemyAgent _agent;
@@ -144,6 +147,7 @@ namespace HrdnLab.FpsWave.Enemies
             {
                 _animator.enabled = !far;
                 _animator.SetFloat(SpeedId, _speed);
+                _animator.SetFloat(RunRateId, Mathf.Max(1f, _speed / _runClipSpeed));
                 _animator.SetBool(DeadId, dead);
                 return;
             }
@@ -191,7 +195,11 @@ namespace HrdnLab.FpsWave.Enemies
             _runSpeedForFullCycle = runSpeedForFullCycle;
         }
 
-        public void EditorSetAnimator(Animator animator) => _animator = animator;
+        public void EditorSetAnimator(Animator animator, float runClipSpeed)
+        {
+            _animator = animator;
+            _runClipSpeed = runClipSpeed;
+        }
 
         /// <summary>Per i modelli con texture: i colori moltiplicano la texture (bianco = colori originali).</summary>
         public void EditorSetup(Transform model, Renderer[] renderers, Color aliveColor, Color hurtColor, Color deadColor, float runSpeedForFullCycle)

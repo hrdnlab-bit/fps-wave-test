@@ -65,6 +65,8 @@ namespace HrdnLab.FpsWave.Editor
             // Binari fuori dal repo (docs/ASSETS.md): se mancano si usa la sagoma greybox qui sopra.
             public string ModelDir;
             public float ModelYaw;
+            // Velocità naturale della clip Run (m/s, stampata da tools/autorig): oltre, la clip accelera (piedi senza scivolare).
+            public float RunClipSpeed = 4f;
             // Corazza a piastre (opzionale): ogni piastra assorbe i colpi finché non si rompe.
             public PlateSpec[] Plates;
             public Color ArmorColor;
@@ -96,6 +98,7 @@ namespace HrdnLab.FpsWave.Editor
                 AgentRadius = 0.35f, AgentHeight = 1.8f,
                 ModelDir = "Assets/ThirdParty/_Own/Runner",
                 ModelYaw = 180f, // l'FBX da Blender guarda -Z dopo la conversione degli assi
+                RunClipSpeed = 3.69f, // motion capture CMU 127_08 (corsa), 2,053 unità/s x scala 1,799
             },
             new EnemyTypeSpec
             {
@@ -265,7 +268,7 @@ namespace HrdnLab.FpsWave.Editor
                 bodyPos = new Vector3(modelChest.x, bodyScale.y + 0.1f, modelChest.z);
                 if (modelAnimator != null)
                 {
-                    visual.EditorSetAnimator(modelAnimator);
+                    visual.EditorSetAnimator(modelAnimator, spec.RunClipSpeed);
                     enemy.EditorSetCorpseSeconds(1.5f); // la clip di morte dura 1,2 s
                 }
             }
@@ -710,6 +713,9 @@ namespace HrdnLab.FpsWave.Editor
             string path = $"{AnimationsDir}/{spec.Name}.controller";
             var existing = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
             if (existing != null && existing.animationClips.Length == 4 && existing.animationClips.Contains(run)
+                && existing.parameters.Any(p => p.name == "RunRate")
+                && existing.layers[0].stateMachine.defaultState?.motion is BlendTree bt
+                && bt.children.Length == 2 && Mathf.Approximately(bt.children[1].threshold, spec.RunClipSpeed)
                 && existing.animationClips.Contains(death) && existing.animationClips.Contains(attack)
                 && existing.animationClips.Contains(idle))
                 return existing;
@@ -720,6 +726,8 @@ namespace HrdnLab.FpsWave.Editor
             controller.AddParameter("Speed", AnimatorControllerParameterType.Float);
             controller.AddParameter("Attack", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Dead", AnimatorControllerParameterType.Bool);
+            controller.AddParameter(new AnimatorControllerParameter
+                { name = "RunRate", type = AnimatorControllerParameterType.Float, defaultFloat = 1f });
             AnimatorStateMachine sm = controller.layers[0].stateMachine;
 
             AnimatorState locomotion = controller.CreateBlendTreeInController("Locomotion", out BlendTree tree, 0);
@@ -727,7 +735,9 @@ namespace HrdnLab.FpsWave.Editor
             tree.blendParameter = "Speed";
             tree.useAutomaticThresholds = false;
             tree.AddChild(idle, 0f);
-            tree.AddChild(run, spec.MoveSpeed);
+            tree.AddChild(run, spec.RunClipSpeed);
+            locomotion.speedParameterActive = true; // RunRate: la corsa accelera oltre la velocità della clip
+            locomotion.speedParameter = "RunRate";
             sm.defaultState = locomotion;
 
             AnimatorState attackState = sm.AddState("Attack");

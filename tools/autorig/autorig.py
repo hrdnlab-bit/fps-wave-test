@@ -5,7 +5,10 @@ import bpy, sys, math, json
 import numpy as np
 from mathutils import Vector, Quaternion, Euler, Matrix
 
-src, dst, target, mode, prev = sys.argv[-5], sys.argv[-4], int(sys.argv[-3]), sys.argv[-2], sys.argv[-1]
+import os
+_a = sys.argv[sys.argv.index("--") + 1:]
+src, dst, target, mode, prev = _a[0], _a[1], int(_a[2]), _a[3], _a[4]
+run_bvh = _a[5] if len(_a) > 5 else None  # corsa da motion capture (BVH CMU) al posto di quella procedurale
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.fbx(filepath=src)
 mesh = [o for o in bpy.context.scene.objects if o.type == 'MESH'][0]
@@ -321,9 +324,127 @@ def death(t):
     add(pose, "UpLeg", v[9], both=True); add(pose, "Leg", v[10], both=True)
     return pose, (0, v[2] * H, v[3] * H)
 
+
+# --- corsa da motion capture (BVH CMU): retarget per direzione delle ossa, loop senza cuciture, sul posto
+def mocap_run(path, extra):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from bvh import BVH
+    b = BVH(path); P, G = b.fk(); I = b.idx
+    P0, G0 = P[0].copy(), G[0].copy()  # fotogramma 0 = T-pose che guarda davanti
+    ground = min(P0[I["LeftFoot"], 2], P0[I["RightFoot"], 2])
+    k = (J["Hips"].z - J["LeftFoot"].z) / (P0[I["Hips"], 2] - ground)
+    # direzione di corsa -> davanti (-Y), solo per i fotogrammi di moto
+    xy = P[1:, I["Hips"], :2]; d = xy[-1] - xy[0]
+    ang = math.atan2(-1.0, 0.0) - math.atan2(d[1], d[0])
+    c, s_ = math.cos(ang), math.sin(ang); Rz = np.array([[c, -s_, 0], [s_, c, 0], [0, 0, 1]])
+    P[1:] = P[1:] @ Rz.T; G[1:] = np.einsum("ab,fjbc->fjac", Rz, G[1:])
+    nf = b.nf
+    # loop: due pose simili a distanza di un ciclo
+    feat_j = [I[n] for n in ("LeftFoot", "RightFoot", "LeftHand", "RightHand", "LeftLeg", "RightLeg")]
+    F = (P[:, feat_j] - P[:, I["Hips"]][:, None]).reshape(nf, -1)
+    V = np.vstack([np.zeros((1, F.shape[1])), np.diff(F, axis=0)])
+    B = 16; best = None
+    for L in range(50, 100):
+        for st in range(2, nf - L - B):
+            cost = np.linalg.norm(F[st] - F[st + L]) + 4.0 * np.linalg.norm(V[st] - V[st + L])
+            if best is None or cost < best[0]: best = (cost, st, L)
+    _, st, L = best
+    # velocità di corsa (orizzontale) nel tratto scelto, in unità del modello al secondo
+    hip = P[:, I["Hips"]]
+    speed = np.linalg.norm(hip[st + L, :2] - hip[st, :2]) / (L * b.dt) * k
+    print("MOCAP loop start", st, "len", L, "frames =", round(L * b.dt, 3), "s; speed", round(speed, 3), "model-units/s")
+
+    rest = {bn.name: np.array(bn.matrix_local.to_3x3()) for bn in arm_data.bones}
+    rdir = {bn.name: np.array((bn.tail_local - bn.head_local).normalized()) for bn in arm_data.bones}
+    FWDv = np.array([0, -1, 0.]); UPv = np.array([0, 0, 1.])
+    MAP = {"Hips": ("d", "Hips"), "Spine": ("d", "LowerBack"), "Spine1": ("d", "Spine"), "Spine2": ("d", "Spine1"),
+           "Neck": ("d", "Neck"), "Head": ("d", "Head")}
+    for side in ("Left", "Right"):
+        MAP[side + "Shoulder"] = ("v", side + "Shoulder", side + "Arm", FWDv)
+        MAP[side + "Arm"] = ("v", side + "Arm", side + "ForeArm", FWDv)
+        MAP[side + "ForeArm"] = ("v", side + "ForeArm", side + "Hand", FWDv)
+        MAP[side + "Hand"] = ("d", side + "Hand")
+        MAP[side + "UpLeg"] = ("v", side + "UpLeg", side + "Leg", FWDv)
+        MAP[side + "Leg"] = ("v", side + "Leg", side + "Foot", FWDv)
+        MAP[side + "Foot"] = ("v", side + "Foot", side + "ToeBase", UPv)
+        MAP[side + "ToeBase"] = ("d", side + "ToeBase")
+
+    def frame(p, s2):
+        y = p / np.linalg.norm(p); z = s2 - (s2 @ y) * y; z /= np.linalg.norm(z); x = np.cross(y, z)
+        return np.stack([x, y, z], axis=1)
+
+    trend = np.polyfit(np.arange(nf), hip[:, 0], 1), np.polyfit(np.arange(nf), hip[:, 1], 1)
+    def retarget(f):
+        Wp = {}; out = {}
+        for bn in arm_data.bones:
+            n = bn.name; Rb = rest[n]
+            m = MAP.get(n)
+            if m is None:
+                Wd = (Wp[bn.parent.name] @ rest[bn.parent.name].T @ Rb)  # dita: seguono la mano
+            elif m[0] == "d":
+                j = I[m[1]]; Wd = G[f, j] @ G0[j].T @ Rb
+            else:
+                j, cj, sec = I[m[1]], I[m[2]], m[3]
+                ps = P[f, cj] - P[f, j]; ss = G[f, j] @ G0[j].T @ sec
+                Wd = frame(ps, ss) @ frame(rdir[n], sec).T @ Rb
+            if bn.parent is None: basis = Rb.T @ Wd
+            else: basis = Rb.T @ rest[bn.parent.name] @ Wp[bn.parent.name].T @ Wd
+            Wp[n] = Wd; out[n] = Matrix(basis.tolist()).to_quaternion()
+        sway = np.array([hip[f, 0] - np.polyval(trend[0], f), hip[f, 1] - np.polyval(trend[1], f), hip[f, 2] - P0[I["Hips"], 2]]) * k
+        out["__loc"] = Vector((Rb_h := rest["Hips"]).T @ sway)
+        return out
+
+    def sample(t):  # t in fotogrammi sorgente (frazionario), dentro [st, st+L] con dissolvenza della cucitura
+        def at(x):
+            a = int(math.floor(x)); u = x - a
+            pa, pb = retarget(a), retarget(min(a + 1, nf - 1))
+            return {n: (pa[n].slerp(pb[n], u) if n != "__loc" else pa[n].lerp(pb[n], u)) for n in pa}
+        rel = t - st
+        cur = at(t)
+        if rel < B:
+            w = rel / B; w = w * w * (3 - 2 * w)
+            nxt = at(t + L)
+            cur = {n: (nxt[n].slerp(cur[n], w) if n != "__loc" else nxt[n].lerp(cur[n], w)) for n in cur}
+        return cur
+
+    n_out = max(8, round(L * b.dt * FPS))
+    act = bpy.data.actions.new("Run")
+    rig.animation_data_create(); rig.animation_data.action = act
+    claw = q(0, 0, -26)
+    for kf in range(n_out + 1):
+        pose = sample(st + L * (kf % n_out) / n_out)
+        for p in pb:
+            qq = pose.get(p.name, Quaternion())
+            if "HandIndex" in p.name or "HandMiddle" in p.name:
+                qq = q(0, 0, 26 if p.name.startswith("Right") else -26)
+            key = p.name.replace("Left", "").replace("Right", "") if p.name.startswith(("Left", "Right")) else p.name
+            if key in extra:
+                ex, ey, ez = extra[key]
+                qq = qq @ (q(ex, -ey, -ez) if p.name.startswith("Right") else q(ex, ey, ez))
+            p.rotation_quaternion = qq; p.location = (0, 0, 0)
+            p.keyframe_insert("rotation_quaternion", frame=kf)
+        pb["Hips"].location = pose["__loc"]
+        pb["Hips"].keyframe_insert("location", frame=kf)
+    act.use_fake_user = True
+    if os.environ.get("RIGDEBUG"):
+        bpy.context.scene.frame_set(0); bpy.context.view_layer.update()
+        hp = rig.pose.bones["Hips"].head
+        src = st
+        for n in ("LeftArm", "LeftForeArm", "LeftHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "Head"):
+            tv = (rig.pose.bones[n].head - hp)
+            sv = (P[src, I[n]] - P[src, I["Hips"]]) * k
+            print("DBG", n, "tgt", tuple(round(x, 3) for x in tv), "src", tuple(round(x, 3) for x in sv))
+    json.dump({"run_speed_model_units": speed, "loop_seconds": L * b.dt, "frames": n_out}, open(prev + "_run.json", "w"))
+    print("action Run (mocap)", n_out)
+
 if mode == "runner":
     keyed("Idle", 60, idle, True)
-    keyed("Run", 18, run, True)
+    if run_bvh:
+        # Runner: un filo più curvo in avanti e testa che guarda avanti, artigli chiusi (vedi mocap_run)
+        mocap_run(run_bvh, {"Spine": (5, 0, 0), "Spine1": (4, 0, 0), "Neck": (-4, 0, 0), "Head": (-4, 0, 0),
+                            "Arm": (0, 0, 12), "ForeArm": (0, 0, 8)})
+    else:
+        keyed("Run", 18, run, True)
     keyed("Attack", 21, attack, False)
     keyed("Death", 36, death, False)
     rig.animation_data.action = None
@@ -351,7 +472,7 @@ def shot(name, ang):
 
 shot("rest_front", 0)
 if mode == "runner":
-    for act, frames in (("Run", (0, 5, 9, 14)), ("Attack", (6, 9)), ("Death", (12, 36)), ("Idle", (0,))):
+    for act, frames in (("Run", (0, 3, 6, 9, 12, 15)), ("Attack", (6, 9)), ("Death", (12, 36)), ("Idle", (0,))):
         rig.animation_data.action = bpy.data.actions[act]
         for f in frames:
             sc.frame_set(f); shot(f"{act}_{f}", 90)

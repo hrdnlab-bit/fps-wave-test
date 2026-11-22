@@ -774,6 +774,7 @@ MonoBehaviour:
   _runSpeedForFullCycle: 3.5
   _animationCullDistance: 45
   _animator: {fileID: 0}
+  _runClipSpeed: 4
 --- !u!114 &1080630917469478908
 MonoBehaviour:
   m_ObjectHideFlags: 0

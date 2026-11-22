@@ -3,6 +3,9 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Added (corsa realistica del Runner, Matteo)
+- **Corsa da motion capture vera** (CMU 127_08) al posto di quella fatta a mano: retarget per direzione delle ossa (A-pose del modello contro T-pose della ripresa), loop di 0,61 s senza cuciture, sul posto, con un filo di curvatura in più da mostro. La clip va a 3,69 m/s; sopra quella velocità accelera in proporzione (parametro `RunRate`), così i piedi non scivolano a 6 m/s. Hitbox della testa ricalcolata sulla nuova posa di corsa.
+
 ### Added (scheletri e animazioni, Matteo)
 - **Runner animato**: scheletro e clip Idle, Run, Attack, Death fatti in Blender con `tools/autorig/autorig.py`; `Setup/6` crea l'Animator con il controller `Runner.controller` (blend Idle/Run sulla velocità, trigger Attack, bool Dead). Fase e ritmo casuali per non avere lo sciame sincronizzato; Animator spento oltre la distanza di animazione; cadavere 1,5 s per vedere la caduta. Hitbox della testa e del busto nella posa media di corsa (fisse, uguali sul server).
 - **Nuovo personaggio del player (Pilot)**: modello Tripo con lo stesso scheletro di AIRO, preso da `Setup/9` se i binari ci sono (gambe, mira e mani sull'arma di Manuel funzionano uguali, 12/12 test del rig). Piedi a terra calcolati dai vertici veri (prima i bounds larghi dello SkinnedMeshRenderer alzavano il corpo).

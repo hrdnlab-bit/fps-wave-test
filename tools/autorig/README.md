@@ -17,3 +17,5 @@ python -I tools/autorig/autorig.py -- in.fbx out.fbx 40000 main   /tmp/anteprima
 ```
 
 Poi: Runner in `Assets/ThirdParty/_Own/Runner/Runner.fbx` + `Setup/6`; personaggio in `Assets/ThirdParty/_Own/Pilot/Pilot.fbx` + texture `Pilot_*.png` + `Setup/9` (vedi `docs/ASSETS.md`).
+
+Corsa da motion capture: aggiungi come sesto argomento un BVH della CMU (conversione MotionBuilder 2010, es. `127_08.bvh` da github.com/una-dinosauria/cmu-mocap). Il lettore è `bvh.py`; lo script sceglie da solo un ciclo, lo rende un loop senza cuciture e stampa la velocità della clip (da mettere in `RunClipSpeed` di `EnemyContentBuilder`, moltiplicata per la scala del modello in Unity).
