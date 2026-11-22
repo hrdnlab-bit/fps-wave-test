@@ -23,6 +23,10 @@ namespace HrdnLab.FpsWave.Player
         public readonly InputAction SwitchWeapon = new("SwitchWeapon", InputActionType.Button, "<Gamepad>/buttonNorth");
         public readonly InputAction Interact = new("Interact", InputActionType.Button, "<Keyboard>/e");
         public readonly InputAction Pause = new("Pause", InputActionType.Button, "<Keyboard>/escape");
+        public readonly InputAction AbilityScan = new("AbilityScan", InputActionType.Button, "<Keyboard>/q");
+        public readonly InputAction AbilityArmor = new("AbilityArmor", InputActionType.Button, "<Keyboard>/f");
+        public readonly InputAction AbilityOvercharge = new("AbilityOvercharge", InputActionType.Button, "<Keyboard>/v");
+        public readonly InputAction Ping = new("Ping", InputActionType.Button, "<Mouse>/middleButton");
         /// <summary>Solo sviluppo: riallinea la visuale alla direzione di spawn (utile nei test automatici).</summary>
         public readonly InputAction DebugResetView = new("DebugResetView", InputActionType.Button, "<Keyboard>/home");
 
@@ -45,8 +49,13 @@ namespace HrdnLab.FpsWave.Player
             Reload.AddBinding("<Gamepad>/buttonWest");
             Interact.AddBinding("<Gamepad>/dpad/up");
             Pause.AddBinding("<Gamepad>/start");
+            AbilityScan.AddBinding("<Gamepad>/leftShoulder");
+            AbilityArmor.AddBinding("<Gamepad>/rightShoulder");
+            AbilityOvercharge.AddBinding("<Gamepad>/dpad/left");
+            Ping.AddBinding("<Keyboard>/z");
+            Ping.AddBinding("<Gamepad>/dpad/right");
 
-            _all = new[] { Move, Look, LookStick, Fire, Aim, Jump, Sprint, Crouch, Reload, Weapon1, Weapon2, SwitchWeapon, Interact, Pause, DebugResetView };
+            _all = new[] { Move, Look, LookStick, Fire, Aim, Jump, Sprint, Crouch, Reload, Weapon1, Weapon2, SwitchWeapon, Interact, Pause, DebugResetView, AbilityScan, AbilityArmor, AbilityOvercharge, Ping };
         }
 
         public void Enable()

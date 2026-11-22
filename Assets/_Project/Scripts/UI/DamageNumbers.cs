@@ -30,6 +30,8 @@ namespace HrdnLab.FpsWave.UI
         [SerializeField] private Color _normalColor = new(0.95f, 0.95f, 0.95f);
         [Tooltip("Colpi di precisione: testa, punto debole, critico.")]
         [SerializeField] private Color _precisionColor = new(1f, 0.83f, 0.42f);
+        [Tooltip("Colpi su una piastra di corazza ancora intera.")]
+        [SerializeField] private Color _armorColor = new(0.62f, 0.72f, 0.82f);
 
         private struct Entry
         {
@@ -121,12 +123,14 @@ namespace HrdnLab.FpsWave.UI
                 bool kill = HitConfirm.Has(e.Flags, HitFlags.Kill);
                 bool crit = HitConfirm.Has(e.Flags, HitFlags.Critical);
                 bool weak = HitConfirm.Has(e.Flags, HitFlags.Weakspot);
-                bool precision = crit || weak;
-                float kindScale = (precision ? 1.12f : 1f) * (kill ? 1.1f : 1f);
+                bool armorHit = HitConfirm.Has(e.Flags, HitFlags.ArmorHit);
+                bool armorBreak = HitConfirm.Has(e.Flags, HitFlags.ArmorBreak);
+                bool precision = crit || weak || armorBreak;
+                float kindScale = (precision ? 1.12f : 1f) * (kill || armorBreak ? 1.1f : 1f) * (armorHit && !armorBreak ? 0.9f : 1f);
                 float size = _fontSize * (Screen.height / 1080f) * kindScale * DamageNumberMotion.Pop(t) * DamageNumberMotion.DistanceScale(screen.z);
                 _style.fontSize = Mathf.Max(8, Mathf.RoundToInt(size));
 
-                Color color = precision ? _precisionColor : _normalColor;
+                Color color = precision ? _precisionColor : armorHit ? _armorColor : _normalColor;
                 float alpha = DamageNumberMotion.Alpha(t);
 
                 float pixelScale = Screen.height / 1080f;

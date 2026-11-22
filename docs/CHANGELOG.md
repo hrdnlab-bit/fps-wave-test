@@ -3,6 +3,19 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Added (Fase 1: tuta, Brute, squadra)
+- **Tuta Mk-VII**: energia (100, si ricarica dopo 1.5 s) autorevole sul server e tre abilità: **Pulse scan** (Q, 25: rivela a tutta la squadra i nemici entro 40 m per 5 s, anche dietro i muri), **Armor mode** (F, 40: danni subiti -60% per 4 s, movimento -15%), **Overcharge** (V, 30: corsa +35% per 3.5 s). Barra SUIT e tasti nel HUD, bordo colorato quando sono attive.
+- **Brute**: secondo nemico (600 HP, 3.5 m/s, raro finché non ci sono le wave) con **corazza a piastre che si rompono** (petto, schiena, spalle, elmo: ognuna assorbe l'85% del danno finché regge, poi salta via con detriti) e **nucleo luminoso** sul petto come punto debole; **carica**: si ferma, si prepara (affondo all'indietro), scatta in linea retta e spinge via chi prende. Sistema di piastre generico (`EnemyArmor` + `ArmorPlate`) e abilità dei nemici (`IEnemyAbility`).
+- **A terra e rianimazione** (`Player/PlayerLife`): a 0 HP si va a terra (si striscia, solo pistola, 30 s); un compagno tiene premuto E per 3 s e lo rialza al 30% con uno scudo breve per entrambi; da soli (o tutti a terra) ci si rialza dopo 6 s, morti si torna dopo 10 s (temporaneo fino alle wave). Indicatore "REVIVE" sui compagni a terra, pannello DOWNED con il tempo, prompt per rianimare.
+- **Ping di squadra** (tasto centrale del mouse o Z): punto o nemico (il ping lo segue), visibile a tutti con la distanza per 7 s.
+- **Voce della tuta**: messaggi brevi sotto la bussola (armatura critica, a terra, compagno a terra, rianimato, scansione, piastra rotta, energia insufficiente).
+- Numeri di danno color acciaio sulle piastre, scintille invece del sangue sul metallo.
+
+### Changed
+- `GameInfo.ProtocolVersion` 2 → 3 (nuovi componenti di rete sul Player e sul Brute).
+- Il ritorno in vita automatico di `EnemyTarget` è sostituito da `PlayerLife`.
+- Suoni: il sistema audio e gli effetti sonori provati in questa fase sono stati tolti su richiesta di Matteo (il gioco resta senza suoni per ora).
+
 ### Changed (HUD stile Crysis, rinculo stile Rainbow Six Siege)
 - **HUD "visore della tuta"** (riferimento Crysis 2/3), sottile e senza pannelli pieni: obiettivo in alto a sinistra, bussola con direzione in un riquadro, telemetria in alto a destra (se attiva); in basso a sinistra integrità (valore/massimo, stato NOMINALE/DANNEGGIATA/CRITICA, segmenti, righello); in basso a destra arma (tasto, nome, AUTO/SEMI), munizioni grandi con una tacca per colpo, ricarica, striscia delle armi in dotazione; angoli sottili attorno ai blocchi; mirino a quattro tratti; rosso del danno solo ai margini. Misure su 1920x1080 scalate con lo schermo. Tolti radar, biosegnale, scanline e cornice.
 - **Calore solo per le armi a energia** (`WeaponFeel.UsesHeat`, spento per le armi a proiettili attuali): senza calore niente barra nel HUD, niente luce che vira al caldo né tremolio.

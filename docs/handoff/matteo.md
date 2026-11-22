@@ -3,9 +3,9 @@
 Ultimo aggiornamento: 2026-11-21
 
 ## Su cosa sto lavorando
-- Branch: `matteo/m2-runner` (commit locale, push e PR da fare dopo il test host + client).
-- Obiettivo: M2 nemici (spawn nascosti, Runner, tipi di nemico guidati dai dati, numeri di danno) + nuova interfaccia sci-fi (HUD e menu) su richiesta.
-- Stato: in revisione (manca il test host + client).
+- Branch: `matteo/phase1-suit-brute` (PR verso `main` aperta, da rivedere).
+- Obiettivo: Fase 1 delle idee per rendere il gioco unico (vedi ROADMAP, "Fasi delle idee di Matteo").
+- Stato: in revisione.
 
 ## Fatto in questa sessione
 - Setup del PC secondo `GUIDA_COLLABORATORE.md` (Git, LFS, GitHub CLI `TheRealLordy`, clone, asset Fab).
@@ -18,7 +18,10 @@ Ultimo aggiornamento: 2026-11-21
 - Quarta tornata (stesso branch): sensazione delle armi generica (`Weapons/Feel/`: profilo `WeaponFeel` per arma, `RecoilMath`, `WeaponFeelDriver`), rinculo a molla in `PlayerLook` con tremore e punch del FOV, traccianti e luce del colore dell'energia, calore cosmetico con barra nel HUD, `FpsWave/Setup/8. Apply Weapon Feel`. Toccati file di Manuel: `PlayerWeapons`, `PlayerLook`, `ShotFxPool`, `WeaponDefinition`, `GameInfo` (protocollo 2).
 - Quinta tornata (stesso branch): rinculo stile R6 (mira che sale e resta, arma ferma, perno all'impugnatura, arma più vicina); HUD minimale stile Crysis; HUD e menu con texture (Kenney UI Pack Sci-Fi, rubberduck Sci-Fi interface, font Google) generate da `Editor/UiTextureGenerator` in `Setup/7`; `tools/setup-ui-assets.ps1`.
 
+- Fase 1 (2026-11-22, branch `matteo/phase1-suit-brute`): `Player/Suit/SuitAbilities`, `Player/PlayerLife`, `Player/PlayerPing`, `UI/SuitCallouts`, `Enemies/Core/EnemyArmor|ArmorPlate|ArmorDebris|IEnemyAbility`, `Enemies/Types/BruteCharge`, HUD (energia, abilità, voce, indicatori, a terra). Toccati file di Manuel: `Health` (ServerDamageScale, ServerSetHealth), `PlayerMotor` (Downed, AbilitySpeedMultiplier, spintone), `PlayerInputReader`/`FpsInput` (Q, F, V, Z/centrale, E), `PlayerWeapons` (piastre, solo pistola a terra), `ShotFxPool` (scintille), `GameInfo` (protocollo 3). Suoni provati e poi tolti su richiesta.
+
 ## Verifiche
+- Fase 1: compilazione 0 errori, test EditMode 67/67 (dopo aver tolto i suoni); Play solo Host: abilità (energia, tinte, voce), ping, a terra con dissanguamento e rialzo da soli, Brute con piastre colpite (numeri acciaio) e rotte (nucleo scoperto, voce "ARMOR BREACHED"); host + client (MPPM): connessione pulita, HUD del client con tuta, dissanguamento → morte → ritorno del client. **Da provare a mano**: rianimazione tenendo premuto E (non riuscito a creare il momento "uno a terra, l'altro in piedi" con il player virtuale).
 - Compilazione: 0 errori (`Logs/FpsWaveConsole.log`); restano solo gli avvisi già noti di API deprecate in `NetBootstrapMenu`/`PlayerSpawnService`.
 - Test EditMode: 64/64.
 - Play Mode solo Host (Editor): spawn fuori vista, inseguimento, attacco con max 3 attaccanti, kill con la pistola (3 colpi) accettata dal server, rimpiazzo automatico. NavMesh in 12-14 ms. Numeri di danno visibili (bianco, poi rosso grande all'uccisione), corpo che cade senza segni sospesi. Nessun errore in console.
@@ -34,8 +37,7 @@ Ultimo aggiornamento: 2026-11-21
 - Interest management per distanza non attivo (serve con la mappa vasta).
 
 ## Prossimi passi
-0. Provare Steam dal nuovo menu (Crea lobby → codice → l'amico entra con il codice) e il pannello Squadra con gli inviti.
-1. Test host + client: Window > Multiplayer > Multiplayer Play Mode, Player 2 attivo, Play. Controllare che i Runner si vedano muovere fluidi sul client e che i colpi del client li uccidano.
-2. Push del branch e PR verso `main` (modello in `.github/pull_request_template.md`); nella PR segnalare a Manuel la modifica a `PlayerWeapons`/`ShotValidation` e che serve eseguire `Setup/6`.
-3. M2.3 Brute: nuova voce nel catalogo di `EnemyContentBuilder` (600 HP, 3.5 m/s, peso più basso, gruppi da 1) + componente di carica in `Scripts/Enemies/Types/`.
-4. M2.4 a terra e rianimazione (al posto del ritorno in vita automatico).
+1. Provare a mano la rianimazione in due (MPPM o con un amico) e ritoccare valori (energia, durate, danni del Brute,).
+2. Merge della PR della Fase 1 dopo la revisione di Manuel.
+3. Fase 2: sistema di wave (M3, `SPAWN_DIRECTOR.md`) e poi contaminazione, nemici che si adattano, voto estrai-o-continua, wave notturne/tempesta.
+4. Fase 3: difese del complesso (torrette, recinzioni, gas).

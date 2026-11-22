@@ -41,6 +41,11 @@ Ogni milestone è giocabile e testata in multiplayer (host + client). Percorso s
 ## Task di M2
 1. M2.1 Runner: prefab di rete in pool, AI server con NavMeshAgent (insegui, fermati, colpisci), posti di attacco. **(fatto, branch `matteo/m2-runner`)**
 2. M2.2 Spawn: nodi di spawn dietro i ripari, EnemyDirector con anello/visibilità/percorso/pressione per player, riciclo. **(fatto, numero di nemici fisso fino a M3)**
-3. M2.3 Brute (600 HP, carica). **(da fare)**
-4. M2.4 Stato a terra e rianimazione dei player (sostituisce il ritorno in vita automatico). **(da fare)**
+3. M2.3 Brute (600 HP, carica). **(fatto in Fase 1: corazza a piastre, nucleo, carica)**
+4. M2.4 Stato a terra e rianimazione dei player (sostituisce il ritorno in vita automatico). **(fatto in Fase 1, `PlayerLife`; il wipe arriva con M3)**
 5. M2.5 Verifica a 40 nemici entro budget (profiler) e test host + client via Steam. **(da fare)**
+
+## Fasi delle idee di Matteo (dal 2026-11-22)
+1. **Fase 1** (fatta, branch `matteo/phase1-suit-brute`): tuta con energia e tre abilità, Brute con piastre e carica, ping, a terra e rianimazione, voce della tuta (i suoni provati sono stati tolti).
+2. **Fase 2** (da fare): sistema di wave (M3), poi contaminazione che si espande nella valle (zone da riconquistare riattivando pompe/generatori), nemici che si adattano a come gioca la squadra, voto "estrai o continua" dopo ogni boss, wave notturne e di tempesta (torcia e visore termico).
+3. **Fase 3** (da fare): difese del complesso di ricerca attivabili con i crediti (torrette, recinzioni elettrificate, sfiati di gas).

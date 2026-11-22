@@ -43,6 +43,11 @@ namespace HrdnLab.FpsWave.Player
         public bool Weapon1Pressed => HasControl && _input.Weapon1.WasPressedThisFrame();
         public bool Weapon2Pressed => HasControl && _input.Weapon2.WasPressedThisFrame();
         public bool SwitchWeaponPressed => HasControl && _input.SwitchWeapon.WasPressedThisFrame();
+        public bool InteractHeld => HasControl && _input.Interact.IsPressed();
+        public bool AbilityScanPressed => HasControl && _input.AbilityScan.WasPressedThisFrame();
+        public bool AbilityArmorPressed => HasControl && _input.AbilityArmor.WasPressedThisFrame();
+        public bool AbilityOverchargePressed => HasControl && _input.AbilityOvercharge.WasPressedThisFrame();
+        public bool PingPressed => HasControl && _input.Ping.WasPressedThisFrame();
         public bool DebugResetViewPressed => _input != null && (Application.isEditor || Debug.isDebugBuild) && _input.DebugResetView.WasPressedThisFrame();
 
         public override void OnStartClient()

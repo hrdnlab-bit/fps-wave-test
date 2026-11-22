@@ -107,6 +107,9 @@ namespace HrdnLab.FpsWave.Weapons
             var kick = new Vector2(Random.Range(0.4f, 1f), Random.Range(-1f, 1f)) * size;
             _look.AddRecoilKick(kick, 0f, 30f, 7f);
             _look.AddTrauma(0.12f);
+            float max = _health.Max;
+            if (max > 0f && previous / max > 0.25f && next / max <= 0.25f)
+                HrdnLab.FpsWave.UI.SuitCallouts.Raise("ARMOR INTEGRITY CRITICAL", HrdnLab.FpsWave.UI.CalloutKind.Warning);
         }
 
         /// <summary>Cambio arma: nuovo profilo, raffica e calore azzerati, l'arma entra dal basso.</summary>

@@ -86,6 +86,7 @@ namespace HrdnLab.FpsWave.Enemies
         }
 
         public void EditorSetPrefab(NetworkObject prefab) => _prefab = prefab;
+        public void EditorSetPoolPrewarm(int count) => _poolPrewarm = Mathf.Max(0, count);
 #endif
     }
 }

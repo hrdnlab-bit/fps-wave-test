@@ -86,3 +86,9 @@ Formato: data | decisione | motivo | alternative scartate | chi.
 - Rinculo: tap più morbido della raffica (FirstShotMultiplier < 1), variazione casuale verticale e laterale moderata.
 - Fuoco da fianco: niente salita della mira, si paga in dispersione (bloom che cresce fino al massimo e cala dopo 0.2 s); mirando il rinculo alla Siege. Scelta di Matteo: separa bene "spray da vicino" e "tiro controllato".
 - Riferimento per il gunplay: Call of Duty moderno (richiesta di Matteo), al posto di Siege: recoil reset parziale, sprint-to-fire, dispersione da fianco legata a movimento e salto, ADS preciso, flinch. Il suono (spari, hitmarker) manca ancora ed è la parte che pesa di più sulla sensazione: da aggiungere con asset CC0/royalty free.
+
+## 2026-11-22 - Fase 1 delle idee di Matteo: tuta, Brute a piastre, squadra (Matteo)
+- Le idee per rendere il gioco unico sono divise in fasi (scelta di Matteo): Fase 1 tuta con abilità, Brute con piastre che si rompono, ping, a terra/rianimazione, voce della tuta; Fase 2 sistema di wave e poi contaminazione che si espande, nemici che si adattano, voto estrai-o-continua ogni 10 wave, wave notturne/tempesta; Fase 3 difese del complesso (torrette, recinzioni, gas). Una PR per fase.
+- Energia della tuta e stato a terra autorevoli sul server (SyncVar + ServerRpc di richiesta), effetti e indicatori solo cosmetici sui client.
+- Corazza: le piastre assorbono l'85% del danno (15% al corpo, l'eccedenza della rottura passa); stato delle piastre in una maschera di bit (un byte).
+- Suono: provato (asset CC0, spari rifiniti dal codice) e poi tolto su richiesta di Matteo; per ora il gioco non ha effetti sonori.

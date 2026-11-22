@@ -58,6 +58,23 @@ namespace HrdnLab.FpsWave.Editor
             public float HeadSize;
             public float AgentRadius;
             public float AgentHeight;
+            // Corazza a piastre (opzionale): ogni piastra assorbe i colpi finché non si rompe.
+            public PlateSpec[] Plates;
+            public Color ArmorColor;
+            // Punto debole luminoso (opzionale), di solito sotto una piastra.
+            public float CoreSize;
+            public Vector3 CorePosition;
+            // Comportamenti speciali
+            public bool Charge;
+            public int PoolPrewarm = 24;
+        }
+
+        private sealed class PlateSpec
+        {
+            public string Name;
+            public Vector3 Position;
+            public Vector3 Size;
+            public float Health;
         }
 
         private static readonly EnemyTypeSpec[] Catalog =
@@ -70,6 +87,29 @@ namespace HrdnLab.FpsWave.Editor
                 SpawnWeight = 1f, GroupSize = new Vector2Int(2, 4), BudgetCost = 1, FirstWave = 1,
                 BodyColor = new Color(0.55f, 0.13f, 0.1f), BodyScale = new Vector3(0.55f, 0.75f, 0.45f), HeadSize = 0.32f,
                 AgentRadius = 0.35f, AgentHeight = 1.8f,
+            },
+            new EnemyTypeSpec
+            {
+                // Tank lento con corazza a piastre e carica (DESIGN_GAMEPLAY §4). Le piastre si rompono e scoprono
+                // il nucleo luminoso sul petto (punto debole). FirstWave 3 vale da M3: per ora il peso lo rende raro.
+                Id = "brute", Name = "Brute",
+                MaxHealth = 600f, MoveSpeed = 3.5f,
+                AttackDamage = 25f, AttackInterval = 1.6f, AttackRange = 2.4f, StopDistance = 1.9f,
+                SpawnWeight = 0.12f, GroupSize = new Vector2Int(1, 1), BudgetCost = 6, FirstWave = 3,
+                BodyColor = new Color(0.32f, 0.1f, 0.07f), BodyScale = new Vector3(0.95f, 1.0f, 0.75f), HeadSize = 0.42f,
+                AgentRadius = 0.6f, AgentHeight = 2.5f,
+                ArmorColor = new Color(0.2f, 0.22f, 0.25f),
+                Plates = new[]
+                {
+                    new PlateSpec { Name = "Chest", Position = new Vector3(0f, 1.45f, 0.42f), Size = new Vector3(0.72f, 0.62f, 0.1f), Health = 150f },
+                    new PlateSpec { Name = "Back", Position = new Vector3(0f, 1.4f, -0.42f), Size = new Vector3(0.78f, 0.78f, 0.1f), Health = 120f },
+                    new PlateSpec { Name = "Shoulder_L", Position = new Vector3(-0.56f, 1.78f, 0.04f), Size = new Vector3(0.36f, 0.18f, 0.48f), Health = 80f },
+                    new PlateSpec { Name = "Shoulder_R", Position = new Vector3(0.56f, 1.78f, 0.04f), Size = new Vector3(0.36f, 0.18f, 0.48f), Health = 80f },
+                    new PlateSpec { Name = "Helmet", Position = new Vector3(0f, 2.42f, 0.06f), Size = new Vector3(0.5f, 0.2f, 0.5f), Health = 90f },
+                },
+                CoreSize = 0.28f, CorePosition = new Vector3(0f, 1.45f, 0.3f),
+                Charge = true,
+                PoolPrewarm = 4,
             },
         };
 
@@ -158,6 +198,7 @@ namespace HrdnLab.FpsWave.Editor
             definition.EditorSetup(spec.Id, spec.Name, spec.MaxHealth, spec.MoveSpeed, spec.AttackDamage, spec.AttackInterval,
                 spec.AttackRange, spec.StopDistance, spec.SpawnWeight, spec.GroupSize, spec.BudgetCost, spec.FirstWave,
                 spec.AgentRadius, spec.AgentHeight);
+            definition.EditorSetPoolPrewarm(spec.PoolPrewarm);
 
             Material material = LitMaterial($"M_Enemy_{spec.Name}", spec.BodyColor, 0.35f);
             GameObject prefab = CreateEnemyPrefab(spec, definition, material);
@@ -214,14 +255,54 @@ namespace HrdnLab.FpsWave.Editor
             headZone.EditorSetup(1f, true);
 
             // Braccia protese in avanti: sagoma riconoscibile da lontano, senza collider.
-            GameObject armL = Primitive(PrimitiveType.Cube, "Arm_L", model, new Vector3(-armX, armY, 0.3f),
-                new Vector3(0.12f, 0.12f, 0.7f), bodyMaterial);
-            GameObject armR = Primitive(PrimitiveType.Cube, "Arm_R", model, new Vector3(armX, armY, 0.3f),
-                new Vector3(0.12f, 0.12f, 0.7f), bodyMaterial);
+            float armThickness = 0.12f * bodyScale.x / 0.55f;
+            var armSize = new Vector3(armThickness, armThickness, 0.7f * Mathf.Max(1f, bodyScale.y / 0.75f));
+            GameObject armL = Primitive(PrimitiveType.Cube, "Arm_L", model, new Vector3(-armX, armY, 0.3f), armSize, bodyMaterial);
+            GameObject armR = Primitive(PrimitiveType.Cube, "Arm_R", model, new Vector3(armX, armY, 0.3f), armSize, bodyMaterial);
             Object.DestroyImmediate(armL.GetComponent<Collider>());
             Object.DestroyImmediate(armR.GetComponent<Collider>());
 
-            health.EditorSetup(spec.MaxHealth, new[] { bodyZone, headZone });
+            var zones = new List<HitZone> { bodyZone, headZone };
+
+            // Corazza a piastre: visuale nel modello, collider (con HitZone e ArmorPlate) tra le hitbox.
+            if (spec.Plates != null && spec.Plates.Length > 0)
+            {
+                Material armorMaterial = LitMaterial($"M_Enemy_{spec.Name}_Armor", spec.ArmorColor, 0.55f);
+                armorMaterial.SetFloat("_Metallic", 0.85f);
+                var plates = new List<ArmorPlate>();
+                foreach (PlateSpec plateSpec in spec.Plates)
+                {
+                    GameObject visualPlate = Primitive(PrimitiveType.Cube, $"Plate_{plateSpec.Name}", model, plateSpec.Position, plateSpec.Size, armorMaterial);
+                    Object.DestroyImmediate(visualPlate.GetComponent<Collider>());
+                    GameObject plateHit = HitboxOnly(PrimitiveType.Cube, $"Plate_{plateSpec.Name}_Hit", hitboxes, plateSpec.Position, plateSpec.Size);
+                    var plateZone = plateHit.AddComponent<HitZone>();
+                    plateZone.EditorSetup(1f, false);
+                    var plate = plateHit.AddComponent<ArmorPlate>();
+                    plate.EditorSetup(plateSpec.Health, 0.15f, new[] { visualPlate.GetComponent<Renderer>() }, spec.ArmorColor);
+                    zones.Add(plateZone);
+                    plates.Add(plate);
+                }
+                ObjectFactory.AddComponent<EnemyArmor>(root).EditorSetup(plates.ToArray());
+            }
+
+            // Nucleo luminoso: punto debole (danno x2 con il moltiplicatore weakspot dell'arma).
+            if (spec.CoreSize > 0f)
+            {
+                Material coreMaterial = LitMaterial($"M_Enemy_{spec.Name}_Core", new Color(1f, 0.45f, 0.1f), 0.8f);
+                coreMaterial.EnableKeyword("_EMISSION");
+                coreMaterial.SetColor("_EmissionColor", new Color(1f, 0.42f, 0.08f) * 2.2f);
+                coreMaterial.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                GameObject core = Primitive(PrimitiveType.Sphere, "Core", model, spec.CorePosition, Vector3.one * spec.CoreSize, coreMaterial);
+                Object.DestroyImmediate(core.GetComponent<Collider>());
+                var coreZone = HitboxOnly(PrimitiveType.Sphere, "Core_Hit", hitboxes, spec.CorePosition, Vector3.one * spec.CoreSize).AddComponent<HitZone>();
+                coreZone.EditorSetup(1f, true);
+                zones.Add(coreZone);
+            }
+
+            if (spec.Charge)
+                ObjectFactory.AddComponent<BruteCharge>(root);
+
+            health.EditorSetup(spec.MaxHealth, zones.ToArray());
             enemy.EditorSetup(definition);
             visual.EditorSetup(model, new Renderer[]
             {
@@ -275,6 +356,22 @@ namespace HrdnLab.FpsWave.Editor
                 {
                     numbers = root.AddComponent<DamageNumbers>();
                     numbers.EditorSetup(root.GetComponent<PlayerWeapons>());
+                    changed = true;
+                }
+                // Fase 1: tuta (energia e abilità), a terra e rianimazione, ping di squadra.
+                if (!root.TryGetComponent(out SuitAbilities _))
+                {
+                    ObjectFactory.AddComponent<SuitAbilities>(root);
+                    changed = true;
+                }
+                if (!root.TryGetComponent(out PlayerLife _))
+                {
+                    ObjectFactory.AddComponent<PlayerLife>(root);
+                    changed = true;
+                }
+                if (!root.TryGetComponent(out PlayerPing _))
+                {
+                    ObjectFactory.AddComponent<PlayerPing>(root);
                     changed = true;
                 }
                 if (changed)

@@ -1,5 +1,7 @@
 using HrdnLab.FpsWave.Combat;
 using HrdnLab.FpsWave.Core;
+using HrdnLab.FpsWave.Enemies;
+using HrdnLab.FpsWave.Player;
 using HrdnLab.FpsWave.Weapons;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -34,7 +36,15 @@ namespace HrdnLab.FpsWave.UI
         [SerializeField] private StyleSheet _styleSheet;
         [SerializeField, Min(0.05f)] private float _hitMarkerDuration = 0.18f;
 
+        private const int PingSlots = 8;
+        private const int ScanSlots = 24;
+        private const int DownedSlots = 4;
+        private const float PingLifetime = 7f;
+        private const float CalloutTime = 2.6f;
+
         private UIDocument _document;
+        private SuitAbilities _suit;
+        private PlayerLife _life;
         private VisualElement _root;
         private VisualElement _vitals;
         private VisualElement _weaponBlock;
@@ -88,6 +98,42 @@ namespace HrdnLab.FpsWave.UI
         private HitMarkerType _markerType;
         private float _markerUntil;
 
+        // Tuta
+        private VisualElement _energyFill;
+        private Label _energyValue;
+        private int _shownEnergy = -1;
+        private VisualElement _chipScan, _chipArmor, _chipBoost;
+        private VisualElement _tintArmor, _tintBoost;
+
+        // Voce della tuta
+        private Label _callout;
+        private float _calloutUntil;
+
+        // Indicatori nel mondo (ping, scansione, compagni a terra)
+        private VisualElement _markerLayer;
+        private struct PingEntry { public int Pinger; public Vector3 Point; public Transform Target; public bool Enemy; public float Until; }
+        private readonly PingEntry[] _pings = new PingEntry[PingSlots];
+        private readonly VisualElement[] _pingMarkers = new VisualElement[PingSlots];
+        private readonly Label[] _pingLabels = new Label[PingSlots];
+        private readonly Label[] _pingKinds = new Label[PingSlots];
+        private readonly EnemyAgent[] _scanTargets = new EnemyAgent[ScanSlots];
+        private readonly VisualElement[] _scanMarkers = new VisualElement[ScanSlots];
+        private float _scanUntil;
+        private readonly VisualElement[] _downedMarkers = new VisualElement[DownedSlots];
+        private readonly Label[] _downedLabels = new Label[DownedSlots];
+
+        // A terra e rianimazione
+        private VisualElement _downedPanel;
+        private Label _downedTitle;
+        private Label _downedDetail;
+        private VisualElement _downedFill;
+        private VisualElement _revivePrompt;
+        private VisualElement _reviveFill;
+        private int _shownTimeLeft = -1;
+        private LifeState _shownState = LifeState.Up;
+
+        private static readonly string[] s_distances = new string[1000];
+
         // Danno e telemetria
         private VisualElement _damageFlash;
         private float _damageFlashAmount;
@@ -108,7 +154,12 @@ namespace HrdnLab.FpsWave.UI
                 _weapons = GetComponent<PlayerWeapons>();
             if (_health == null)
                 _health = GetComponent<Health>();
+            _suit = GetComponent<SuitAbilities>();
+            _life = GetComponent<PlayerLife>();
             Build();
+            SuitCallouts.Raised += HandleCallout;
+            PlayerPing.ClientPinged += HandlePing;
+            SuitAbilities.ClientScanPulse += HandleScan;
             if (_weapons != null)
                 _weapons.LocalHitMarker += HandleHitMarker;
             if (_health != null)
@@ -124,6 +175,9 @@ namespace HrdnLab.FpsWave.UI
             if (_health != null)
                 _health.ClientHealthChanged -= HandleHealthChanged;
             GameSettings.Changed -= HandleSettingsChanged;
+            SuitCallouts.Raised -= HandleCallout;
+            PlayerPing.ClientPinged -= HandlePing;
+            SuitAbilities.ClientScanPulse -= HandleScan;
             _root?.RemoveFromHierarchy();
             _root = null;
         }
@@ -142,6 +196,13 @@ namespace HrdnLab.FpsWave.UI
             docRoot.Add(_root);
 
             _root.Add(Element("layer", "visor-vignette"));
+            _tintArmor = Element("layer", "tint-armor");
+            _tintBoost = Element("layer", "tint-boost");
+            _root.Add(_tintArmor);
+            _root.Add(_tintBoost);
+            _markerLayer = Element("layer", "marker-layer");
+            _root.Add(_markerLayer);
+            BuildMarkers();
             _damageFlash = Element("layer", "hud-damage");
             _root.Add(_damageFlash);
 
@@ -153,6 +214,63 @@ namespace HrdnLab.FpsWave.UI
             _healthAlert = Text("ARMOR CRITICAL · TAKE COVER", "alert", "font-bold");
             _healthAlert.style.display = DisplayStyle.None;
             _root.Add(_healthAlert);
+            BuildLifePanels();
+        }
+
+        private void BuildMarkers()
+        {
+            for (int i = 0; i < ScanSlots; i++)
+            {
+                _scanMarkers[i] = Element("marker", "marker--scan");
+                _scanMarkers[i].Add(Element("marker-icon"));
+                _scanMarkers[i].style.display = DisplayStyle.None;
+                _markerLayer.Add(_scanMarkers[i]);
+            }
+            for (int i = 0; i < PingSlots; i++)
+            {
+                _pingMarkers[i] = Element("marker", "marker--ping");
+                _pingMarkers[i].Add(Element("marker-icon"));
+                _pingKinds[i] = Text("PING", "marker-kind", "font-bold");
+                _pingLabels[i] = Text("", "marker-label", "font-mono");
+                _pingMarkers[i].Add(_pingKinds[i]);
+                _pingMarkers[i].Add(_pingLabels[i]);
+                _pingMarkers[i].style.display = DisplayStyle.None;
+                _markerLayer.Add(_pingMarkers[i]);
+            }
+            for (int i = 0; i < DownedSlots; i++)
+            {
+                _downedMarkers[i] = Element("marker", "marker--downed");
+                _downedMarkers[i].Add(Element("marker-icon"));
+                _downedMarkers[i].Add(Text("REVIVE", "marker-kind", "font-bold"));
+                _downedLabels[i] = Text("", "marker-label", "font-mono");
+                _downedMarkers[i].Add(_downedLabels[i]);
+                _downedMarkers[i].style.display = DisplayStyle.None;
+                _markerLayer.Add(_downedMarkers[i]);
+            }
+        }
+
+        private void BuildLifePanels()
+        {
+            _downedPanel = Element("downed-panel");
+            _downedTitle = Text("DOWNED", "downed-title", "font-display");
+            _downedDetail = Text("", "downed-detail", "font-mono");
+            var track = Element("revive-track");
+            _downedFill = Element("revive-fill");
+            track.Add(_downedFill);
+            _downedPanel.Add(_downedTitle);
+            _downedPanel.Add(_downedDetail);
+            _downedPanel.Add(track);
+            _downedPanel.style.display = DisplayStyle.None;
+            _root.Add(_downedPanel);
+
+            _revivePrompt = Element("revive-prompt");
+            _revivePrompt.Add(Text("HOLD [E] TO REVIVE", "revive-text", "font-bold"));
+            var promptTrack = Element("revive-track");
+            _reviveFill = Element("revive-fill");
+            promptTrack.Add(_reviveFill);
+            _revivePrompt.Add(promptTrack);
+            _revivePrompt.style.display = DisplayStyle.None;
+            _root.Add(_revivePrompt);
         }
 
         private void BuildTop()
@@ -178,10 +296,13 @@ namespace HrdnLab.FpsWave.UI
             compass.Add(Element("compass-fade", "compass-fade--left"));
             compass.Add(Element("compass-fade", "compass-fade--right"));
             top.Add(compass);
+            _callout = Text("", "callout", "font-bold");
+            _callout.style.opacity = 0f;
             var headingBox = Element("compass-heading-box");
             _compassHeading = Text("000", "compass-heading", "font-mono");
             headingBox.Add(_compassHeading);
             top.Add(headingBox);
+            top.Add(_callout);
             _root.Add(top);
 
             _telemetry = Text("", "telemetry", "font-mono");
@@ -219,6 +340,25 @@ namespace HrdnLab.FpsWave.UI
             }
             _vitals.Add(segments);
             _vitals.Add(Element("ruler"));
+
+            // Energia della tuta e abilità
+            var suitRow = Element("suit-row");
+            suitRow.Add(Text("SUIT", "bar-label", "font-bold"));
+            var energyTrack = Element("energy-track");
+            _energyFill = Element("energy-fill");
+            energyTrack.Add(_energyFill);
+            suitRow.Add(energyTrack);
+            _energyValue = Text("100", "energy-value", "font-mono");
+            suitRow.Add(_energyValue);
+            _vitals.Add(suitRow);
+            var chips = Element("ability-row");
+            _chipScan = Chip("Q", "SCAN");
+            _chipArmor = Chip("F", "ARMOR");
+            _chipBoost = Chip("V", "BOOST");
+            chips.Add(_chipScan);
+            chips.Add(_chipArmor);
+            chips.Add(_chipBoost);
+            _vitals.Add(chips);
             _root.Add(_vitals);
         }
 
@@ -317,6 +457,221 @@ namespace HrdnLab.FpsWave.UI
             UpdateReticle();
             UpdateEffects();
             UpdateTelemetry();
+            UpdateSuit();
+            UpdateCallout();
+            UpdateMarkers();
+            UpdateLife();
+        }
+
+        // ------------------------------------------------------------------ Tuta, voce, indicatori, a terra
+
+        private void UpdateSuit()
+        {
+            if (_suit == null)
+            {
+                _energyFill.parent.parent.style.display = DisplayStyle.None;
+                return;
+            }
+            float energy = _suit.Energy;
+            _energyFill.style.width = Length.Percent(_suit.Energy01 * 100f);
+            int shown = Mathf.RoundToInt(energy);
+            if (shown != _shownEnergy)
+            {
+                _shownEnergy = shown;
+                _energyValue.text = Number(shown);
+            }
+            SetChip(_chipScan, false, _suit.ScanCooldownRemaining > 0f, energy + 0.5f < _suit.Cost(SuitAbility.PulseScan));
+            SetChip(_chipArmor, _suit.ArmorActive, false, energy + 0.5f < _suit.Cost(SuitAbility.ArmorMode));
+            SetChip(_chipBoost, _suit.OverchargeActive, false, energy + 0.5f < _suit.Cost(SuitAbility.Overcharge));
+            float pulse = 0.55f + 0.45f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 3f));
+            _tintArmor.style.opacity = _suit.ArmorActive || _suit.Shielded ? pulse : 0f;
+            _tintBoost.style.opacity = _suit.OverchargeActive ? pulse : 0f;
+        }
+
+        private static void SetChip(VisualElement chip, bool active, bool cooldown, bool low)
+        {
+            chip.EnableInClassList("chip--active", active);
+            chip.EnableInClassList("chip--cooldown", !active && cooldown);
+            chip.EnableInClassList("chip--low", !active && !cooldown && low);
+        }
+
+        private static VisualElement Chip(string key, string label)
+        {
+            var chip = Element("ability-chip");
+            chip.Add(Text(key, "chip-key", "font-display"));
+            chip.Add(Text(label, "chip-label", "font-bold"));
+            return chip;
+        }
+
+        private void HandleCallout(string text, CalloutKind kind)
+        {
+            if (_callout == null)
+                return;
+            _callout.text = "SUIT // " + text;
+            _callout.EnableInClassList("callout--warning", kind == CalloutKind.Warning);
+            _callout.EnableInClassList("callout--positive", kind == CalloutKind.Positive);
+            _calloutUntil = Time.unscaledTime + CalloutTime;
+        }
+
+        private void UpdateCallout()
+        {
+            float remaining = _calloutUntil - Time.unscaledTime;
+            _callout.style.opacity = remaining <= 0f ? 0f : Mathf.Clamp01(remaining / 0.4f);
+        }
+
+        private void HandlePing(PlayerPing.PingInfo info)
+        {
+            int slot = -1;
+            for (int i = 0; i < PingSlots; i++)
+                if (_pings[i].Until > Time.time && _pings[i].Pinger == info.PingerId) { slot = i; break; }
+            if (slot < 0)
+            {
+                float oldest = float.MaxValue;
+                for (int i = 0; i < PingSlots; i++)
+                    if (_pings[i].Until < oldest) { oldest = _pings[i].Until; slot = i; }
+            }
+            _pings[slot] = new PingEntry
+            {
+                Pinger = info.PingerId,
+                Point = info.Point,
+                Target = info.Target != null ? info.Target.transform : null,
+                Enemy = info.Target != null,
+                Until = Time.time + PingLifetime,
+            };
+            _pingKinds[slot].text = info.Target != null ? "HOSTILE" : "PING";
+            _pingMarkers[slot].EnableInClassList("marker--enemy", info.Target != null);
+        }
+
+        private void HandleScan(Vector3 origin, float radius, float duration)
+        {
+            int n = 0;
+            float radiusSqr = radius * radius;
+            var enemies = EnemyAgent.ClientActive;
+            for (int i = 0; i < enemies.Count && n < ScanSlots; i++)
+            {
+                EnemyAgent e = enemies[i];
+                if (e != null && !e.ClientIsDead && (e.transform.position - origin).sqrMagnitude <= radiusSqr)
+                    _scanTargets[n++] = e;
+            }
+            for (int i = n; i < ScanSlots; i++)
+                _scanTargets[i] = null;
+            _scanUntil = Time.time + duration;
+        }
+
+        private void UpdateMarkers()
+        {
+            Camera cam = _weapons != null ? _weapons.ViewCamera : null;
+            Rect area = _markerLayer.layout;
+            if (cam == null || float.IsNaN(area.width) || area.width <= 1f)
+                return;
+            Vector3 eye = cam.transform.position;
+            float now = Time.time;
+
+            for (int i = 0; i < PingSlots; i++)
+            {
+                ref PingEntry p = ref _pings[i];
+                bool alive = p.Until > now && (!p.Enemy || p.Target != null);
+                if (alive && p.Target != null)
+                    p.Point = p.Target.position + Vector3.up * 2.4f;
+                if (!alive || !Place(_pingMarkers[i], cam, p.Point, area, true))
+                {
+                    _pingMarkers[i].style.display = DisplayStyle.None;
+                    continue;
+                }
+                _pingLabels[i].text = Distance(Vector3.Distance(eye, p.Point));
+                _pingMarkers[i].style.opacity = Mathf.Clamp01((p.Until - now) / 0.6f);
+            }
+
+            bool scanning = now < _scanUntil;
+            for (int i = 0; i < ScanSlots; i++)
+            {
+                EnemyAgent e = _scanTargets[i];
+                bool show = scanning && e != null && !e.ClientIsDead
+                            && Place(_scanMarkers[i], cam, e.transform.position + Vector3.up * 1.2f, area, false);
+                if (!show)
+                    _scanMarkers[i].style.display = DisplayStyle.None;
+                else
+                    _scanMarkers[i].style.opacity = Mathf.Clamp01((_scanUntil - now) / 0.8f);
+            }
+
+            int d = 0;
+            var players = PlayerLife.All;
+            for (int i = 0; i < players.Count && d < DownedSlots; i++)
+            {
+                PlayerLife other = players[i];
+                if (other == null || other == _life || !other.IsDowned)
+                    continue;
+                Vector3 point = other.transform.position + Vector3.up * 1.2f;
+                if (Place(_downedMarkers[d], cam, point, area, true))
+                {
+                    _downedLabels[d].text = Distance(Vector3.Distance(eye, point));
+                    d++;
+                }
+            }
+            for (int i = d; i < DownedSlots; i++)
+                _downedMarkers[i].style.display = DisplayStyle.None;
+        }
+
+        /// <summary>Posiziona un indicatore sul punto del mondo; se <paramref name="clamp"/>, fuori schermo resta sul bordo.</summary>
+        private static bool Place(VisualElement marker, Camera cam, Vector3 world, Rect area, bool clamp)
+        {
+            Vector3 vp = cam.WorldToViewportPoint(world);
+            bool behind = vp.z < 0f;
+            if (behind)
+            {
+                if (!clamp)
+                    return false;
+                vp.x = 1f - vp.x;
+                vp.y = vp.y > 0.5f ? 0f : 1f;
+            }
+            bool offscreen = vp.x < 0f || vp.x > 1f || vp.y < 0f || vp.y > 1f;
+            if (offscreen && !clamp)
+                return false;
+            vp.x = Mathf.Clamp(vp.x, 0.03f, 0.97f);
+            vp.y = Mathf.Clamp(vp.y, 0.06f, 0.94f);
+            marker.style.display = DisplayStyle.Flex;
+            marker.style.translate = new Translate(vp.x * area.width, (1f - vp.y) * area.height);
+            marker.EnableInClassList("marker--edge", offscreen || behind);
+            return true;
+        }
+
+        private static string Distance(float meters)
+        {
+            int m = Mathf.Clamp(Mathf.RoundToInt(meters), 0, s_distances.Length - 1);
+            return s_distances[m] ??= m + "M";
+        }
+
+        private void UpdateLife()
+        {
+            if (_life == null)
+                return;
+            LifeState state = _life.State;
+            if (state != _shownState)
+            {
+                _shownState = state;
+                _shownTimeLeft = -1;
+                _downedPanel.style.display = state == LifeState.Up ? DisplayStyle.None : DisplayStyle.Flex;
+                _downedPanel.EnableInClassList("downed-panel--dead", state == LifeState.Dead);
+                _downedTitle.text = state == LifeState.Dead ? "SIGNAL LOST" : "DOWNED";
+            }
+            if (state != LifeState.Up)
+            {
+                int left = Mathf.CeilToInt(_life.TimeLeft);
+                bool beingRevived = state == LifeState.Downed && _life.ReviveProgress > 0.01f;
+                if (left != _shownTimeLeft || beingRevived)
+                {
+                    _shownTimeLeft = left;
+                    _downedDetail.text = beingRevived ? "BEING REVIVED"
+                        : state == LifeState.Dead ? "REDEPLOYING IN " + Number(left)
+                        : "BLEEDING OUT " + Number(left);
+                }
+                _downedFill.style.width = Length.Percent(_life.ReviveProgress * 100f);
+            }
+
+            PlayerLife target = _life.ReviveTarget;
+            _revivePrompt.style.display = target != null ? DisplayStyle.Flex : DisplayStyle.None;
+            if (target != null)
+                _reviveFill.style.width = Length.Percent(target.ReviveProgress * 100f);
         }
 
         private void UpdateVitals()

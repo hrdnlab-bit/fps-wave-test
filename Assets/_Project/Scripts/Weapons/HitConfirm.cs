@@ -11,6 +11,10 @@ namespace HrdnLab.FpsWave.Weapons
         Critical = 1,
         Weakspot = 2,
         Kill = 4,
+        /// <summary>Il colpo ha preso una piastra di corazza.</summary>
+        ArmorHit = 8,
+        /// <summary>Il colpo ha rotto una piastra di corazza.</summary>
+        ArmorBreak = 16,
     }
 
     /// <summary>Conversioni della conferma colpo (logica pura, coperta da test).</summary>
@@ -25,6 +29,16 @@ namespace HrdnLab.FpsWave.Weapons
                 flags |= HitFlags.Weakspot;
             if (kill)
                 flags |= HitFlags.Kill;
+            return flags;
+        }
+
+        public static HitFlags MakeFlags(bool critical, bool weakspot, bool kill, bool armorHit, bool armorBreak)
+        {
+            HitFlags flags = MakeFlags(critical, weakspot, kill);
+            if (armorHit)
+                flags |= HitFlags.ArmorHit;
+            if (armorBreak)
+                flags |= HitFlags.ArmorBreak;
             return flags;
         }
 
