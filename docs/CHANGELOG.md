@@ -3,6 +3,9 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Added (modello del Runner, Matteo)
+- **Runner con il modello vero**: mutante bio-meccanico (visore fuso, pelle cremisi, tubi sulla schiena) al posto della capsula, generato da immagine AI + Tripo 3D e ridotto a 15k triangoli per lo sciame. Mesh statica: si muove con l'animazione procedurale di `EnemyVisual` (inclinazione, oscillazione, affondo, caduta). Hitbox della testa ricavata dal modello (testa protesa in avanti). `Setup/6` usa il modello se i binari ci sono (`EnemyTypeSpec.ModelDir`), altrimenti la sagoma greybox.
+
 ### Added (personaggio AIRO, Manuel)
 - **Corpo del player: pilota sci-fi AIRO** (modello nostro da Blender, ~75k triangoli, PBR 4K, rig umanoide a 52 ossa) al posto della capsula, costruito da `FpsWave/Setup/9. Build Player Character (AIRO)` (richiamato anche da `Setup/3`).
 - **Animazione procedurale** (`Player/Character/`): gambe con IK a due ossa sul ciclo del passo (camminata, corsa, strafe, indietro), bacino che scende in crouch, piedi sollevati in aria, busto e testa che seguono la mira, braccia con IK sull'impugnatura dell'arma in terza persona e dita chiuse sull'arma.

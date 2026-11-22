@@ -96,3 +96,4 @@ Formato: data | decisione | motivo | alternative scartate | chi.
 - Energia della tuta e stato a terra autorevoli sul server (SyncVar + ServerRpc di richiesta), effetti e indicatori solo cosmetici sui client.
 - Corazza: le piastre assorbono l'85% del danno (15% al corpo, l'eccedenza della rottura passa); stato delle piastre in una maschera di bit (un byte).
 - Suono: provato (asset CC0, spari rifiniti dal codice) e poi tolto su richiesta di Matteo; per ora il gioco non ha effetti sonori.
+- Modelli dei nemici generati con AI (immagine + Tripo 3D) e messi nel gioco come mesh semplici (MeshFilter/MeshRenderer, niente prefab annidato) da `Setup/6`: su un PC senza i binari il prefab resta valido. Budget del Runner: ~15k triangoli e texture a 2048 (ce ne sono decine a schermo); per ora niente scheletro, animazione procedurale come la sagoma (Matteo).

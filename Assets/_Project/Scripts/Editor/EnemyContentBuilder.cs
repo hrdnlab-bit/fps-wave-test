@@ -58,6 +58,10 @@ namespace HrdnLab.FpsWave.Editor
             public float HeadSize;
             public float AgentRadius;
             public float AgentHeight;
+            // Modello vero (opzionale): cartella con <Nome>.fbx e Textures/<Nome>_BaseColor|_Normal|_MetallicSmoothness.
+            // Binari fuori dal repo (docs/ASSETS.md): se mancano si usa la sagoma greybox qui sopra.
+            public string ModelDir;
+            public float ModelYaw;
             // Corazza a piastre (opzionale): ogni piastra assorbe i colpi finché non si rompe.
             public PlateSpec[] Plates;
             public Color ArmorColor;
@@ -87,6 +91,7 @@ namespace HrdnLab.FpsWave.Editor
                 SpawnWeight = 1f, GroupSize = new Vector2Int(2, 4), BudgetCost = 1, FirstWave = 1,
                 BodyColor = new Color(0.55f, 0.13f, 0.1f), BodyScale = new Vector3(0.55f, 0.75f, 0.45f), HeadSize = 0.32f,
                 AgentRadius = 0.35f, AgentHeight = 1.8f,
+                ModelDir = "Assets/ThirdParty/_Own/Runner",
             },
             new EnemyTypeSpec
             {
@@ -244,23 +249,41 @@ namespace HrdnLab.FpsWave.Editor
             float armY = bodyPos.y + bodyHeight * 0.23f;
             float armX = bodyScale.x * 0.58f;
 
-            GameObject torso = Primitive(PrimitiveType.Capsule, "Body", model, bodyPos, bodyScale, bodyMaterial);
-            GameObject head = Primitive(PrimitiveType.Sphere, "Head", model, headPos, headScale, bodyMaterial);
-            Object.DestroyImmediate(torso.GetComponent<Collider>());
-            Object.DestroyImmediate(head.GetComponent<Collider>());
+            Renderer[] bodyRenderers;
+            bool realModel = TryBuildRealModel(spec, model, out Renderer[] modelRenderers, out Vector3 modelHead, out float modelHeadSize);
+            if (realModel)
+            {
+                bodyRenderers = modelRenderers;
+                headPos = modelHead;
+                headScale = Vector3.one * modelHeadSize;
+                bodyScale.y = Mathf.Max(0.3f, (headPos.y - modelHeadSize * 0.5f - 0.1f) * 0.5f);
+                bodyPos = new Vector3(0f, bodyScale.y + 0.1f, 0f);
+            }
+            else
+            {
+                GameObject torso = Primitive(PrimitiveType.Capsule, "Body", model, bodyPos, bodyScale, bodyMaterial);
+                GameObject head = Primitive(PrimitiveType.Sphere, "Head", model, headPos, headScale, bodyMaterial);
+                Object.DestroyImmediate(torso.GetComponent<Collider>());
+                Object.DestroyImmediate(head.GetComponent<Collider>());
+
+                // Braccia protese in avanti: sagoma riconoscibile da lontano, senza collider.
+                float armThickness = 0.12f * bodyScale.x / 0.55f;
+                var armSize = new Vector3(armThickness, armThickness, 0.7f * Mathf.Max(1f, bodyScale.y / 0.75f));
+                GameObject armL = Primitive(PrimitiveType.Cube, "Arm_L", model, new Vector3(-armX, armY, 0.3f), armSize, bodyMaterial);
+                GameObject armR = Primitive(PrimitiveType.Cube, "Arm_R", model, new Vector3(armX, armY, 0.3f), armSize, bodyMaterial);
+                Object.DestroyImmediate(armL.GetComponent<Collider>());
+                Object.DestroyImmediate(armR.GetComponent<Collider>());
+                bodyRenderers = new Renderer[]
+                {
+                    torso.GetComponent<Renderer>(), head.GetComponent<Renderer>(),
+                    armL.GetComponent<Renderer>(), armR.GetComponent<Renderer>(),
+                };
+            }
 
             var bodyZone = HitboxOnly(PrimitiveType.Capsule, "Body_Hit", hitboxes, bodyPos, bodyScale).AddComponent<HitZone>();
             bodyZone.EditorSetup(1f, false);
             var headZone = HitboxOnly(PrimitiveType.Sphere, "Head_Hit", hitboxes, headPos, headScale).AddComponent<HitZone>();
             headZone.EditorSetup(1f, true);
-
-            // Braccia protese in avanti: sagoma riconoscibile da lontano, senza collider.
-            float armThickness = 0.12f * bodyScale.x / 0.55f;
-            var armSize = new Vector3(armThickness, armThickness, 0.7f * Mathf.Max(1f, bodyScale.y / 0.75f));
-            GameObject armL = Primitive(PrimitiveType.Cube, "Arm_L", model, new Vector3(-armX, armY, 0.3f), armSize, bodyMaterial);
-            GameObject armR = Primitive(PrimitiveType.Cube, "Arm_R", model, new Vector3(armX, armY, 0.3f), armSize, bodyMaterial);
-            Object.DestroyImmediate(armL.GetComponent<Collider>());
-            Object.DestroyImmediate(armR.GetComponent<Collider>());
 
             var zones = new List<HitZone> { bodyZone, headZone };
 
@@ -304,11 +327,10 @@ namespace HrdnLab.FpsWave.Editor
 
             health.EditorSetup(spec.MaxHealth, zones.ToArray());
             enemy.EditorSetup(definition);
-            visual.EditorSetup(model, new Renderer[]
-            {
-                torso.GetComponent<Renderer>(), head.GetComponent<Renderer>(),
-                armL.GetComponent<Renderer>(), armR.GetComponent<Renderer>(),
-            }, spec.BodyColor, spec.MoveSpeed);
+            if (realModel)
+                visual.EditorSetup(model, bodyRenderers, Color.white, new Color(1f, 0.72f, 0.6f), new Color(0.32f, 0.3f, 0.3f), spec.MoveSpeed);
+            else
+                visual.EditorSetup(model, bodyRenderers, spec.BodyColor, spec.MoveSpeed);
 
             foreach (Renderer r in root.GetComponentsInChildren<Renderer>())
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
@@ -502,6 +524,173 @@ namespace HrdnLab.FpsWave.Editor
             mat.enableInstancing = true;
             EditorUtility.SetDirty(mat);
             return mat;
+        }
+
+        // ------------------------------------------------------------------ Modelli veri
+
+        /// <summary>
+        /// Se nella cartella del tipo c'è il modello (statico, senza scheletro), lo mette sotto <paramref name="model"/>
+        /// come semplici MeshFilter/MeshRenderer (niente prefab annidato: su un PC senza i binari il prefab resta valido
+        /// e il nemico è solo invisibile), girato di <see cref="EnemyTypeSpec.ModelYaw"/>, alto quanto l'agente, piedi a 0.
+        /// Ricava anche la testa (vertici più alti) per la hitbox del punto debole.
+        /// </summary>
+        private static bool TryBuildRealModel(EnemyTypeSpec spec, Transform model, out Renderer[] renderers, out Vector3 headCenter, out float headSize)
+        {
+            renderers = null;
+            headCenter = default;
+            headSize = spec.HeadSize;
+            if (string.IsNullOrEmpty(spec.ModelDir))
+                return false;
+            string fbx = $"{spec.ModelDir}/{spec.Name}.fbx";
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(fbx);
+            if (asset == null)
+            {
+                Debug.LogWarning($"[FpsWave] {spec.Name}: modello {fbx} assente (docs/ASSETS.md), uso la sagoma greybox.");
+                return false;
+            }
+            ConfigureModelImporter(fbx);
+            Material material = ModelMaterial(spec);
+
+            // Parti del modello con le loro trasformazioni, nello spazio del modello girato.
+            Quaternion yaw = Quaternion.Euler(0f, spec.ModelYaw, 0f);
+            // La rotazione di conversione degli assi dell'FBX (es. -90 su X) sta spesso sulla radice importata:
+            // si tiene, misurando tutto nello spazio del mondo con la radice nell'origine.
+            var temp = Object.Instantiate(asset);
+            temp.transform.position = Vector3.zero;
+            var parts = new List<(Mesh mesh, Matrix4x4 m)>();
+            foreach (MeshFilter mf in temp.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh != null)
+                    parts.Add((mf.sharedMesh, Matrix4x4.Rotate(yaw) * mf.transform.localToWorldMatrix));
+            }
+            foreach (SkinnedMeshRenderer smr in temp.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (smr.sharedMesh != null)
+                    parts.Add((smr.sharedMesh, Matrix4x4.Rotate(yaw) * smr.transform.localToWorldMatrix));
+            }
+            Object.DestroyImmediate(temp);
+            if (parts.Count == 0)
+                return false;
+
+            // Limiti e vertici per scala, posizione e testa.
+            var points = new List<Vector3>();
+            int triangles = 0;
+            foreach (var (mesh, m) in parts)
+            {
+                Vector3[] v = mesh.vertices;
+                for (int i = 0; i < v.Length; i++)
+                    points.Add(m.MultiplyPoint3x4(v[i]));
+                triangles += (int)(mesh.GetIndexCount(0) / 3);
+                for (int sub = 1; sub < mesh.subMeshCount; sub++)
+                    triangles += (int)(mesh.GetIndexCount(sub) / 3);
+            }
+            var bounds = new Bounds(points[0], Vector3.zero);
+            foreach (Vector3 p in points)
+                bounds.Encapsulate(p);
+            float scale = spec.AgentHeight / Mathf.Max(0.01f, bounds.size.y);
+            var offset = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z);
+
+            // Testa: i vertici nel 9% più alto; centro e grandezza (sfera che li contiene quasi tutti).
+            float topBand = bounds.max.y - bounds.size.y * 0.09f;
+            Vector3 sum = Vector3.zero;
+            int count = 0;
+            foreach (Vector3 p in points)
+            {
+                if (p.y >= topBand) { sum += p; count++; }
+            }
+            Vector3 headTop = count > 0 ? sum / count : bounds.center;
+            headSize = Mathf.Clamp(bounds.size.y * scale * 0.15f, 0.22f, 0.4f);
+            headCenter = new Vector3((headTop.x + offset.x) * scale, spec.AgentHeight - headSize * 0.5f, (headTop.z + offset.z) * scale);
+
+            var list = new List<Renderer>();
+            for (int i = 0; i < parts.Count; i++)
+            {
+                var (mesh, m) = parts[i];
+                var go = new GameObject(parts.Count == 1 ? "Mesh" : $"Mesh_{i}");
+                go.transform.SetParent(model, false);
+                // m = R*T*S dello spazio del modello: lo si porta nello spazio del nemico (offset e scala uniforme).
+                Matrix4x4 final = Matrix4x4.Scale(Vector3.one * scale) * Matrix4x4.Translate(offset) * m;
+                go.transform.localPosition = final.GetColumn(3);
+                go.transform.localRotation = final.rotation;
+                go.transform.localScale = final.lossyScale;
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var mr = go.AddComponent<MeshRenderer>();
+                var materials = new Material[Mathf.Max(1, mesh.subMeshCount)];
+                for (int k = 0; k < materials.Length; k++)
+                    materials[k] = material;
+                mr.sharedMaterials = materials;
+                list.Add(mr);
+            }
+            renderers = list.ToArray();
+            Debug.Log($"[FpsWave] {spec.Name}: modello vero ({triangles} triangoli, {parts.Count} parti, scala {scale:0.###}), testa a {headCenter}.");
+            return true;
+        }
+
+        private static void ConfigureModelImporter(string path)
+        {
+            if (AssetImporter.GetAtPath(path) is not ModelImporter importer)
+                return;
+            bool changed = importer.animationType != ModelImporterAnimationType.None
+                           || importer.importAnimation || importer.importCameras || importer.importLights
+                           || importer.materialImportMode != ModelImporterMaterialImportMode.None
+                           || importer.meshCompression != ModelImporterMeshCompression.Medium;
+            if (!changed)
+                return;
+            importer.animationType = ModelImporterAnimationType.None;
+            importer.importAnimation = false;
+            importer.importCameras = false;
+            importer.importLights = false;
+            importer.materialImportMode = ModelImporterMaterialImportMode.None;
+            importer.meshCompression = ModelImporterMeshCompression.Medium;
+            importer.SaveAndReimport();
+        }
+
+        private static Material ModelMaterial(EnemyTypeSpec spec)
+        {
+            string tex = $"{spec.ModelDir}/Textures/{spec.Name}";
+            Texture2D baseMap = LoadTexture($"{tex}_BaseColor", false, true);
+            Texture2D normal = LoadTexture($"{tex}_Normal", true, false);
+            Texture2D metallic = LoadTexture($"{tex}_MetallicSmoothness", false, false);
+            Material mat = LitMaterial($"M_Enemy_{spec.Name}_Model", Color.white, 0.5f);
+            mat.SetTexture("_BaseMap", baseMap);
+            mat.SetColor("_BaseColor", Color.white);
+            if (normal != null)
+            {
+                mat.SetTexture("_BumpMap", normal);
+                mat.EnableKeyword("_NORMALMAP");
+            }
+            if (metallic != null)
+            {
+                mat.SetTexture("_MetallicGlossMap", metallic);
+                mat.SetFloat("_Metallic", 1f);
+                mat.SetFloat("_Smoothness", 1f);
+                mat.EnableKeyword("_METALLICSPECGLOSSMAP");
+            }
+            mat.enableInstancing = true;
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        /// <summary>Carica una texture (png o jpg) e la importa per un nemico in massa: 2048 px, compressa, mip.</summary>
+        private static Texture2D LoadTexture(string pathNoExt, bool normalMap, bool srgb)
+        {
+            foreach (string ext in new[] { ".png", ".jpg", ".jpeg", ".tga" })
+            {
+                string path = pathNoExt + ext;
+                if (AssetImporter.GetAtPath(path) is not TextureImporter importer)
+                    continue;
+                TextureImporterType type = normalMap ? TextureImporterType.NormalMap : TextureImporterType.Default;
+                if (importer.textureType != type || importer.sRGBTexture != srgb || importer.maxTextureSize != 2048)
+                {
+                    importer.textureType = type;
+                    importer.sRGBTexture = srgb;
+                    importer.maxTextureSize = 2048;
+                    importer.mipmapEnabled = true;
+                    importer.SaveAndReimport();
+                }
+                return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            }
+            return null;
         }
 
         private static GameObject Primitive(PrimitiveType type, string name, Transform parent, Vector3 localPosition,

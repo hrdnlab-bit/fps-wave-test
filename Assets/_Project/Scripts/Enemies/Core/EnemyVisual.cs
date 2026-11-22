@@ -150,6 +150,14 @@ namespace HrdnLab.FpsWave.Enemies
             _aliveColor = aliveColor;
             _runSpeedForFullCycle = runSpeedForFullCycle;
         }
+
+        /// <summary>Per i modelli con texture: i colori moltiplicano la texture (bianco = colori originali).</summary>
+        public void EditorSetup(Transform model, Renderer[] renderers, Color aliveColor, Color hurtColor, Color deadColor, float runSpeedForFullCycle)
+        {
+            EditorSetup(model, renderers, aliveColor, runSpeedForFullCycle);
+            _hurtColor = hurtColor;
+            _deadColor = deadColor;
+        }
 #endif
     }
 }
