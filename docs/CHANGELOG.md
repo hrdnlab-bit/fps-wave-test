@@ -3,6 +3,13 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Added (personaggio AIRO, Manuel)
+- **Corpo del player: pilota sci-fi AIRO** (modello nostro da Blender, ~75k triangoli, PBR 4K, rig umanoide a 52 ossa) al posto della capsula, costruito da `FpsWave/Setup/9. Build Player Character (AIRO)` (richiamato anche da `Setup/3`).
+- **Animazione procedurale** (`Player/Character/`): gambe con IK a due ossa sul ciclo del passo (camminata, corsa, strafe, indietro), bacino che scende in crouch, piedi sollevati in aria, busto e testa che seguono la mira, braccia con IK sull'impugnatura dell'arma in terza persona e dita chiuse sull'arma.
+- **Armi in terza persona** (`Prefabs/Weapons/WM_*`, `WorldWeaponModel`) generate dai view model: fucile e pistola impugnati dal corpo, con rinculo visibile e tracciante degli altri giocatori che parte dalla volata.
+- **Prima persona**: si vedono gambe e bacino guardando in basso (mesh senza testa, collo, braccia e piastra) e l'ombra completa del personaggio con la posa dell'arma.
+- Test EditMode del rig sul prefab vero (passo, strafe, crouch, salto, mani sull'impugnatura a ±45°): 24 test nuovi.
+
 ### Added (Fase 1: tuta, Brute, squadra)
 - **Tuta Mk-VII**: energia (100, si ricarica dopo 1.5 s) autorevole sul server e tre abilità: **Pulse scan** (Q, 25: rivela a tutta la squadra i nemici entro 40 m per 5 s, anche dietro i muri), **Armor mode** (F, 40: danni subiti -60% per 4 s, movimento -15%), **Overcharge** (V, 30: corsa +35% per 3.5 s). Barra SUIT e tasti nel HUD, bordo colorato quando sono attive.
 - **Brute**: secondo nemico (600 HP, 3.5 m/s, raro finché non ci sono le wave) con **corazza a piastre che si rompono** (petto, schiena, spalle, elmo: ognuna assorbe l'85% del danno finché regge, poi salta via con detriti) e **nucleo luminoso** sul petto come punto debole; **carica**: si ferma, si prepara (affondo all'indietro), scatta in linea retta e spinge via chi prende. Sistema di piastre generico (`EnemyArmor` + `ArmorPlate`) e abilità dei nemici (`IEnemyAbility`).

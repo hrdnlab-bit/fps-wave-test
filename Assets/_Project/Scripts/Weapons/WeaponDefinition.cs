@@ -60,6 +60,8 @@ namespace HrdnLab.FpsWave.Weapons
         [SerializeField] private bool _overrideViewOffsets;
         [SerializeField] private Vector3 _viewHipOffset = Vector3.zero;
         [SerializeField] private Vector3 _viewAdsOffset = Vector3.zero;
+        [Tooltip("Modello in terza persona (impugnato dal corpo del player, visto dagli altri). Vuoto = nessuno.")]
+        [SerializeField] private GameObject _worldModelPrefab;
 
         [Header("Sensazione (cosmetica: rinculo, molle, oscillazioni, energia, calore)")]
         [SerializeField] private WeaponFeel _feel = new();
@@ -79,6 +81,7 @@ namespace HrdnLab.FpsWave.Weapons
         public bool OverrideViewOffsets => _overrideViewOffsets && _viewModelPrefab != null;
         public Vector3 ViewHipOffset => _viewHipOffset;
         public Vector3 ViewAdsOffset => _viewAdsOffset;
+        public GameObject WorldModelPrefab => _worldModelPrefab;
 
         /// <summary>Crea un blocco di statistiche nuovo, indipendente dagli altri giocatori.</summary>
         public StatBlock CreateStats()
@@ -100,6 +103,9 @@ namespace HrdnLab.FpsWave.Weapons
             return stats;
         }
 
+        /// <summary>Profilo della sensazione dell'arma (rinculo, molle, calore). Fuori da UNITY_EDITOR: serve anche nella build.</summary>
+        public WeaponFeel Feel => _feel ??= new WeaponFeel();
+
 #if UNITY_EDITOR
         /// <summary>Usato dagli strumenti Editor per creare le armi di base.</summary>
         public void EditorSetup(string id, string displayName, WeaponSlot slot, float damage, float rpm, bool automatic,
@@ -113,11 +119,9 @@ namespace HrdnLab.FpsWave.Weapons
             _placeholderSize = placeholderSize;
         }
 
-        /// <summary>Usato da <c>WeaponViewModelBuilder</c> per collegare il modello realistico.</summary>
-        public WeaponFeel Feel => _feel ??= new WeaponFeel();
-
         public void EditorSetFeel(WeaponFeel feel) => _feel = feel;
 
+        /// <summary>Usato da <c>WeaponViewModelBuilder</c> per collegare il modello realistico.</summary>
         public void EditorSetViewModel(GameObject prefab, Vector3 hipOffset, Vector3 adsOffset)
         {
             _viewModelPrefab = prefab;
@@ -125,6 +129,9 @@ namespace HrdnLab.FpsWave.Weapons
             _viewHipOffset = hipOffset;
             _viewAdsOffset = adsOffset;
         }
+
+        /// <summary>Usato da <c>PlayerCharacterBuilder</c> per collegare il modello in terza persona.</summary>
+        public void EditorSetWorldModel(GameObject prefab) => _worldModelPrefab = prefab;
 #endif
     }
 }

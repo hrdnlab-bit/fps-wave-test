@@ -53,6 +53,7 @@ namespace HrdnLab.FpsWave.Editor
 
             GameObject dummyPrefab = CreateDummyPrefab(mats);
             GameObject playerPrefab = CreatePlayerPrefab(mats, new[] { rifle, pistol });
+            PlayerCharacterBuilder.TryAttachToPlayer(); // corpo AIRO, se già costruito con Setup/9
             CreateGreyboxScene(mats, dummyPrefab);
             EnemyContentBuilder.Build(); // nemici: catalogo dei tipi (schede + prefab), muri di copertura, nodi di spawn, EnemyDirector
             WireBootScene(playerPrefab.GetComponent<NetworkObject>());

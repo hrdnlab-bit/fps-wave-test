@@ -27,6 +27,7 @@ Regola: ogni nuova meccanica o asset dichiara l'impatto stimato su rete e FPS pr
 - Nemici: Animator culling, LOD con riduzione della frequenza di animazione oltre 30 m, AI aggiornata a frequenza ridotta per i nemici lontani.
 - Nessuna allocazione in Update: niente LINQ, stringhe o lambda che catturano in gameplay. Job/Burst solo dove il profiler lo giustifica.
 - Rete: quantizzazione, delta, frequenza per distanza, messaggi aggregati.
+- Player (AIRO): ~75k triangoli a personaggio (4 player = ~0.3 M, 10% del budget), un materiale URP Lit con instancing, skinning a 4 ossa, texture BaseColor/Normal 4K e le altre 2K con mipmap streaming. Rig procedurale ~0.05 ms a personaggio, ogni 3 frame per i remoti oltre 30 m o fuori camera. Manca un LOD del corpo (da fare in Blender se servono più di 4 player o la mappa vasta).
 - Partite lunghe (endless): test di "soak" di 60+ minuti per controllare memory leak, crescita del pool e degrado delle prestazioni.
 
 ## 4. Misura

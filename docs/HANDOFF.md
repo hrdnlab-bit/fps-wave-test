@@ -1,10 +1,11 @@
 # HANDOFF
 
-Ultimo aggiornamento: 2026-11-21 (versione 0.2.0)
+Ultimo aggiornamento: 2026-11-22 (versione 0.2.0)
 
 ## Stato attuale
 - **M0a completata** (0.1.0). **M1 quasi completa**: gameplay verificato in rete (anche lo sparo dal client remoto), armi realistiche fatte (M4 con braccia animate, pistola Beretta con animazione procedurale). Manca **M1.6 suoni**.
 - **M2 iniziata (Matteo, branch `matteo/m2-runner`)**: Runner con AI server, EnemyDirector con spawn nascosti attorno ai player, pool di rete, tipi di nemico guidati dai dati, numeri di danno; inoltre HUD minimale stile Crysis e menu "terminale" con texture (asset UI fuori dal repo: `tools/setup-ui-assets.ps1`), impostazioni, gunplay stile Call of Duty moderno (`Weapons/Feel/`), gioco in inglese (mergiato, PR #3). **Fase 1** (branch `matteo/phase1-suit-brute`): tuta con abilità, Brute con piastre e carica, a terra/rianimazione, ping, voce della tuta. Dettagli in `docs/handoff/matteo.md`.
+- **Corpo del player AIRO (Manuel, branch `manuel/airo-character`)**: pilota sci-fi al posto della capsula, gambe e braccia procedurali, armi in terza persona impugnate, gambe visibili in prima persona. Serve lo zip dei binari AIRO (`docs/ASSETS.md`) e poi `Setup/9`.
 - **M0b in corso**: Steam integrato e verificato in locale (Steam pronto, lobby creata, server/client FishySteamworks attivi), build Windows zippata pronta. Da fare: **test con l'amico** (`OPEN_QUESTIONS.md` #14), overlay di debug completo, console comandi.
 - Progetto Unity: `C:\Users\manue\FpsWaveTest` (Unity 6000.6.9f1, URP). Repo `hrdnlab-bit/fps-wave-test`, branch `main`.
 - `C:\Users\manue\My project` contiene un ALTRO gioco (SABBIA): non toccarlo.
@@ -22,7 +23,8 @@ Ultimo aggiornamento: 2026-11-21 (versione 0.2.0)
 7. Interfaccia: `FpsWave/Setup/7. Build UI` collega HUD (Player) e menu di gioco (Boot); stile in `Assets/_Project/UI/Styles/` (Hud.uss ciano, Menu.uss ambra). In Editor l'Host LAN parte ancora da solo; Esc in partita apre la pausa, "Abbandona la missione" riporta al menu principale.
 8b. Tuta: Q scansione, F armatura, V overcharge; ping con tasto centrale o Z; E tenuto premuto per rianimare un compagno a terra.
 8. Sensazione delle armi: `FpsWave/Setup/8. Apply Weapon Feel` (driver sul Player + profili di partenza nelle armi). Ogni arma si ritocca nel suo asset in `Data/Weapons/`, sezione "Sensazione" (rieseguire Setup/8 riporta i profili ai valori di partenza).
-9. Rigenerazione contenuti (disattivare prima i giocatori virtuali): `Setup/3` (mappa, player, armi), poi `Setup/4` (view model armi; la pistola viene copiata da `Download/FPS Guns 4K - Pistol 2` se non è già nel progetto), `Setup/5` (Steam/Multipass).
+9. Personaggio: `FpsWave/Setup/9. Build Player Character (AIRO)` (prima estrarre `AIRO_Pilot_Unity.zip` nella radice del progetto con Unity chiuso). Costruisce materiale, prefab `AIRO_Character`, armi in terza persona `WM_*` e corpo in prima persona, e li collega al Player; i parametri del passo, della mira e delle impugnature sono in `Data/Characters/AIRO_Animation.asset`.
+10. Rigenerazione contenuti (disattivare prima i giocatori virtuali): `Setup/3` (mappa, player, armi), poi `Setup/4` (view model armi; la pistola viene copiata da `Download/FPS Guns 4K - Pistol 2` se non è già nel progetto), `Setup/5` (Steam/Multipass).
 
 ## Script chiave
 | Area | File |
@@ -35,6 +37,7 @@ Ultimo aggiornamento: 2026-11-21 (versione 0.2.0)
 | Interfaccia | `Scripts/UI/Hud/SciFiHud.cs` (HUD), `Scripts/UI/Menu/GameMenu.cs` (menu e pausa), `Scripts/Core/GameSettings.cs` (impostazioni + `UiState`), `Editor/UiBuilder.cs` (Setup/7) |
 | Sensazione armi | `Scripts/Weapons/Feel/` (WeaponFeel: profilo per arma; RecoilMath: rinculo e molle; WeaponFeelDriver: camera, view model, luce, calore), `Editor/WeaponFeelSetup.cs` (Setup/8) |
 | Numeri di danno | `Scripts/UI/DamageNumbers.cs`, conferma colpo in `Weapons/HitConfirm.cs` + `PlayerWeapons.RpcConfirmHit` |
+| Personaggio | `Scripts/Player/Character/` (CharacterPoseMath: ciclo del passo e IK, logica pura; CharacterRig: posa delle ossa; PlayerCharacter: rete, arma in terza persona, rinculo; CharacterAnimationSettings), `Weapons/WorldWeaponModel.cs`, `Editor/PlayerCharacterBuilder.cs` (Setup/9) |
 | Rete | `Scripts/Net/` (NetBootstrapMenu: menu LAN/Steam; NetTransports: Multipass; SteamService: Steam, lobby, inviti; GameSession; PlayerSpawnService; EditorInstanceInfo) |
 | Editor | `Scripts/Editor/` (M1ContentBuilder `Setup/3`, WeaponViewModelBuilder `Setup/4`, SteamSetupTools `Setup/5`, BuildTools `Build/...`, PlayModeNetworkGuard, ConsoleLogMirror) |
 | Terze parti | `Assets/ThirdParty/FishySteamworks/` (codice, nel repo), `Assets/ThirdParty/Fab/M4Animations/` e `Fab/Pistol2/` (binari solo sul PC) |

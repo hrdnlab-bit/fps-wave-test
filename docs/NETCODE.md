@@ -68,3 +68,9 @@ Co-op PvE tra amici: l'obiettivo è **reattività locale** e **economia autorevo
 - `EnemyArmor` (Brute): salute delle piastre solo sul server, piastre rotte in una `SyncVar<byte>` (maschera); la conferma colpo porta due flag in più (`ArmorHit`, `ArmorBreak`).
 - `BruteCharge`: solo server (movimento con `NavMeshAgent.Move`), un `ObserversRpc` cosmetico (preparazione) e un `TargetRpc` al proprietario colpito per lo spintone (`PlayerMotor.TargetKnockback`). La tolleranza della validazione colpi usa la velocità di carica (`IEnemyAbility.ServerSpeedOverride`).
 - Protocollo di rete alla versione 3.
+
+## Corpo del player in terza persona (AIRO)
+- Nessun dato di animazione in rete: gli altri ricavano passo, strafe e corsa dalla posizione interpolata della `NetworkTransform`.
+- `PlayerCharacter`: `SyncVar<sbyte>` della pitch della visuale (gradi interi, solo agli altri, canale unreliable) e `SyncVar<byte>` dei flag (accovacciato, a terra; reliable). Il proprietario li invia con una ServerRpc unreliable a 10 Hz **solo quando cambiano**: ~2 byte di dati per invio, al massimo ~0.1 KB/s per giocatore.
+- `PlayerWeapons._observedEquipped` (`SyncVar<sbyte>`, escluso il proprietario): arma impugnata vista dagli altri, cambia solo al cambio arma. Il rinculo del corpo usa l'`ObserversRpc` di sparo già esistente (nessun messaggio nuovo).
+- I traccianti degli altri partono dalla volata dell'arma in terza persona (`IThirdPersonMuzzle`), solo lato client.
