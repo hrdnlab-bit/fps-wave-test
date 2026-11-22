@@ -103,6 +103,9 @@ namespace HrdnLab.FpsWave.Weapons
             return stats;
         }
 
+        /// <summary>Profilo della sensazione dell'arma (rinculo, molle, calore). Fuori da UNITY_EDITOR: serve anche nella build.</summary>
+        public WeaponFeel Feel => _feel ??= new WeaponFeel();
+
 #if UNITY_EDITOR
         /// <summary>Usato dagli strumenti Editor per creare le armi di base.</summary>
         public void EditorSetup(string id, string displayName, WeaponSlot slot, float damage, float rpm, bool automatic,
@@ -116,11 +119,9 @@ namespace HrdnLab.FpsWave.Weapons
             _placeholderSize = placeholderSize;
         }
 
-        /// <summary>Usato da <c>WeaponViewModelBuilder</c> per collegare il modello realistico.</summary>
-        public WeaponFeel Feel => _feel ??= new WeaponFeel();
-
         public void EditorSetFeel(WeaponFeel feel) => _feel = feel;
 
+        /// <summary>Usato da <c>WeaponViewModelBuilder</c> per collegare il modello realistico.</summary>
         public void EditorSetViewModel(GameObject prefab, Vector3 hipOffset, Vector3 adsOffset)
         {
             _viewModelPrefab = prefab;
