@@ -1,6 +1,6 @@
 # HANDOFF di Matteo
 
-Ultimo aggiornamento: 2026-11-21
+Ultimo aggiornamento: 2026-11-22
 
 ## Su cosa sto lavorando
 - Branch: `matteo/phase1-suit-brute` (PR verso `main` aperta, da rivedere).
@@ -20,7 +20,10 @@ Ultimo aggiornamento: 2026-11-21
 
 - Fase 1 (2026-11-22, branch `matteo/phase1-suit-brute`): `Player/Suit/SuitAbilities`, `Player/PlayerLife`, `Player/PlayerPing`, `UI/SuitCallouts`, `Enemies/Core/EnemyArmor|ArmorPlate|ArmorDebris|IEnemyAbility`, `Enemies/Types/BruteCharge`, HUD (energia, abilità, voce, indicatori, a terra). Toccati file di Manuel: `Health` (ServerDamageScale, ServerSetHealth), `PlayerMotor` (Downed, AbilitySpeedMultiplier, spintone), `PlayerInputReader`/`FpsInput` (Q, F, V, Z/centrale, E), `PlayerWeapons` (piastre, solo pistola a terra), `ShotFxPool` (scintille), `GameInfo` (protocollo 3). Suoni provati e poi tolti su richiesta.
 
+- Merge di `manuel/airo-character` (PR #4, personaggio AIRO) dentro `matteo/phase1-suit-brute`: conflitti in `PlayerWeapons` (tenuto `EquippedIndex` di Manuel con `_observedEquipped` + `ForceSecondary`/`WeaponsDisabled`), `Player.prefab` (versione di Manuel, poi `Setup/9` + `Setup/6/7/8` per rimettere tuta, a terra e ping), documenti uniti. Se la PR #4 entra prima su `main`, la #5 si riduce da sola.
+
 ## Verifiche
+- Dopo il merge con AIRO: compilazione 0 errori, test EditMode 91/91 (con i test del rig di Manuel), Play solo Host pulito (HUD con la tuta, corpo AIRO).
 - Fase 1: compilazione 0 errori, test EditMode 67/67 (dopo aver tolto i suoni); Play solo Host: abilità (energia, tinte, voce), ping, a terra con dissanguamento e rialzo da soli, Brute con piastre colpite (numeri acciaio) e rotte (nucleo scoperto, voce "ARMOR BREACHED"); host + client (MPPM): connessione pulita, HUD del client con tuta, dissanguamento → morte → ritorno del client. **Da provare a mano**: rianimazione tenendo premuto E (non riuscito a creare il momento "uno a terra, l'altro in piedi" con il player virtuale).
 - Compilazione: 0 errori (`Logs/FpsWaveConsole.log`); restano solo gli avvisi già noti di API deprecate in `NetBootstrapMenu`/`PlayerSpawnService`.
 - Test EditMode: 64/64.

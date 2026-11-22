@@ -153,6 +153,9 @@ GameObject:
   - component: {fileID: 4719806347758195179}
   - component: {fileID: 2471166753171380856}
   - component: {fileID: 7712240862049712725}
+  - component: {fileID: 7919487799455753047}
+  - component: {fileID: 3956232816320228688}
+  - component: {fileID: 4743431107135638787}
   m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
@@ -175,7 +178,7 @@ Transform:
   m_Children:
   - {fileID: 3022871114441330496}
   - {fileID: 2417003922557276469}
-  - {fileID: 2990689417878565881}
+  - {fileID: 7069771415452836569}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!143 &1471648352714072574
@@ -354,6 +357,7 @@ MonoBehaviour:
   _cameraPivot: {fileID: 3022871114441330496}
   _suspiciousSpeed: 15
   _teleportDistance: 10
+  _downedSpeedMultiplier: 0.45
 --- !u!114 &5320469534409359688
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -464,7 +468,6 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 139051151714448617}
   _networkObjectCache: {fileID: 0}
-  _autoReviveDelay: 5
   _maxAttackers: 3
   _motor: {fileID: 6190854792051640263}
 --- !u!114 &6903490536038743217
@@ -486,6 +489,7 @@ MonoBehaviour:
   _fontSize: 28
   _normalColor: {r: 1, g: 1, b: 1, a: 1}
   _precisionColor: {r: 1, g: 0.83, b: 0.42, a: 1}
+  _armorColor: {r: 0.62, g: 0.72, b: 0.82, a: 1}
 --- !u!114 &8125962987711106856
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -565,13 +569,82 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 139051151714448617}
   _networkObjectCache: {fileID: 0}
-  _rig: {fileID: 1566073648950869597}
+  _rig: {fileID: 6784110046364954493}
   _motor: {fileID: 6190854792051640263}
   _look: {fileID: 5320469534409359688}
   _weapons: {fileID: 4251965635168637423}
   _weaponAnchor: {fileID: 2417003922557276469}
   _firstPersonBodyOffset: {x: 0, y: 0, z: -0.1}
   _sendInterval: 0.1
+--- !u!114 &7919487799455753047
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3842048281382028655}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 141118134017b2542bb35d7c78c7980d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Player.SuitAbilities
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 139051151714448617}
+  _networkObjectCache: {fileID: 0}
+  _maxEnergy: 100
+  _regenPerSecond: 14
+  _regenDelay: 1.5
+  _overchargeCost: 30
+  _overchargeDuration: 3.5
+  _overchargeSpeed: 1.35
+  _armorCost: 40
+  _armorDuration: 4
+  _armorDamageScale: 0.4
+  _armorMoveScale: 0.85
+  _scanCost: 25
+  _scanCooldown: 6
+  _scanRadius: 40
+  _scanDuration: 5
+  _shieldDamageScale: 0.5
+--- !u!114 &3956232816320228688
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3842048281382028655}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3390dea8fc6688e4e8c3ca15aff0323e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Player.PlayerLife
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 139051151714448617}
+  _networkObjectCache: {fileID: 0}
+  _bleedOutSeconds: 30
+  _reviveSeconds: 3
+  _reviveRange: 2.5
+  _reviveHealthFraction: 0.3
+  _reviveShieldSeconds: 3
+  _soloReviveSeconds: 6
+  _respawnSeconds: 10
+--- !u!114 &4743431107135638787
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3842048281382028655}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aeb97bdc1e327bb499ec6650a8bd9129, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Player.PlayerPing
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 139051151714448617}
+  _networkObjectCache: {fileID: 0}
+  _range: 150
+  _cooldown: 0.4
 --- !u!1 &8461613662733078195
 GameObject:
   m_ObjectHideFlags: 0
@@ -696,7 +769,7 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8751762922156321670}
   m_Enabled: 1
---- !u!1001 &5328748038251409191
+--- !u!1001 &175160519960165895
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -753,10 +826,10 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 25d7cead7c82e69498fd53cb838bd46d, type: 3}
---- !u!114 &1566073648950869597 stripped
+--- !u!114 &6784110046364954493 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6649648087022702970, guid: 25d7cead7c82e69498fd53cb838bd46d, type: 3}
-  m_PrefabInstance: {fileID: 5328748038251409191}
+  m_PrefabInstance: {fileID: 175160519960165895}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -764,8 +837,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52d0780d82853704f983c3d3d7dbcec2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FpsWave.Runtime::HrdnLab.FpsWave.Player.Character.CharacterRig
---- !u!4 &2990689417878565881 stripped
+--- !u!4 &7069771415452836569 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6949780133555412190, guid: 25d7cead7c82e69498fd53cb838bd46d, type: 3}
-  m_PrefabInstance: {fileID: 5328748038251409191}
+  m_PrefabInstance: {fileID: 175160519960165895}
   m_PrefabAsset: {fileID: 0}
