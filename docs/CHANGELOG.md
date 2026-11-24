@@ -3,6 +3,10 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Changed (mirino olografico del fucile sci-fi, Matteo)
+- Il "cannocchiale" del fucile era una scatola chiusa con uno schermino dietro: mirando si vedeva solo il retro. `tools/guns/export_scifi_rifle.py` ora lo toglie e costruisce un **mirino olografico aperto** (base, cornice con finestra ~4,5 x 3,4 cm, spie ambra) con un vetro separato (`SciRifle_Lens`).
+- Il vetro usa `SciRifle_Lens.mat` (URP Unlit additivo, HDR) con un reticolo rosso generato da `Setup/4` (`SciRifle_Reticle.png`: anello, punto, quattro tacche). Mirando, il centro del vetro va sull'asse della camera a 12 cm dall'occhio (`HoloEyeRelief`).
+
 ### Added (animazioni del personaggio e armi sci-fi, Matteo)
 - **Armi sci-fi al posto di M4 e Beretta**: fucile sci-fi di M@xim (CC-BY) montato sulle braccia animate del pacchetto M4 (stesse clip di sparo, ricarica, estrazione; caricatore e grilletto sulle ossa giuste), mirino a 8,6 cm sopra la canna; pistola "Magma" di AF Creations (Fab) con ricarica procedurale a fasi. Prefab `VM_SciRifle` e `VM_SciPistol` generati da `Setup/4`.
 - **Cambio arma con holster**: l'arma attuale scende (clip Holster o caduta procedurale, 0,26 s), poi sale la nuova; ripensamento durante l'holster = torna su l'arma di prima.

@@ -30,6 +30,7 @@ namespace HrdnLab.FpsWave.Editor
         // Armi sci-fi (Fab): il fucile di M@xim montato sulle braccia animate del pacchetto M4, la pistola Magma di AF Creations.
         private const string SciRifleDir = "Assets/ThirdParty/Fab/SciFiRifle";
         private const string SciRifleFbx = SciRifleDir + "/SciRifle.fbx";
+        private const float HoloEyeRelief = 0.12f; // distanza occhio-vetro del mirino olografico mirando (m)
         private const string SciPistolDir = "Assets/ThirdParty/Fab/SciFiPistol";
         private const string SciPistolFbx = SciPistolDir + "/SciFiPistol.fbx";
         private const float SciPistolLength = 0.24f;
@@ -497,6 +498,11 @@ namespace HrdnLab.FpsWave.Editor
             weaponVerts = WorldVertices(weaponMesh);
             Vector3 muzzlePoint = MuzzlePoint(weaponVerts);
             Vector3 sightPoint = sciFi ? ScopeSightPoint(weaponVerts, muzzlePoint) : SightPoint(weaponVerts, muzzlePoint);
+            // Con il mirino olografico si mira al centro del vetro (il reticolo è lì).
+            Transform lensT = sciFi ? FindDeep(weaponMesh, "Lens") : null;
+            bool holo = lensT != null && lensT.TryGetComponent(out Renderer lensRenderer);
+            if (holo)
+                sightPoint = lensT.GetComponent<Renderer>().bounds.center;
 
             var muzzle = new GameObject("Muzzle").transform;
             muzzle.SetParent(weaponMesh, true);
@@ -532,6 +538,9 @@ namespace HrdnLab.FpsWave.Editor
 
             // In ADS il mirino va sull'asse della camera; un piccolo arretramento evita di avere l'arma "in faccia".
             Vector3 ads = new(-sightPoint.x, -sightPoint.y, -0.02f);
+            // Mirino olografico: il vetro a 12 cm dall'occhio, così la finestra riempie bene il centro dello schermo.
+            if (holo) // (il root e il vetro sono già distrutti qui: si usa il flag)
+                ads.z = HoloEyeRelief - sightPoint.z;
             var rifle = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(RifleAsset);
             if (rifle != null)
             {
@@ -574,6 +583,7 @@ namespace HrdnLab.FpsWave.Editor
             Transform body = FindByName(sci.transform, "SciRifle_Body");
             Transform trig = FindByName(sci.transform, "SciRifle_Trigger");
             Transform mag = FindByName(sci.transform, "SciRifle_Mag");
+            Transform lens = FindByName(sci.transform, "SciRifle_Lens"); // vetro del mirino olografico (può mancare)
             if (body == null || trig == null || mag == null)
             {
                 Object.DestroyImmediate(sci);
@@ -615,6 +625,16 @@ namespace HrdnLab.FpsWave.Editor
             mag2.SetPositionAndRotation(m2.GetColumn(3), m2.rotation);
 
             Transform mainBone = m4Main.parent, trigBone = m4Trigger.parent;
+            if (lens != null)
+            {
+                lens.SetParent(body, true); // segue il corpo dell'arma in tutte le animazioni
+                lens.name = "Lens";
+                if (lens.TryGetComponent(out Renderer lr))
+                {
+                    lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    lr.receiveShadows = false;
+                }
+            }
             body.SetParent(mainBone, true);
             trig.SetParent(trigBone, true);
             mag.SetParent(mag1Bone, true);
@@ -739,7 +759,74 @@ namespace HrdnLab.FpsWave.Editor
                 ["SR_Red"] = Flat("Red", new Color(0.62f, 0.06f, 0.04f), 0.3f, 0.55f),
                 ["SR_Brass"] = Flat("Brass", new Color(0.8f, 0.5f, 0.12f), 1f, 0.8f),
                 ["SR_Glow"] = Flat("Glow", new Color(1f, 0.55f, 0.08f), 0f, 0.8f, new Color(1f, 0.5f, 0.05f) * 4f),
+                ["SR_Lens"] = HoloLensMaterial(),
             };
+        }
+
+        /// <summary>
+        /// Vetro del mirino olografico: Unlit trasparente additivo con un reticolo luminoso generato qui (anello, punto
+        /// centrale e quattro tacche) su un velo azzurrino appena visibile. Additivo: non scurisce mai la scena.
+        /// </summary>
+        private static Material HoloLensMaterial()
+        {
+            string texPath = $"{MaterialsDir}/SciRifle_Reticle.png";
+            const int size = 256;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false, false);
+            var px = new Color32[size * size];
+            Vector2 c = new(size * 0.5f, size * 0.5f);
+            float ring = size * 0.30f;          // raggio dell'anello
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    Vector2 d = new Vector2(x + 0.5f, y + 0.5f) - c;
+                    float r = d.magnitude;
+                    float a = 0f;
+                    a = Mathf.Max(a, 1f - Mathf.Clamp01((Mathf.Abs(r - ring) - 1.5f) / 1.5f));        // anello
+                    a = Mathf.Max(a, 1f - Mathf.Clamp01((r - 4.5f) / 1.5f));                          // punto
+                    bool onAxis = Mathf.Abs(d.x) < 2.2f || Mathf.Abs(d.y) < 2.2f;
+                    if (onAxis && r > ring + 6f && r < ring + 22f) a = Mathf.Max(a, 1f);             // tacche esterne
+                    float edge = Mathf.Clamp01(1f - Mathf.Max(Mathf.Abs(d.x), Mathf.Abs(d.y)) / (size * 0.5f));
+                    var glass = new Color(0.03f, 0.07f, 0.09f) * Mathf.SmoothStep(0f, 1f, edge * 6f); // velo, più tenue ai bordi
+                    var glow = new Color(1f, 0.16f, 0.08f) * a;                                       // rosso-arancio
+                    px[y * size + x] = (Color32)new Color(glass.r + glow.r, glass.g + glow.g, glass.b + glow.b, 1f);
+                }
+            tex.SetPixels32(px);
+            tex.Apply(false);
+            System.IO.File.WriteAllBytes(texPath, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(texPath, ImportAssetOptions.ForceUpdate);
+            if (AssetImporter.GetAtPath(texPath) is TextureImporter ti)
+            {
+                ti.textureType = TextureImporterType.Default;
+                ti.sRGBTexture = true;
+                ti.mipmapEnabled = true;
+                ti.wrapMode = TextureWrapMode.Clamp;
+                ti.alphaSource = TextureImporterAlphaSource.None;
+                ti.SaveAndReimport();
+            }
+
+            const string unlit = "Universal Render Pipeline/Unlit";
+            string path = $"{MaterialsDir}/SciRifle_Lens.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(Shader.Find(unlit)) { name = "SciRifle_Lens" };
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            mat.shader = Shader.Find(unlit);
+            mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
+            mat.SetColor("_BaseColor", new Color(2.4f, 0.55f, 0.55f)); // HDR rosso: il reticolo resta rosso e fa un filo di bloom
+            mat.SetFloat("_Surface", 1f);     // trasparente
+            mat.SetFloat("_Blend", 2f);       // additivo
+            mat.SetFloat("_Cull", 0f);        // visibile da entrambi i lati
+            mat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            mat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            mat.SetFloat("_ZWrite", 0f);
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            mat.SetOverrideTag("RenderType", "Transparent");
+            mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            EditorUtility.SetDirty(mat);
+            return mat;
         }
 
         // ---------------------------------------------------------------- Pistola sci-fi (Magma, AF Creations)

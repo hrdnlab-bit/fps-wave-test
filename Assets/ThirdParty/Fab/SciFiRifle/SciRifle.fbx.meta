@@ -32,6 +32,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: SR_Lens
+    second: {fileID: 2100000, guid: 74c6f071696870d47beaec187d6716f8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: SR_Red
     second: {fileID: 2100000, guid: 972678874a923184fbb010b18eac1f98, type: 2}
   - first:
