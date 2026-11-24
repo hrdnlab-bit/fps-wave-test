@@ -42,11 +42,11 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: 5df9bc9d930dca44aaa533b8acc01746, type: 3}
+        m_Texture: {fileID: 2800000, guid: d1943c6a45184c7429daa06dce79b823, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 5df9bc9d930dca44aaa533b8acc01746, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
@@ -68,7 +68,7 @@ Material:
     - _XRMotionVectorsPass: 1
     - _ZWrite: 0
     m_Colors:
-    - _BaseColor: {r: 2.4, g: 0.55, b: 0.55, a: 1}
-    - _Color: {r: 2.5000002, g: 2.5000002, b: 2.5000002, a: 2.5}
+    - _BaseColor: {r: 2.4, g: 0.12, b: 0.06, a: 1}
+    - _Color: {r: 2.4, g: 0.54999995, b: 0.54999995, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

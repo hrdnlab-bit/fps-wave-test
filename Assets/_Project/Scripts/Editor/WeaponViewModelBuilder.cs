@@ -769,9 +769,10 @@ namespace HrdnLab.FpsWave.Editor
         /// </summary>
         private static Material HoloLensMaterial()
         {
-            string texPath = $"{MaterialsDir}/SciRifle_Reticle.png";
+            // Texture a un canale salvata come .asset (YAML, fuori da Git LFS): il colore lo dà il materiale.
+            string texPath = $"{MaterialsDir}/SciRifle_Reticle.asset";
             const int size = 256;
-            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false, false);
+            var tex = new Texture2D(size, size, TextureFormat.R8, true, true) { name = "SciRifle_Reticle", wrapMode = TextureWrapMode.Clamp };
             var px = new Color32[size * size];
             Vector2 c = new(size * 0.5f, size * 0.5f);
             float ring = size * 0.30f;          // raggio dell'anello
@@ -786,23 +787,23 @@ namespace HrdnLab.FpsWave.Editor
                     bool onAxis = Mathf.Abs(d.x) < 2.2f || Mathf.Abs(d.y) < 2.2f;
                     if (onAxis && r > ring + 6f && r < ring + 22f) a = Mathf.Max(a, 1f);             // tacche esterne
                     float edge = Mathf.Clamp01(1f - Mathf.Max(Mathf.Abs(d.x), Mathf.Abs(d.y)) / (size * 0.5f));
-                    var glass = new Color(0.03f, 0.07f, 0.09f) * Mathf.SmoothStep(0f, 1f, edge * 6f); // velo, più tenue ai bordi
-                    var glow = new Color(1f, 0.16f, 0.08f) * a;                                       // rosso-arancio
-                    px[y * size + x] = (Color32)new Color(glass.r + glow.r, glass.g + glow.g, glass.b + glow.b, 1f);
+                    float veil = 0.015f * Mathf.SmoothStep(0f, 1f, edge * 6f);                        // riflesso del vetro, appena visibile
+                    byte v = (byte)Mathf.RoundToInt(Mathf.Clamp01(a + veil) * 255f);
+                    px[y * size + x] = new Color32(v, v, v, 255);
                 }
             tex.SetPixels32(px);
-            tex.Apply(false);
-            System.IO.File.WriteAllBytes(texPath, tex.EncodeToPNG());
-            Object.DestroyImmediate(tex);
-            AssetDatabase.ImportAsset(texPath, ImportAssetOptions.ForceUpdate);
-            if (AssetImporter.GetAtPath(texPath) is TextureImporter ti)
+            tex.Apply(true, false);
+            var existing = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
+            if (existing != null)
             {
-                ti.textureType = TextureImporterType.Default;
-                ti.sRGBTexture = true;
-                ti.mipmapEnabled = true;
-                ti.wrapMode = TextureWrapMode.Clamp;
-                ti.alphaSource = TextureImporterAlphaSource.None;
-                ti.SaveAndReimport();
+                EditorUtility.CopySerialized(tex, existing);
+                Object.DestroyImmediate(tex);
+                EditorUtility.SetDirty(existing);
+                tex = existing;
+            }
+            else
+            {
+                AssetDatabase.CreateAsset(tex, texPath);
             }
 
             const string unlit = "Universal Render Pipeline/Unlit";
@@ -814,8 +815,8 @@ namespace HrdnLab.FpsWave.Editor
                 AssetDatabase.CreateAsset(mat, path);
             }
             mat.shader = Shader.Find(unlit);
-            mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
-            mat.SetColor("_BaseColor", new Color(2.4f, 0.55f, 0.55f)); // HDR rosso: il reticolo resta rosso e fa un filo di bloom
+            mat.SetTexture("_BaseMap", tex);
+            mat.SetColor("_BaseColor", new Color(2.4f, 0.12f, 0.06f)); // HDR rosso: la texture R8 dà solo il rosso, il reticolo fa un filo di bloom
             mat.SetFloat("_Surface", 1f);     // trasparente
             mat.SetFloat("_Blend", 2f);       // additivo
             mat.SetFloat("_Cull", 0f);        // visibile da entrambi i lati
