@@ -3,6 +3,15 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni semantiche.
 
 ## [Unreleased]
+### Added (animazioni del personaggio e armi sci-fi, Matteo)
+- **Armi sci-fi al posto di M4 e Beretta**: fucile sci-fi di M@xim (CC-BY) montato sulle braccia animate del pacchetto M4 (stesse clip di sparo, ricarica, estrazione; caricatore e grilletto sulle ossa giuste), mirino a 8,6 cm sopra la canna; pistola "Magma" di AF Creations (Fab) con ricarica procedurale a fasi. Prefab `VM_SciRifle` e `VM_SciPistol` generati da `Setup/4`.
+- **Cambio arma con holster**: l'arma attuale scende (clip Holster o caduta procedurale, 0,26 s), poi sale la nuova; ripensamento durante l'holster = torna su l'arma di prima.
+- **Corpo in terza persona animato con clip Mixamo** (17: idle, camminata/corsa in 4 direzioni, sprint, accucciato in 4 direzioni, aria, ricarica) in `Pilot.fbx`; `PilotAnimatorBuilder` (in `Setup/9`) crea `Pilot.controller`: blend 2D per velocità e direzione alle velocità del gioco, livello del busto per la ricarica acceso solo mentre si ricarica. Sopra le clip `CharacterRig` aggiunge mira (busto e testa sul pitch) e mani sull'arma con l'IK; senza clip resta la posa procedurale di Manuel.
+- **Ricarica vista dagli altri**: `RpcObserverReload` dal server a tutti tranne il proprietario; il corpo fa la clip di ricarica e l'arma si inclina. Cambio arma visto dagli altri: l'arma scende e risale.
+### Fixed
+- Corpo del Pilot a 56 m sotto (o sopra) il player e braccio alzato: l'altezza veniva misurata sulla posa di default dell'FBX con le clip, diversa da quella in gioco. Ora i piedi a terra si calcolano dalle ossa dei piedi + suola (dalla bindpose) e `CharacterRig` li ricontrolla al primo frame animato.
+- Prefab delle armi in terza persona senza mesh dopo un secondo `Setup/9` nella stessa sessione: la mesh esistente viene sovrascritta (stesso GUID) e il prefab reimportato.
+
 ### Changed (andature diverse e morte senza gambe, Matteo)
 - **Sei andature intere** al posto delle corse ibride (due delle tre erano in realtà la stessa clip): corsa piegata, corsa feroce, Zombie Run, barcollante, zoppicante, Mutant Run. Il server ne sceglie una per nemico (`SyncVar<byte>`, pesata: le veloci più frequenti) e la velocità di movimento cambia con l'andatura (6,2 / 5 / 4,4 / 3 / 2,8 / 2,8 m/s), così in un gruppo si vedono corse e ritmi diversi.
 - **Senza gambe il corpo cade**: perdendo una gamba lo zombie crolla a faccia in giù (non più barcollando in piedi) e poi striscia; ucciso senza gambe (da terra o da in piedi) crolla subito a terra invece di restare sospeso. Tolta la clip "barcollando" dalle morti alle gambe.

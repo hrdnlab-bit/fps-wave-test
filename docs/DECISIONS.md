@@ -104,3 +104,9 @@ Formato: data | decisione | motivo | alternative scartate | chi.
 - Smembramento solo cosmetico e lato client: il server manda solo punto e direzione del colpo letale, ogni client sceglie l'arto più vicino sulla propria posa; niente oggetti di rete per i pezzi. Hitbox restano fisse (Matteo).
 - Smembramento deciso dal server (parte colpita, danno per arto, testa esplosa o no) e replicato come maschera di bit + due RPC brevi, invece che scelto da ogni client: gli arti persi cambiano il gameplay (striscia senza gamba, hitbox basse), quindi devono essere uguali per tutti. Pezzi, sangue e monconi restano solo locali. Il Brute ne è escluso (`_dismemberable` spento) finché non ha uno scheletro (Matteo).
 - Corse "zombie veloce" ibride: gambe di uno sprint vero (piedi che non scivolano, velocità misurata) e busto di una corsa zombie, invece di una sola clip zombie (troppo lente, ~2 m/s) (Matteo).
+
+## 2026-11-24 - Animazioni del personaggio e armi sci-fi (Matteo)
+- **Da rivedere con Manuel**: il corpo in terza persona del Pilot ora è mosso da un Animator con clip Mixamo (locomozione, accucciato, aria, ricarica) e `CharacterRig` aggiunge solo mira e mani sull'arma (IK pesata). Cambia la scelta "tutto procedurale" di Manuel per il player; la posa procedurale resta per i modelli senza clip (AIRO) e nei test EditMode.
+- Armi sci-fi al posto di M4 e Beretta (richiesta di Matteo): il fucile si monta sulle braccia animate M4 (le clip restano buone), la pistola usa una ricarica procedurale perché il pacchetto Magma non ha braccia.
+- Cambio arma con holster ritardato in locale (0,26 s) e indice al server solo a cambio avvenuto; la ricarica degli altri arriva con un `ObserversRpc` dedicato invece che dedotta dalle munizioni.
+- Altezza del corpo con le clip: dalle ossa dei piedi + suola dalla bindpose, ricontrollata a runtime sulla posa vera, perché nell'Editor la posa di default dell'FBX con le clip e `BakeMesh` non corrispondono a quella in gioco.

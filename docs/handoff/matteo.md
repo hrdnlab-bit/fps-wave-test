@@ -1,6 +1,6 @@
 # HANDOFF di Matteo
 
-Ultimo aggiornamento: 2026-11-22
+Ultimo aggiornamento: 2026-11-24
 
 ## Su cosa sto lavorando
 - Branch: `matteo/phase1-suit-brute` (PR verso `main` aperta, da rivedere).
@@ -33,7 +33,10 @@ Ultimo aggiornamento: 2026-11-22
 
 - Zombie veloci e smembramento server: 3 corse ibride (gambe sprint + busto zombie), 7 tipi di morte con 21 varianti, `EnemyHitRegions` (logica pura + 11 test), arti staccati a forza di colpi con `SyncVar<ushort>` e `RpcSevered`, striscio senza gamba, testa che esplode/vola, monconi procedurali (carne, pelle, osso). Debug J (colpo a un arto non letale). Zip `Runner_Unity.zip` da rigirare a Manuel (FBX nuovo con 34 clip).
 
+- Animazioni del personaggio e armi sci-fi (2026-11-24): fucile sci-fi di M@xim sulle braccia M4 e pistola Magma (`WeaponViewModelBuilder`, `Setup/4`), holster al cambio arma (`PlayerWeapons`, `WeaponViewModel`), corpo del Pilot con Animator e 17 clip Mixamo (`PilotAnimatorBuilder`, `PlayerCharacterBuilder`, `CharacterRig.SolveOverClips`, `PlayerCharacter`), ricarica vista dagli altri (`RpcObserverReload`). Toccati file di Manuel: `CharacterRig`, `PlayerCharacter`, `PlayerCharacterBuilder`, `PlayerWeapons`, test del rig. Zip `FpsWave_Animazioni_Armi.zip` in Download da girare a Manuel (SciRifle, Pilot, Runner); la pistola Magma la scarica lui da Fab.
+
 ## Verifiche
+- Animazioni e armi sci-fi: compilazione 0 errori, test EditMode 100 passati e 2 saltati (passo procedurale, non usato con le clip), Setup/9 pulito (piedi a terra, mesh delle armi presenti), Play host + client virtuale (MPPM): il Pilot dell'altro giocatore sta nella capsula con la pistola in mano a due mani, holster e ricarica in prima persona.
 - Andature e morte senza gambe: compilazione 0 errori, Setup/6 pulito (6 andature, CrawlDeath), Play: L+L stacca gli stinchi, lo zombie crolla e striscia, K lo uccide e resta a terra subito; gruppo con pose di corsa diverse.
 - Zombie veloci e smembramento: compilazione 0 errori, test 102/102, Setup/6 pulito (controller con 21 morti, Crawl, LegLost; Brute escluso), Play: arti staccati da vivi con J (stinco sx 0x40, poi dx 0x140), zombie a terra che strisciano, morti con K, nessuna eccezione. Monconi nuovi visti solo da lontano: da guardare da vicino in gioco.
 - Mixamo + smembramento: compilazione 0 errori, test 91/91, Play: attacchi Mixamo, caduta, arto staccato (`Gib_RightLeg`) e sangue, nessuna eccezione.
@@ -57,6 +60,7 @@ Ultimo aggiornamento: 2026-11-22
 - Interest management per distanza non attivo (serve con la mappa vasta).
 
 ## Prossimi passi
+0. Rivedere con Manuel il corpo del Pilot mosso dall'Animator (DECISIONS 2026-11-24); provare da vicino la mira col mirino del fucile sci-fi e la ricarica vista da un altro giocatore in partita vera (Steam).
 1. Provare a mano la rianimazione in due (MPPM o con un amico) e ritoccare valori (energia, durate, danni del Brute,).
 2. Merge della PR della Fase 1 dopo la revisione di Manuel.
 3. Fase 2: sistema di wave (M3, `SPAWN_DIRECTOR.md`) e poi contaminazione, nemici che si adattano, voto estrai-o-continua, wave notturne/tempesta.

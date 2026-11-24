@@ -55,6 +55,11 @@ namespace HrdnLab.FpsWave.Weapons
         private WeaponState[] _server;
         private FireRateLimiter[] _limiters;
         private int _localEquipped = -1;
+        /// <summary>Cambio arma in corso: l'arma attuale scende (holster), poi si monta quella nuova e parte l'estrazione.</summary>
+        private int _pendingEquip = -1;
+        private bool _pendingNotify;
+        private float _pendingEquipAt;
+        private const float HolsterSeconds = 0.26f;
         private int _localTracerCounter;
         private float _lastSprintTime = -10f;
         private bool _queuedSemiShot;
@@ -85,6 +90,12 @@ namespace HrdnLab.FpsWave.Weapons
         public WeaponDefinition GetDefinition(int index) => index >= 0 && index < _loadout.Length ? _loadout[index] : null;
 
         /// <summary>Arma equipaggiata: quella locale per il proprietario, quella replicata dal server per gli altri.</summary>
+        /// <summary>
+        /// Ricarica iniziata (durata in secondi): sul proprietario in locale, sugli altri client dall'RPC del server.
+        /// Solo cosmetico (corpo in terza persona).
+        /// </summary>
+        public event System.Action<float> ReloadStarted;
+
         public int EquippedIndex => IsOwner ? _localEquipped : _observedEquipped.Value;
 
         /// <summary>
@@ -216,6 +227,17 @@ namespace HrdnLab.FpsWave.Weapons
             else if (_input.Weapon2Pressed) EquipLocal(1, true);
             else if (_input.SwitchWeaponPressed) EquipLocal(NextSlot(), true);
 
+            if (_pendingEquip >= 0)
+            {
+                // Arma giù: niente colpi né ricarica finché non arriva quella nuova.
+                _aim = Mathf.MoveTowards(_aim, 0f, dt / 0.15f);
+                if (Time.time < _pendingEquipAt)
+                    return;
+                int next = _pendingEquip;
+                _pendingEquip = -1;
+                EquipNow(next, _pendingNotify);
+            }
+
             WeaponState state = Current;
             if (state == null)
                 return;
@@ -301,8 +323,34 @@ namespace HrdnLab.FpsWave.Weapons
 
         private void EquipLocal(int index, bool notifyServer)
         {
-            if (index < 0 || index >= _loadout.Length || _loadout[index] == null || index == _localEquipped)
+            if (index < 0 || index >= _loadout.Length || _loadout[index] == null)
                 return;
+            if (_pendingEquip >= 0 && index == _localEquipped)
+            {
+                // Ripensamento durante l'holster: si torna all'arma attuale.
+                _pendingEquip = -1;
+                _viewModelAnim?.PlayDraw();
+                return;
+            }
+            if (index == _localEquipped || index == _pendingEquip)
+                return;
+            // Prima equipaggiatura (o nessun modello): subito. Altrimenti l'arma attuale scende e poi si cambia.
+            if (_localEquipped < 0 || _viewModelAnim == null)
+            {
+                EquipNow(index, notifyServer);
+                return;
+            }
+            Current?.CancelReload();
+            if (_pendingEquip < 0)
+                _viewModelAnim.PlayHolster(HolsterSeconds);
+            _pendingEquip = index;
+            _pendingNotify |= notifyServer;
+            _pendingEquipAt = Time.time + HolsterSeconds;
+        }
+
+        private void EquipNow(int index, bool notifyServer)
+        {
+            _pendingNotify = false;
             Current?.CancelReload();
             _localEquipped = index;
             _aim = 0f;
@@ -317,7 +365,9 @@ namespace HrdnLab.FpsWave.Weapons
             bool empty = state.Ammo <= 0;
             if (!state.StartReload(now))
                 return;
-            _viewModelAnim?.PlayReload(empty, state.Stats.Get(StatType.ReloadTime));
+            float duration = state.Stats.Get(StatType.ReloadTime);
+            _viewModelAnim?.PlayReload(empty, duration);
+            ReloadStarted?.Invoke(duration);
             RpcReload((byte)_localEquipped);
         }
 
@@ -500,8 +550,13 @@ namespace HrdnLab.FpsWave.Weapons
         {
             if (index >= _server.Length || _server[index] == null)
                 return;
-            _server[index].StartReload(Time.timeAsDouble);
+            if (_server[index].StartReload(Time.timeAsDouble))
+                RpcObserverReload(_server[index].Stats.Get(StatType.ReloadTime));
         }
+
+        /// <summary>Agli altri client (il proprietario l'ha già visto in locale): 4 byte per ricarica.</summary>
+        [ObserversRpc(ExcludeOwner = true)]
+        private void RpcObserverReload(float duration) => ReloadStarted?.Invoke(duration);
 
         [ServerRpc]
         private void RpcShoot(byte weaponIndex, Vector3 origin, Vector3 direction, Vector3 end, NetworkObject target, sbyte zoneIndex)

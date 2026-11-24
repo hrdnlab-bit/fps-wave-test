@@ -1,0 +1,87 @@
+[
+ {
+  "name": "Idle",
+  "file": "/tmp/mixamo/pilot/Rifle_Aiming_Idle.fbx",
+  "hips": "pin"
+ },
+ {
+  "name": "WalkF",
+  "file": "/tmp/mixamo/pilot/Walk_Forward.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "WalkB",
+  "file": "/tmp/mixamo/pilot/Walk_Backward.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "WalkL",
+  "file": "/tmp/mixamo/pilot/Walk_Left.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "WalkR",
+  "file": "/tmp/mixamo/pilot/Walk_Right.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "RunF",
+  "file": "/tmp/mixamo/pilot/Run_Forward.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "RunB",
+  "file": "/tmp/mixamo/pilot/Run_Backward.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "RunL",
+  "file": "/tmp/mixamo/pilot/Run_Left.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "RunR",
+  "file": "/tmp/mixamo/pilot/Run_Right.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "SprintF",
+  "file": "/tmp/mixamo/pilot/Sprint_Forward.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "CrouchIdle",
+  "file": "/tmp/mixamo/pilot/Idle_Crouching_Aiming.fbx",
+  "hips": "pin"
+ },
+ {
+  "name": "CrouchF",
+  "file": "/tmp/mixamo/pilot/Walk_Crouching_Forward.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "CrouchB",
+  "file": "/tmp/mixamo/pilot/Walk_Crouching_Backward.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "CrouchL",
+  "file": "/tmp/mixamo/pilot/Walk_Crouching_Left.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "CrouchR",
+  "file": "/tmp/mixamo/pilot/Walk_Crouching_Right.fbx",
+  "hips": "loop"
+ },
+ {
+  "name": "Air",
+  "file": "/tmp/mixamo/pilot/Jump_Loop.fbx",
+  "hips": "pin"
+ },
+ {
+  "name": "Reload",
+  "file": "/tmp/mixamo/pilot/Reloading.fbx",
+  "hips": "pin"
+ }
+]

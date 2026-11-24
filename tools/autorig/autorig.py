@@ -570,7 +570,7 @@ def retarget_clip(name, path, hips_mode, extra=None, upper=None):
     return speed
 
 CLIPS = json.load(open(run_bvh)) if (run_bvh and run_bvh.endswith(".json")) else None
-if mode == "runner" and CLIPS:
+if CLIPS:
     info = {}
     for c in CLIPS:
         info[c["name"]] = retarget_clip(c["name"], c["file"], c.get("hips", "loop"), c.get("extra"), c.get("upper"))
@@ -592,7 +592,7 @@ apply({}, (0, 0, 0))
 # --- export
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.export_scene.fbx(filepath=dst, object_types={'ARMATURE', 'MESH'}, add_leaf_bones=False,
-    bake_anim=(mode == "runner"), bake_anim_use_all_actions=True, bake_anim_use_nla_strips=False,
+    bake_anim=(mode == "runner" or bool(CLIPS)), bake_anim_use_all_actions=True, bake_anim_use_nla_strips=False,
     bake_anim_force_startend_keying=True, bake_anim_simplify_factor=0.0, armature_nodetype='NULL',
     mesh_smooth_type='FACE', path_mode='STRIP', embed_textures=False)
 json.dump({k: [c for c in v] for k, v in joints.items()}, open(prev + "_joints.json", "w"))

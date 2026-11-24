@@ -16,6 +16,8 @@ namespace HrdnLab.FpsWave.Weapons
         public const string ReloadState = "Reload";
         public const string ReloadEmptyState = "ReloadEmpty";
         public const string ReloadSpeedParameter = "ReloadSpeed";
+        public const string HolsterState = "Holster";
+        public const string HolsterSpeedParameter = "HolsterSpeed";
 
         private static readonly int IdleHash = Animator.StringToHash(IdleState);
         private static readonly int DrawHash = Animator.StringToHash(DrawState);
@@ -23,6 +25,8 @@ namespace HrdnLab.FpsWave.Weapons
         private static readonly int ReloadHash = Animator.StringToHash(ReloadState);
         private static readonly int ReloadEmptyHash = Animator.StringToHash(ReloadEmptyState);
         private static readonly int ReloadSpeedHash = Animator.StringToHash(ReloadSpeedParameter);
+        private static readonly int HolsterHash = Animator.StringToHash(HolsterState);
+        private static readonly int HolsterSpeedHash = Animator.StringToHash(HolsterSpeedParameter);
 
         [SerializeField] private Animator _animator;
         [Tooltip("Punto di uscita di tracer e flash; segue le animazioni dell'arma.")]
@@ -30,6 +34,8 @@ namespace HrdnLab.FpsWave.Weapons
         [Tooltip("Durata delle clip di ricarica, per adattarle al tempo di ricarica dell'arma (che cambia con mod e upgrade).")]
         [SerializeField, Min(0.01f)] private float _reloadClipLength = 1f;
         [SerializeField, Min(0.01f)] private float _reloadEmptyClipLength = 1f;
+        [Tooltip("Durata della clip Holster (0 = il controller non ce l'ha: discesa procedurale).")]
+        [SerializeField, Min(0f)] private float _holsterClipLength;
         [SerializeField, Min(0f)] private float _crossFade = 0.06f;
         [Tooltip("Quanta parte della clip di sparo dell'asset si vede (s) prima di tornare a Idle: le clip dei pacchetti hanno un "
                  + "calcio molto ampio, troncarle presto lo rende sobrio come nei Call of Duty. 0 = clip intera.")]
@@ -63,6 +69,9 @@ namespace HrdnLab.FpsWave.Weapons
         private float _reloadElapsed = float.MaxValue;
         private float _reloadDuration = 1f;
         private float _fireReturnAt = -1f;
+        private float _holsterElapsed = float.MaxValue;
+        private float _holsterDuration = 0.25f;
+        private bool _holsterProcedural;
 
         public Transform Muzzle => _muzzle;
 
@@ -113,6 +122,23 @@ namespace HrdnLab.FpsWave.Weapons
             Play(empty ? ReloadEmptyHash : ReloadHash, _crossFade);
         }
 
+        /// <summary>
+        /// Cambio arma: l'arma scende in <paramref name="duration"/> secondi e resta giù (il modello viene poi sostituito).
+        /// Con la clip Holster del rig si usa quella, altrimenti una discesa con rotazione via codice.
+        /// </summary>
+        public void PlayHolster(float duration)
+        {
+            _holsterDuration = Mathf.Max(0.05f, duration);
+            _holsterElapsed = 0f;
+            _reloadElapsed = float.MaxValue;
+            _holsterProcedural = IsProcedural || _animator == null || _holsterClipLength <= 0f;
+            if (_holsterProcedural)
+                return;
+            _fireReturnAt = -1f;
+            _animator.SetFloat(HolsterSpeedHash, _holsterClipLength / _holsterDuration);
+            Play(HolsterHash, 0.05f);
+        }
+
         /// <summary>Interrompe una ricarica (es. cambio arma annullato) tornando a Idle.</summary>
         public void ReturnToIdle()
         {
@@ -129,6 +155,8 @@ namespace HrdnLab.FpsWave.Weapons
                 UpdateProcedural(Time.deltaTime);
                 return;
             }
+            if (_holsterProcedural && _holsterElapsed < float.MaxValue && _rig != null)
+                _holsterElapsed += Time.deltaTime;
             if (_fireReturnAt > 0f && Time.time >= _fireReturnAt)
             {
                 _fireReturnAt = -1f;
@@ -140,6 +168,12 @@ namespace HrdnLab.FpsWave.Weapons
             Quaternion correction = wanted * Quaternion.Inverse(_cameraBone.rotation);
             _rig.rotation = correction * _rig.rotation;
             _rig.position += transform.position - _cameraBone.position;
+            if (_holsterProcedural && _holsterElapsed < float.MaxValue)
+            {
+                float k = Ease(Mathf.Clamp01(_holsterElapsed / _holsterDuration));
+                _rig.position += transform.TransformVector(new Vector3(0.02f, -0.18f, -0.05f) * k);
+                _rig.rotation = Quaternion.AngleAxis(40f * k, transform.right) * _rig.rotation;
+            }
         }
 
         /// <summary>Estrazione dal basso, calcio e carrello a ogni colpo, abbassamento con rotazione durante la ricarica.</summary>
@@ -159,9 +193,15 @@ namespace HrdnLab.FpsWave.Weapons
             if (_reloadElapsed < _reloadDuration)
             {
                 _reloadElapsed += dt;
-                float k = Mathf.Sin(Mathf.Clamp01(_reloadElapsed / _reloadDuration) * Mathf.PI); // giù e su
-                pos += new Vector3(-0.02f, -0.07f, -0.03f) * k;
-                euler += new Vector3(12f, -10f, 35f) * k;
+                ReloadPose(Mathf.Clamp01(_reloadElapsed / _reloadDuration), ref pos, ref euler);
+            }
+
+            if (_holsterElapsed < float.MaxValue)
+            {
+                _holsterElapsed += dt;
+                float k = Ease(Mathf.Clamp01(_holsterElapsed / _holsterDuration));
+                pos += new Vector3(0.03f, -0.16f, -0.05f) * k;
+                euler += new Vector3(45f, -15f, 20f) * k;
             }
 
             _kick = Mathf.MoveTowards(_kick, 0f, dt * 10f);
@@ -177,6 +217,30 @@ namespace HrdnLab.FpsWave.Weapons
 
         private static float Ease(float t) => 1f - (1f - t) * (1f - t) * (1f - t);
 
+        /// <summary>
+        /// Ricarica della pistola senza clip, a fasi: inclina verso sinistra e in basso (0-20%), sgancio del caricatore con un
+        /// colpetto (30%), caricatore nuovo inserito con una spinta verso l'alto (55%), ritorno (70-85%) e carrello
+        /// tirato con uno scatto all'indietro (90%).
+        /// </summary>
+        private static void ReloadPose(float t, ref Vector3 pos, ref Vector3 euler)
+        {
+            float tilt = Mathf.SmoothStep(0f, 1f, t / 0.2f) * (1f - Mathf.SmoothStep(0f, 1f, (t - 0.7f) / 0.15f));
+            pos += new Vector3(-0.035f, -0.06f, -0.02f) * tilt;
+            euler += new Vector3(10f, -18f, 38f) * tilt;
+            euler.x += Bump(t, 0.3f, 0.06f) * -6f;            // sgancio: la canna scatta in su
+            pos.y += Bump(t, 0.55f, 0.07f) * 0.018f;            // caricatore inserito: spinta dal basso
+            euler.z += Bump(t, 0.55f, 0.07f) * -8f;
+            pos.z += Bump(t, 0.9f, 0.05f) * -0.025f;            // carrello: arma indietro di scatto
+            euler.x += Bump(t, 0.9f, 0.05f) * 7f;
+        }
+
+        /// <summary>Impulso morbido centrato in <paramref name="at"/> largo <paramref name="width"/> (0..1).</summary>
+        private static float Bump(float t, float at, float width)
+        {
+            float d = (t - at) / width;
+            return d <= -1f || d >= 1f ? 0f : 0.5f * (1f + Mathf.Cos(d * Mathf.PI));
+        }
+
         private void Play(int stateHash, float fade)
         {
             if (_animator == null || !_animator.isActiveAndEnabled)
@@ -188,6 +252,8 @@ namespace HrdnLab.FpsWave.Weapons
         }
 
 #if UNITY_EDITOR
+        public void EditorSetHolsterClipLength(float length) => _holsterClipLength = Mathf.Max(0f, length);
+
         public void EditorSetupProcedural(Transform proceduralRoot, Transform slide, Transform muzzle, float slideTravel)
         {
             _animator = null;

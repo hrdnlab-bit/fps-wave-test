@@ -73,6 +73,8 @@ Co-op PvE tra amici: l'obiettivo è **reattività locale** e **economia autorevo
 - Nessun dato di animazione in rete: gli altri ricavano passo, strafe e corsa dalla posizione interpolata della `NetworkTransform`.
 - `PlayerCharacter`: `SyncVar<sbyte>` della pitch della visuale (gradi interi, solo agli altri, canale unreliable) e `SyncVar<byte>` dei flag (accovacciato, a terra; reliable). Il proprietario li invia con una ServerRpc unreliable a 10 Hz **solo quando cambiano**: ~2 byte di dati per invio, al massimo ~0.1 KB/s per giocatore.
 - `PlayerWeapons._observedEquipped` (`SyncVar<sbyte>`, escluso il proprietario): arma impugnata vista dagli altri, cambia solo al cambio arma. Il rinculo del corpo usa l'`ObserversRpc` di sparo già esistente (nessun messaggio nuovo).
+- `PlayerWeapons.RpcObserverReload(float durata)` (`ObserversRpc`, escluso il proprietario, ~4 byte a ricarica): il server, accettata la ricarica, avvisa gli altri per la clip di ricarica del corpo. Il proprietario la fa in locale (`ReloadStarted`). Il cambio arma visto dagli altri usa la `SyncVar` già esistente (`_observedEquipped`).
+- Animator del corpo (Pilot) solo cosmetico e locale: parametri da velocità misurata, accucciato e a terra già replicati; nessun dato in più in rete.
 - I traccianti degli altri partono dalla volata dell'arma in terza persona (`IThirdPersonMuzzle`), solo lato client.
 
 ## Morte dei nemici (cosmetica)

@@ -8,8 +8,11 @@
     - copia "M4 - FPS Weapon Animations Pack FREE" (zip m4_animations.zip o cartella "M4 Animations")
       in Assets/ThirdParty/Fab/M4Animations/ e genera Packed/*_SpecSmooth.png (Specular RGB + Gloss in alfa);
     - copia "FPS Guns 4K - Pistol 2" (cartella estratta o zip) in Assets/ThirdParty/Fab/Pistol2/ con i nomi
-      usati dal progetto e genera *_MetalSmooth.png (Metallic in R, 1 - Roughness in alfa).
-  I due pacchetti vanno scaricati gratis da Fab con il proprio account (link in docs/ASSETS.md).
+      usati dal progetto e genera *_MetalSmooth.png (Metallic in R, 1 - Roughness in alfa);
+    - copia la pistola sci-fi "Magma" di AF Creations (scifipistol.zip) in Assets/ThirdParty/Fab/SciFiPistol/ e
+      genera *_MetalSmooth.png e *_AO.png dalla mappa ORM.
+  Il fucile sci-fi (SciRifle.fbx, CC-BY) e i modelli nostri (Pilot, Runner) arrivano invece in uno zip di Matteo.
+  I pacchetti Fab vanno scaricati gratis da Fab con il proprio account (link in docs/ASSETS.md).
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File tools\setup-fab-assets.ps1
@@ -79,6 +82,29 @@ public static class FpsWaveTexturePacker
                     a[i + 3] = (byte)((g[j + 2] * 299 + g[j + 1] * 587 + g[j] * 114) / 1000);
                 }
             Write(spec.Width, spec.Height, a, s1, outPath);
+        }
+    }
+
+    // Mappa ORM (AO in R, Roughness in G, Metallic in B) -> MetalSmooth (Metallic in R, 1 - Roughness in alfa) + AO in grigio.
+    // Stessa conversione di WeaponViewModelBuilder.SplitOrm (Setup/4), così i .meta del repo trovano i file.
+    public static void SplitOrm(string ormPath, string metalSmoothOut, string aoOut)
+    {
+        using (var orm = new Bitmap(ormPath))
+        {
+            int s;
+            byte[] src = Read(orm, out s);
+            var ms = new byte[src.Length];
+            var ao = new byte[src.Length];
+            for (int y = 0; y < orm.Height; y++)
+                for (int x = 0; x < orm.Width; x++)
+                {
+                    int i = y * s + x * 4; // BGRA
+                    byte occ = src[i + 2], rough = src[i + 1], metal = src[i];
+                    ms[i] = 0; ms[i + 1] = 0; ms[i + 2] = metal; ms[i + 3] = (byte)(255 - rough);
+                    ao[i] = occ; ao[i + 1] = occ; ao[i + 2] = occ; ao[i + 3] = 255;
+                }
+            Write(orm.Width, orm.Height, ms, s, metalSmoothOut);
+            Write(orm.Width, orm.Height, ao, s, aoOut);
         }
     }
 
@@ -171,6 +197,22 @@ if ($pistol) {
         [FpsWaveTexturePacker]::PackMetalRough((Join-Path $tex "$($part)_Metallic.png"), (Join-Path $tex "$($part)_Roughness.png"), $out)
     }
 } else { $missing += "FPS Guns 4K - Pistol 2 (cartella estratta o fps_guns_4k_pistol_2.zip)" }
+
+# ---------------------------------------------------------------- Pistola sci-fi (Magma, AF Creations)
+$magma = Find-Source "SciFiPistol" "scifipistol.zip"
+if ($magma) {
+    Step "Pistola sci-fi Magma da $magma"
+    $dst = Join-Path $fab "SciFiPistol"
+    Get-ChildItem -Path $magma -File | ForEach-Object { Copy-Asset $_.FullName (Join-Path $dst $_.Name) }
+    foreach ($skin in "Black.001", "White") {
+        $orm = Join-Path $dst "SciFiPistol_$($skin)_OcclusionRoughnessMetallic.png"
+        $ms = Join-Path $dst "SciFiPistol_$($skin)_MetalSmooth.png"
+        $ao = Join-Path $dst "SciFiPistol_$($skin)_AO.png"
+        if ((Test-Path $ms) -and (Test-Path $ao) -and -not $Force) { continue }
+        Step "  genero MetalSmooth e AO per $skin"
+        [FpsWaveTexturePacker]::SplitOrm($orm, $ms, $ao)
+    }
+} else { $missing += "Magma - Scifi Pistol di AF Creations (scifipistol.zip o cartella 'SciFiPistol')" }
 
 Write-Host ""
 if ($missing.Count -gt 0) {

@@ -18,3 +18,4 @@ Regole:
 | Area sensazione armi (`Scripts/Weapons/Feel/`) | Matteo | `matteo/m2-runner` | 2026-11-21 | nuova; tocca `PlayerWeapons`, `PlayerLook`, `ShotFxPool` (area di Manuel) |
 | Area nemici / spawn / wave (`Scripts/Enemies/`) | Matteo | `matteo/m2-runner` | 2026-11-21 | area dichiarata |
 | `Assets/_Project/Prefabs/Player.prefab`, `Assets/_Project/Prefabs/Weapons/WM_*.prefab`, `Assets/_Project/Art/Characters/AIRO/**`, `Assets/_Project/Data/Characters/**`, `Data/Weapons/*.asset` (solo il campo del modello in terza persona) | Manuel | `manuel/airo-character` | 2026-11-22 | Personaggio AIRO sul player, armi in terza persona |
+| `Prefabs/ViewModels/VM_Sci*.prefab`, `Prefabs/Weapons/WM_*.prefab`, `Prefabs/Characters/AIRO_Character.prefab`, `Art/Animations/Pilot.controller`, `Art/Animations/M4_ViewModel.controller`, `Data/Weapons/*.asset` | Matteo | `matteo/phase1-suit-brute` | 2026-11-24 | armi sci-fi e Animator del Pilot (Setup/4 e 9) |

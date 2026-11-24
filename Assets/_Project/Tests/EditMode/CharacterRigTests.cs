@@ -21,6 +21,7 @@ namespace HrdnLab.FpsWave.Tests
         private GameObject _root;
         private CharacterRig _rig;
         private Transform _leftFoot, _rightFoot, _hips;
+        private bool _clipDriven;
 
         [SetUp]
         public void SetUp()
@@ -30,6 +31,12 @@ namespace HrdnLab.FpsWave.Tests
                 Assert.Ignore("Prefab AIRO assente: esegui FpsWave/Setup/9 con i binari AIRO.");
             _root = Object.Instantiate(prefab);
             _rig = _root.GetComponent<CharacterRig>();
+            // Nei test EditMode l'Animator non gira: si prova la posa procedurale (quella usata senza le clip del Pilot).
+            foreach (Animator animator in _root.GetComponentsInChildren<Animator>(true))
+            {
+                _clipDriven |= animator.runtimeAnimatorController != null;
+                animator.enabled = false;
+            }
             Assert.IsNotNull(_rig, "CharacterRig mancante sul prefab");
             Assert.IsNotNull(_rig.Settings, "CharacterAnimationSettings non assegnato");
             Transform[] all = _root.GetComponentsInChildren<Transform>(true);
@@ -71,6 +78,10 @@ namespace HrdnLab.FpsWave.Tests
         [TestCase(7f, 0.9f)]
         public void Walk_FeetAlternateWithStride(float speed, float minSpread)
         {
+            // Con le clip (Pilot) il passo lo fa l'Animator e la posa di riposo salvata è la Idle a gambe sfalsate:
+            // il passo procedurale serve solo ai modelli senza clip (AIRO).
+            if (_clipDriven)
+                Assert.Ignore("Personaggio con clip: la camminata è dell'Animator, non del passo procedurale.");
             float maxSpread = 0f, maxLift = 0f, minY = float.MaxValue;
             float groundY = _leftFoot.position.y;
             bool leftAhead = false, rightAhead = false;

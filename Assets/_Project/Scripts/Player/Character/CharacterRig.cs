@@ -24,6 +24,9 @@ namespace HrdnLab.FpsWave.Player.Character
         /// <summary>Bersagli mondo dei polsi (null = braccia libere).</summary>
         public Transform RightHandTarget;
         public Transform LeftHandTarget;
+        /// <summary>0 = mano sull'arma (IK pieno), 1 = mano libera (posa della clip, es. sinistra durante la ricarica).</summary>
+        public float RightHandRelease;
+        public float LeftHandRelease;
         public float Dt;
     }
 
@@ -65,6 +68,13 @@ namespace HrdnLab.FpsWave.Player.Character
         [Tooltip("Corpo senza testa, collo e braccia per la prima persona (generato da Setup/9).")]
         [SerializeField] private SkinnedMeshRenderer _body;
         [SerializeField] private Mesh _firstPersonMesh;
+        [Tooltip("Animator con le clip di locomozione (Pilot): se c'è, gambe e busto vengono dalle clip e qui si aggiungono mira e mani.")]
+        [SerializeField] private Animator _animator;
+        [SerializeField, Min(0.01f)] private float _reloadClipLength = 1f;
+        [Tooltip("Con le clip: distanza fra l'osso del piede più basso e la suola nella posa Idle (m, misurata dal builder).")]
+        [SerializeField, Min(0f)] private float _soleBelowFoot = 0.08f;
+        private int _clipGroundStage;   // 0 da fare, 1 fatto alla buona (anche in moto), 2 fatto da fermi
+        private int _clipGroundFrames;
 
         private Transform[] _posed;
         private Quaternion[] _restLocal;
@@ -79,12 +89,17 @@ namespace HrdnLab.FpsWave.Player.Character
         private float _airWeight;
         private bool _initialized;
         private bool _firstPerson;
+        private int _leftFingerJoints;
 
         public CharacterAnimationSettings Settings => _settings;
         public Transform Head => _head;
         public Transform LeftShoulder => _leftShoulder;
         public Transform RightShoulder => _rightShoulder;
         public Renderer[] Renderers => _renderers;
+        public Animator Animator => _animator;
+        public float ReloadClipLength => _reloadClipLength;
+        /// <summary>Gambe e busto animati dalle clip (Animator attivo con controller).</summary>
+        public bool Animated => _animator != null && _animator.enabled && _animator.runtimeAnimatorController != null;
 
         public bool IsVisible
         {
@@ -109,7 +124,8 @@ namespace HrdnLab.FpsWave.Player.Character
                 _leftLeg.Upper, _leftLeg.Lower, _leftLeg.End, _rightLeg.Upper, _rightLeg.Lower, _rightLeg.End,
                 _leftArm.Upper, _leftArm.Lower, _leftArm.End, _rightArm.Upper, _rightArm.Lower, _rightArm.End,
             };
-            int fingerJoints = CountJoints(_leftFingers) + CountJoints(_rightFingers);
+            _leftFingerJoints = CountJoints(_leftFingers);
+            int fingerJoints = _leftFingerJoints + CountJoints(_rightFingers);
             Array.Resize(ref _posed, _posed.Length + fingerJoints);
             int k = 18;
             k = AppendJoints(_leftFingers, k);
@@ -198,6 +214,13 @@ namespace HrdnLab.FpsWave.Player.Character
             Transform root = transform;
             float dt = Mathf.Max(0f, input.Dt);
 
+            if (Animated)
+            {
+                GroundClipModel(root, input.Grounded, input.LocalVelocity.sqrMagnitude < 0.04f && input.Crouch < 0.01f);
+                SolveOverClips(input, s, root);
+                return;
+            }
+
             for (int i = 0; i < _posed.Length; i++)
                 if (_posed[i] != null) _posed[i].localRotation = _restLocal[i];
             _hips.localPosition = _hipsRestLocalPos;
@@ -256,6 +279,80 @@ namespace HrdnLab.FpsWave.Player.Character
             }
         }
 
+        /// <summary>
+        /// Con le clip, al primo frame animato: il modello si sposta in verticale perché le suole tocchino terra (radice del
+        /// rig). L'altezza della posa che l'Animator produce in gioco non coincide con quella misurabile nell'Editor
+        /// (posa di default dell'FBX o SampleAnimation), quindi si misura qui una volta sola, sulla posa vera.
+        /// </summary>
+        private void GroundClipModel(Transform root, bool grounded, bool still)
+        {
+            if (_clipGroundStage >= 2 || _leftLeg.End == null || _rightLeg.End == null)
+                return;
+            // Qualche frame a terra perché l'Animator sia già sulla locomozione; poi di nuovo, più preciso, da fermi (Idle).
+            _clipGroundFrames = grounded ? _clipGroundFrames + 1 : 0;
+            if (_clipGroundFrames < 3 || (_clipGroundStage == 1 && !still))
+                return;
+            _clipGroundStage = still ? 2 : 1;
+            Transform model = _animator.transform;
+            if (model == root)
+                return;
+            float foot = Mathf.Min(root.InverseTransformPoint(_leftLeg.End.position).y,
+                root.InverseTransformPoint(_rightLeg.End.position).y);
+            float error = foot - _soleBelowFoot;
+            if (Mathf.Abs(error) > 0.005f)
+                model.position -= root.up * (error * root.lossyScale.y);
+        }
+
+        /// <summary>
+        /// Con le clip: l'Animator ha già scritto la posa del frame (passo, accucciata, ricarica sul busto); qui si aggiungono
+        /// solo la mira (busto e testa seguono il pitch) e le mani sull'arma con l'IK, sfumate dal rilascio.
+        /// </summary>
+        private void SolveOverClips(in CharacterPoseInput input, CharacterAnimationSettings s, Transform root)
+        {
+            float pitch = Mathf.Clamp(input.Pitch, -CharacterPoseMath.MaxPitch, CharacterPoseMath.MaxPitch);
+            float spinePitch = pitch * s.SpinePitchShare * (_firstPerson ? 0.25f : 1f);
+            RotateWorld(_spine1, root.right, spinePitch * 0.45f);
+            RotateWorld(_spine2, root.right, spinePitch * 0.55f);
+            float headPitch = pitch * s.HeadPitchShare;
+            RotateWorld(_neck, root.right, headPitch * 0.4f);
+            RotateWorld(_head, root.right, headPitch * 0.6f);
+
+            // Dita: si parte dalla posa di riposo (dritte) e si chiudono sull'arma, come nella versione procedurale.
+            if (input.LeftHandTarget != null && input.LeftHandRelease < 0.999f)
+                ResetJoints(18, 18 + _leftFingerJoints);
+            if (input.RightHandTarget != null && input.RightHandRelease < 0.999f)
+                ResetJoints(18 + _leftFingerJoints, _posed.Length);
+            if (input.RightHandTarget != null && input.RightHandRelease < 0.999f)
+                BlendedArm(_rightArm, input.RightHandTarget, root.right * 0.6f - root.up - root.forward * 0.2f, _rightHandFrameInv,
+                    _rightFingers, s.GripCurl, s.ThumbCurl, 1f - input.RightHandRelease);
+            if (input.LeftHandTarget != null && input.LeftHandRelease < 0.999f)
+                BlendedArm(_leftArm, input.LeftHandTarget, -root.right * 0.8f - root.up, _leftHandFrameInv,
+                    _leftFingers, s.SupportCurl, s.ThumbCurl, 1f - input.LeftHandRelease);
+        }
+
+        private void ResetJoints(int from, int to)
+        {
+            for (int i = from; i < to && i < _posed.Length; i++)
+                if (_posed[i] != null) _posed[i].localRotation = _restLocal[i];
+        }
+
+        /// <summary>IK del braccio verso l'arma con peso: 1 = mano sul bersaglio, 0 = posa della clip.</summary>
+        private void BlendedArm(Limb arm, Transform target, Vector3 elbowHint, Quaternion handFrameInv, Transform[] fingers,
+            float curl, float thumbCurl, float weight)
+        {
+            Quaternion upper = arm.Upper.rotation, lower = arm.Lower.rotation, hand = arm.End.rotation;
+            SolveArm(arm, target, elbowHint);
+            OrientHand(arm.End, target, handFrameInv);
+            if (weight < 0.999f)
+            {
+                Quaternion ikUpper = arm.Upper.rotation, ikLower = arm.Lower.rotation, ikHand = arm.End.rotation;
+                arm.Upper.rotation = Quaternion.Slerp(upper, ikUpper, weight);
+                arm.Lower.rotation = Quaternion.Slerp(lower, ikLower, weight);
+                arm.End.rotation = Quaternion.Slerp(hand, ikHand, weight);
+            }
+            CurlFingers(fingers, arm.End, target, curl * weight, thumbCurl * weight);
+        }
+
         private void SolveLeg(Limb leg, Vector3 footRest, Quaternion footRestRot, float phase, Vector3 moveWorld,
             float stride, float lift, float crouch, Transform root)
         {
@@ -308,6 +405,13 @@ namespace HrdnLab.FpsWave.Player.Character
         public SkinnedMeshRenderer EditorBody => _body;
 
         public void EditorSetFirstPersonMesh(Mesh mesh) => _firstPersonMesh = mesh;
+
+        public void EditorSetAnimator(Animator animator, float reloadClipLength, float soleBelowFoot = 0.08f)
+        {
+            _animator = animator;
+            _reloadClipLength = Mathf.Max(0.01f, reloadClipLength);
+            _soleBelowFoot = Mathf.Max(0f, soleBelowFoot);
+        }
 
         public void EditorSetup(CharacterAnimationSettings settings, Transform hips, Transform spine, Transform spine1,
             Transform spine2, Transform neck, Transform head, Transform leftShoulder, Transform rightShoulder,

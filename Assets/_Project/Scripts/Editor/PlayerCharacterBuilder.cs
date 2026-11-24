@@ -5,6 +5,7 @@ using HrdnLab.FpsWave.Player;
 using HrdnLab.FpsWave.Player.Character;
 using HrdnLab.FpsWave.Weapons;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 
 namespace HrdnLab.FpsWave.Editor
@@ -111,18 +112,24 @@ namespace HrdnLab.FpsWave.Editor
             if (AssetImporter.GetAtPath(AiroFbx) is not ModelImporter importer)
                 return;
             // Generic senza Avatar: serve per avere uno SkinnedMeshRenderer (con "None" la mesh diventa statica).
+            // Il Pilot porta le clip Mixamo di locomozione e ricarica (PilotAnimatorBuilder); AIRO resta procedurale.
+            bool wantClips = UsePilot;
             bool changed = importer.animationType != ModelImporterAnimationType.Generic
                            || importer.avatarSetup != ModelImporterAvatarSetup.NoAvatar
-                           || importer.importAnimation
+                           || importer.importAnimation != wantClips
                            || importer.materialImportMode != ModelImporterMaterialImportMode.None
                            || !importer.bakeAxisConversion
                            || importer.importBlendShapes
                            || importer.importCameras || importer.importLights;
             if (!changed)
+            {
+                if (wantClips)
+                    PilotAnimatorBuilder.ConfigureClips(importer);
                 return;
-            importer.animationType = ModelImporterAnimationType.Generic; // animazione procedurale: nessuna clip
+            }
+            importer.animationType = ModelImporterAnimationType.Generic;
             importer.avatarSetup = ModelImporterAvatarSetup.NoAvatar;
-            importer.importAnimation = false;
+            importer.importAnimation = wantClips;
             importer.materialImportMode = ModelImporterMaterialImportMode.None;
             importer.bakeAxisConversion = true;
             importer.importBlendShapes = false;
@@ -133,6 +140,8 @@ namespace HrdnLab.FpsWave.Editor
             importer.skinWeights = ModelImporterSkinWeights.Standard;
             importer.isReadable = false;
             importer.SaveAndReimport();
+            if (wantClips)
+                PilotAnimatorBuilder.ConfigureClips(importer);
         }
 
         private static Material CreateMaterial()
@@ -192,6 +201,18 @@ namespace HrdnLab.FpsWave.Editor
             Transform T(string n) => FindByName(instance.transform, n);
             Transform head = T("Head");
 
+            // Con le clip importate la posa di default del modello non e' quella di riposo: si misura
+            // (verso, scala, piedi a terra) sulla posa Idle, la stessa che l'Animator mostra in gioco.
+            if (UsePilot)
+            {
+                AnimationClip idleClip = AssetDatabase.LoadAllAssetsAtPath(AiroFbx).OfType<AnimationClip>()
+                    .FirstOrDefault(c => c.name == "Idle" && !c.name.StartsWith("__preview__"));
+                if (idleClip != null)
+                    idleClip.SampleAnimation(instance, 0f);
+                else
+                    Debug.LogWarning("[FpsWave] Pilot.fbx: clip Idle non trovata, misure sulla posa di default.");
+            }
+
             // Orientamento: davanti = +Z (punte dei piedi), sinistra = -X.
             Transform leftFoot = T("LeftFoot"), leftToe = T("LeftToeBase");
             if (leftFoot != null && leftToe != null && leftToe.position.z < leftFoot.position.z)
@@ -203,13 +224,48 @@ namespace HrdnLab.FpsWave.Editor
                 if (Mathf.Abs(k - 1f) > 0.05f)
                     instance.transform.localScale *= k;
             }
-            // Piedi a terra: dai vertici veri (i bounds dello SkinnedMeshRenderer sono larghi e alzerebbero il corpo).
-            float minY = instance.GetComponentsInChildren<Renderer>(true).Min(LowestVertexY);
-            instance.transform.position -= Vector3.up * minY;
 
-            // L'Animator aggiunto dall'import Generic non serve: le ossa sono mosse da CharacterRig.
+            // Senza clip le ossa sono mosse solo da CharacterRig; con le clip del Pilot l'Animator fa gambe e busto
+            // e CharacterRig aggiunge mira e mani sull'arma (PilotAnimatorBuilder).
             foreach (Animator animator in instance.GetComponentsInChildren<Animator>(true))
                 animator.enabled = false;
+            Animator clipAnimator = null;
+            float reloadClipLength = 1f;
+            if (UsePilot)
+            {
+                // Generic senza Avatar: l'import non aggiunge l'Animator, le clip si legano alle ossa per percorso.
+                if (!instance.TryGetComponent(out Animator rootAnimator))
+                    rootAnimator = instance.AddComponent<Animator>();
+                AnimatorController controller = PilotAnimatorBuilder.Build(AiroFbx, instance.transform, out reloadClipLength);
+                if (controller != null)
+                {
+                    rootAnimator.runtimeAnimatorController = controller;
+                    rootAnimator.applyRootMotion = false;
+                    rootAnimator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+                    rootAnimator.enabled = true;
+                    clipAnimator = rootAnimator;
+                }
+            }
+
+            // Piedi a terra: dai vertici veri (i bounds dello SkinnedMeshRenderer sono larghi e alzerebbero il corpo).
+            // Con le clip si misura sulla posa che l'Animator produce davvero in gioco (stessi binding del runtime):
+            // la posa di default dell'FBX e anche SampleAnimation danno un'altezza diversa.
+            if (clipAnimator != null)
+            {
+                clipAnimator.Rebind();
+                clipAnimator.Update(0f);
+            }
+            // Suola sotto l'osso del piede: serve anche a CharacterRig per rimettere a terra il modello in gioco.
+            float soleBelowFoot = SoleBelowFootFromBindPose(instance, "LeftFoot", "Head");
+            float minY;
+            Transform rightFootBone = T("RightFoot");
+            if (UsePilot && leftFoot != null && rightFootBone != null)
+                // Con le clip BakeMesh nell'Editor non segue la posa appena campionata: si usano le ossa dei piedi.
+                minY = Mathf.Min(leftFoot.position.y, rightFootBone.position.y) - soleBelowFoot;
+            else
+                minY = instance.GetComponentsInChildren<Renderer>(true).Min(LowestVertexY);
+            instance.transform.position -= Vector3.up * minY;
+            Debug.Log($"[FpsWave] Personaggio: piedi a terra con correzione {-minY:F3} m (scala {instance.transform.localScale.x:F3}, suola {soleBelowFoot:F3} m).");
 
             Renderer[] renderers = instance.GetComponentsInChildren<Renderer>(true);
             if (!renderers.Any(r => r is SkinnedMeshRenderer))
@@ -242,6 +298,7 @@ namespace HrdnLab.FpsWave.Editor
                 Limb("LeftUpLeg", "LeftLeg", "LeftFoot"), Limb("RightUpLeg", "RightLeg", "RightFoot"),
                 Limb("LeftArm", "LeftForeArm", "LeftHand"), Limb("RightArm", "RightForeArm", "RightHand"),
                 Fingers("Left"), Fingers("Right"), renderers, body, firstPerson);
+            rig.EditorSetAnimator(clipAnimator, reloadClipLength, soleBelowFoot);
 
             string missing = string.Join(", ", new[] { "Hips", "Spine1", "Head", "LeftUpLeg", "RightUpLeg", "LeftHand", "RightHand" }
                 .Where(n => T(n) == null));
@@ -415,8 +472,12 @@ namespace HrdnLab.FpsWave.Editor
             var model = root.AddComponent<WorldWeaponModel>();
             model.EditorSetup(grip, rightHand, leftHand, muzzleT);
             SetLayerRecursively(root, GameLayers.Player);
-            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
             Object.DestroyImmediate(root);
+            // Reimport forzato: senza, il prefab in memoria puo' tenere il riferimento alla mesh appena sostituita
+            // (Missing fino al riavvio di Unity) anche se su disco il GUID e' giusto.
+            AssetDatabase.ImportAsset(prefabPath, ImportAssetOptions.ForceUpdate);
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             if (prefab == null || prefab.GetComponent<MeshFilter>().sharedMesh == null)
                 Debug.LogError($"[FpsWave] {name}: il prefab dell'arma non ha la mesh, ricontrolla {meshPath}.");
             else
@@ -552,6 +613,19 @@ namespace HrdnLab.FpsWave.Editor
         /// <summary>Ricrea l'asset della mesh e ne fissa il GUID (riscrivendo il .meta prima che altri lo usino).</summary>
         private static Mesh CreateMeshAssetWithStableGuid(Mesh mesh, string path)
         {
+            // Asset gia' presente col GUID giusto: si sovrascrive il contenuto, cosi' riferimenti e GUID restano validi
+            // (cancellarlo e ricrearlo lasciava a volte il prefab con la mesh mancante nella stessa sessione).
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing != null && AssetDatabase.AssetPathToGUID(path) == StableGuid(path))
+            {
+                string keepName = mesh.name;
+                EditorUtility.CopySerialized(mesh, existing);
+                existing.name = keepName;
+                EditorUtility.SetDirty(existing);
+                AssetDatabase.SaveAssetIfDirty(existing);
+                Object.DestroyImmediate(mesh);
+                return existing;
+            }
             AssetDatabase.DeleteAsset(path);
             AssetDatabase.CreateAsset(mesh, path);
             AssetDatabase.SaveAssets();
@@ -568,6 +642,31 @@ namespace HrdnLab.FpsWave.Editor
             if (AssetDatabase.AssetPathToGUID(path) != guid)
                 Debug.LogWarning($"[FpsWave] {path}: GUID non fissato ({AssetDatabase.AssetPathToGUID(path)}), i prefab funzionano ma cambieranno su altri PC.");
             return saved;
+        }
+
+        /// <summary>
+        /// Distanza suola-caviglia in metri, dalla posa di riposo della mesh (bindpose), indipendente dalla posa corrente:
+        /// (caviglia - vertice più basso) riportata alla scala in cui la testa sta a <see cref="HeadBoneHeight"/>.
+        /// </summary>
+        private static float SoleBelowFootFromBindPose(GameObject instance, string footName, string headName)
+        {
+            foreach (SkinnedMeshRenderer smr in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                Mesh mesh = smr.sharedMesh;
+                if (mesh == null || smr.bones == null) continue;
+                int foot = System.Array.FindIndex(smr.bones, b => b != null && b.name == footName);
+                int head = System.Array.FindIndex(smr.bones, b => b != null && b.name == headName);
+                if (foot < 0 || head < 0 || head >= mesh.bindposes.Length || foot >= mesh.bindposes.Length) continue;
+                // Spazio della mesh (può essere Z-up): "alto" = dalla caviglia alla testa.
+                Vector3 footP = mesh.bindposes[foot].inverse.GetColumn(3);
+                Vector3 headP = mesh.bindposes[head].inverse.GetColumn(3);
+                Vector3 up = (headP - footP).normalized;
+                float footY = Vector3.Dot(footP, up), headY = Vector3.Dot(headP, up);
+                float minY = mesh.vertices.Min(v => Vector3.Dot(v, up));
+                if (headY - minY < 1e-4f) continue;
+                return Mathf.Clamp((footY - minY) / (headY - minY) * HeadBoneHeight, 0f, 0.25f);
+            }
+            return 0.09f;
         }
 
         private static float LowestVertexY(Renderer renderer)
