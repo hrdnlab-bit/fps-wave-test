@@ -775,7 +775,7 @@ namespace HrdnLab.FpsWave.Editor
             var tex = new Texture2D(size, size, TextureFormat.R8, true, true) { name = "SciRifle_Reticle", wrapMode = TextureWrapMode.Clamp };
             var px = new Color32[size * size];
             Vector2 c = new(size * 0.5f, size * 0.5f);
-            float ring = size * 0.30f;          // raggio dell'anello
+            float ring = size * 0.22f;          // raggio dell'anello (sta nella finestra anche in altezza)
             for (int y = 0; y < size; y++)
                 for (int x = 0; x < size; x++)
                 {
@@ -785,9 +785,9 @@ namespace HrdnLab.FpsWave.Editor
                     a = Mathf.Max(a, 1f - Mathf.Clamp01((Mathf.Abs(r - ring) - 1.5f) / 1.5f));        // anello
                     a = Mathf.Max(a, 1f - Mathf.Clamp01((r - 4.5f) / 1.5f));                          // punto
                     bool onAxis = Mathf.Abs(d.x) < 2.2f || Mathf.Abs(d.y) < 2.2f;
-                    if (onAxis && r > ring + 6f && r < ring + 22f) a = Mathf.Max(a, 1f);             // tacche esterne
+                    if (onAxis && r > ring + 5f && r < ring + 15f) a = Mathf.Max(a, 1f);             // tacche esterne
                     float edge = Mathf.Clamp01(1f - Mathf.Max(Mathf.Abs(d.x), Mathf.Abs(d.y)) / (size * 0.5f));
-                    float veil = 0.015f * Mathf.SmoothStep(0f, 1f, edge * 6f);                        // riflesso del vetro, appena visibile
+                    float veil = 0.004f * Mathf.SmoothStep(0f, 1f, edge * 6f);                        // riflesso del vetro, appena visibile
                     byte v = (byte)Mathf.RoundToInt(Mathf.Clamp01(a + veil) * 255f);
                     px[y * size + x] = new Color32(v, v, v, 255);
                 }

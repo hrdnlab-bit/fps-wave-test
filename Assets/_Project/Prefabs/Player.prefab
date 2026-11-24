@@ -178,7 +178,7 @@ Transform:
   m_Children:
   - {fileID: 3022871114441330496}
   - {fileID: 2417003922557276469}
-  - {fileID: 1362277894934868949}
+  - {fileID: 5806088300483768128}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!143 &1471648352714072574
@@ -569,7 +569,7 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 139051151714448617}
   _networkObjectCache: {fileID: 0}
-  _rig: {fileID: 3376880612535090801}
+  _rig: {fileID: 7829931322395714276}
   _motor: {fileID: 6190854792051640263}
   _look: {fileID: 5320469534409359688}
   _weapons: {fileID: 4251965635168637423}
@@ -769,7 +769,7 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8751762922156321670}
   m_Enabled: 1
---- !u!1001 &8256607414167973643
+--- !u!1001 &3522319282237207454
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -826,15 +826,15 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 25d7cead7c82e69498fd53cb838bd46d, type: 3}
---- !u!4 &1362277894934868949 stripped
+--- !u!4 &5806088300483768128 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6949780133555412190, guid: 25d7cead7c82e69498fd53cb838bd46d, type: 3}
-  m_PrefabInstance: {fileID: 8256607414167973643}
+  m_PrefabInstance: {fileID: 3522319282237207454}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &3376880612535090801 stripped
+--- !u!114 &7829931322395714276 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6649648087022702970, guid: 25d7cead7c82e69498fd53cb838bd46d, type: 3}
-  m_PrefabInstance: {fileID: 8256607414167973643}
+  m_PrefabInstance: {fileID: 3522319282237207454}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1

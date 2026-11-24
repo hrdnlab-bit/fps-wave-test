@@ -4,7 +4,7 @@ Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versioni sema
 
 ## [Unreleased]
 ### Changed (mirino olografico del fucile sci-fi, Matteo)
-- Il "cannocchiale" del fucile era una scatola chiusa con uno schermino dietro: mirando si vedeva solo il retro. `tools/guns/export_scifi_rifle.py` ora lo toglie e costruisce un **mirino olografico aperto** (base, cornice con finestra ~4,5 x 3,4 cm, spie ambra) con un vetro separato (`SciRifle_Lens`).
+- Il "cannocchiale" del fucile era una scatola chiusa con uno schermino dietro: mirando si vedeva solo il retro. `tools/guns/export_scifi_rifle.py` ora lo toglie e costruisce un **mirino olografico nello stile del fucile**: anima nera con i gusci chiari ai fianchi tagliati in obliquo, righe rosse, cappuccio a otto lati con calotta chiara, emettitore ambra, pulsanti e manopola del morsetto sulla slitta, spigoli smussati; il corpo copre i resti del vecchio attacco. Vetro separato (`SciRifle_Lens`) con finestra ~3,6 x 2,4 cm.
 - Il vetro usa `SciRifle_Lens.mat` (URP Unlit additivo, HDR) con un reticolo rosso generato da `Setup/4` (`SciRifle_Reticle.asset`, texture a un canale in YAML fuori da Git LFS: anello, punto, quattro tacche). Mirando, il centro del vetro va sull'asse della camera a 12 cm dall'occhio (`HoloEyeRelief`).
 
 ### Added (animazioni del personaggio e armi sci-fi, Matteo)

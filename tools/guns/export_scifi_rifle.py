@@ -36,7 +36,7 @@ for o in keep:
 # Il "cannocchiale" originale è una scatola chiusa con uno schermino dietro: mirando si vede solo il retro.
 # Si toglie (vertici del corpo sopra la slitta nel tratto del mirino) e si costruisce un olografico aperto:
 # base, cornice con finestra, striscia luminosa e un vetro separato (SciRifle_Lens, il reticolo lo mette Unity).
-import bmesh
+import bmesh, mathutils
 body = bpy.data.objects['SciRifle_Body']
 bm = bmesh.new(); bm.from_mesh(body.data)
 cut = [v for v in bm.verts if -0.01 <= v.co.y <= 1.71 and v.co.z > 1.125]
@@ -53,32 +53,90 @@ def mat_index(name, color, strength=0.0):
         body.data.materials.append(m)
     return [s.material.name if s.material else '' for s in body.material_slots].index(name)
 
-frame_mat = mat_index('holo_frame', (0.2, 0.2, 0.21, 1))
-dark_mat = mat_index('holo_dark', (0.03, 0.03, 0.035, 1))
-glow_mat = mat_index('holo_glow', (1.0, 0.55, 0.08, 1), 5.0)
+dark_mat = mat_index('holo_dark', (0.03, 0.03, 0.035, 1))       # -> SR_Dark (anima nera come il fucile)
+shell_mat = mat_index('holo_shell', (0.63, 0.63, 0.63, 1))      # -> SR_White (gusci chiari come il fucile)
+metal_mat = mat_index('holo_metal', (0.16, 0.16, 0.16, 1))      # -> SR_Gunmetal (cornice)
+red_mat = mat_index('holo_red', (0.8, 0.12, 0.0, 1))            # -> SR_Red (righe come sul fucile)
+glow_mat = mat_index('holo_glow', (1.0, 0.55, 0.08, 1), 5.0)    # -> SR_Glow
 
-def box(x0, x1, y0, y1, z0, z1, mi):
-    r = bmesh.ops.create_cube(bm, size=1.0)
-    for v in r['verts']:
-        v.co.x = x0 if v.co.x < 0 else x1
-        v.co.y = y0 if v.co.y < 0 else y1
-        v.co.z = z0 if v.co.z < 0 else z1
-    faces = {f for v in r['verts'] for f in v.link_faces}
+def finish(geom_verts, mi, bevel=0.007):
+    faces = {f for v in geom_verts for f in v.link_faces}
     for f in faces:
         f.material_index = mi
+    bmesh.ops.recalc_face_normals(bm, faces=list(faces))
+    if bevel > 0:
+        edges = list({e for f in faces for e in f.edges})
+        bmesh.ops.bevel(bm, geom=edges, offset=bevel, segments=1, affect='EDGES', clamp_overlap=True)
 
-# misure in unità del modello (fucile lungo ~10,7: 1 unità ~ 9 cm in gioco)
-Y0, Y1 = 0.50, 0.96            # profondità del cappuccio
-WX, ZB, ZT = 0.27, 1.205, 1.615  # finestra: mezza larghezza, basso, alto (~4,5 x 3,4 cm in gioco)
-T = 0.045                        # spessore della cornice
-box(-0.27, 0.27, 0.30, 1.22, 1.10, 1.16, dark_mat)           # base sulla slitta
-box(-0.16, 0.16, 0.36, 1.16, 1.16, ZB, frame_mat)             # corpo dell'emettitore
-box(-WX - T, -WX, Y0, Y1, ZB - T, ZT + T, frame_mat)          # montante sinistro
-box(WX, WX + T, Y0, Y1, ZB - T, ZT + T, frame_mat)            # montante destro
-box(-WX, WX, Y0, Y1, ZT, ZT + T, frame_mat)                   # traversa alta (tra i montanti: niente facce sovrapposte)
-box(-WX, WX, Y0, Y1, ZB - T, ZB, frame_mat)                   # traversa bassa
-box(WX + T, WX + T + 0.012, 0.58, 0.88, 1.38, 1.41, glow_mat) # spia laterale
-box(-0.12, 0.12, 0.92, 1.00, 1.16, 1.19, glow_mat)            # finestrella dell'emettitore
+def prism_xz(pts, y0, y1, mi, bevel=0.007):
+    """Prisma da un profilo (x, z) estruso lungo y (avanti-dietro)."""
+    a = [bm.verts.new((x, y0, z)) for x, z in pts]
+    b = [bm.verts.new((x, y1, z)) for x, z in pts]
+    n = len(pts)
+    bm.faces.new(a[::-1]); bm.faces.new(b)
+    for k in range(n):
+        bm.faces.new((a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]))
+    finish(a + b, mi, bevel)
+
+def prism_yz(pts, x0, x1, mi, bevel=0.007):
+    """Prisma da un profilo laterale (y, z) estruso lungo x."""
+    a = [bm.verts.new((x0, y, z)) for y, z in pts]
+    b = [bm.verts.new((x1, y, z)) for y, z in pts]
+    n = len(pts)
+    bm.faces.new(a[::-1]); bm.faces.new(b)
+    for k in range(n):
+        bm.faces.new((a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]))
+    finish(a + b, mi, bevel)
+
+def ring_xz(outer, inner, y0, y1, mi, bevel=0.006):
+    """Cornice: anello fra due profili (x, z) con lo stesso numero di punti, estruso lungo y."""
+    n = len(outer)
+    oa = [bm.verts.new((x, y0, z)) for x, z in outer]; ob = [bm.verts.new((x, y1, z)) for x, z in outer]
+    ia = [bm.verts.new((x, y0, z)) for x, z in inner]; ib = [bm.verts.new((x, y1, z)) for x, z in inner]
+    for k in range(n):
+        m = (k + 1) % n
+        bm.faces.new((oa[k], oa[m], ia[m], ia[k]))      # faccia davanti
+        bm.faces.new((ob[k], ib[k], ib[m], ob[m]))      # faccia dietro
+        bm.faces.new((oa[k], ob[k], ob[m], oa[m]))      # esterno
+        bm.faces.new((ia[k], ia[m], ib[m], ib[k]))      # interno
+    finish(oa + ob + ia + ib, mi, bevel)
+
+def octa(x, zb, zt, cb, ct):
+    """Rettangolo con gli angoli smussati (cb in basso, ct in alto), in senso antiorario visto da dietro."""
+    return [(-x + cb, zb), (x - cb, zb), (x, zb + cb), (x, zt - ct), (x - ct, zt), (-x + ct, zt), (-x, zt - ct), (-x, zb + cb)]
+
+# misure in unità del modello (1 unità ~ 8,3 cm in gioco); la canna va verso -y, l'occhio sta verso +y
+WX, ZB, ZT = 0.22, 1.275, 1.565  # finestra: mezza larghezza, basso, alto (~3,6 x 2,4 cm)
+HY0, HY1 = 0.52, 0.94            # cappuccio (davanti, dietro)
+# corpo: anima scura con il davanti inclinato come i pezzi del fucile, copre i resti del vecchio attacco
+prism_yz([(0.08, 1.04), (1.64, 1.04), (1.64, 1.20), (1.50, 1.275), (0.42, 1.275), (0.16, 1.16)], -0.175, 0.175, dark_mat)
+# gusci chiari sui fianchi, con il taglio inclinato davanti e lo scalino dietro (come il guscio del vecchio mirino)
+for sx in (-1, 1):
+    x0, x1 = (0.175, 0.205) if sx > 0 else (-0.205, -0.175)
+    prism_yz([(0.26, 1.06), (1.22, 1.06), (1.36, 1.14), (1.36, 1.25), (0.50, 1.25), (0.30, 1.15)], x0, x1, shell_mat, 0.005)
+    xr0, xr1 = (0.205, 0.211) if sx > 0 else (-0.211, -0.205)
+    prism_yz([(0.62, 1.20), (0.98, 1.20), (0.98, 1.225), (0.62, 1.225)], xr0, xr1, red_mat, 0.0)      # riga rossa
+    prism_yz([(1.02, 1.20), (1.10, 1.20), (1.10, 1.225), (1.02, 1.225)], xr0, xr1, red_mat, 0.0)      # tacca rossa
+# cappuccio: cornice scura a otto lati + calotta chiara sopra gli smussi
+outer = octa(WX + 0.045, ZB - 0.03, ZT + 0.05, 0.02, 0.09)
+inner = octa(WX, ZB, ZT, 0.01, 0.06)
+ring_xz(outer, inner, HY0, HY1, metal_mat)
+cap = [(-(WX + 0.06), ZT - 0.05), (-(WX + 0.06) + 0.10, ZT + 0.065), ((WX + 0.06) - 0.10, ZT + 0.065), ((WX + 0.06), ZT - 0.05),
+       ((WX + 0.045), ZT - 0.04), ((WX + 0.045) - 0.09, ZT + 0.05), (-(WX + 0.045) + 0.09, ZT + 0.05), (-(WX + 0.045), ZT - 0.04)]
+prism_xz(cap, HY0 - 0.03, HY1 + 0.02, shell_mat, 0.005)
+for sx in (-1, 1):   # righe rosse sui fianchi del cappuccio
+    xa = sx * (WX + 0.046); xb = sx * (WX + 0.052)
+    prism_yz([(HY0 + 0.05, 1.36), (HY1 - 0.05, 1.36), (HY1 - 0.05, 1.38), (HY0 + 0.05, 1.38)], min(xa, xb), max(xa, xb), red_mat, 0.0)
+# emettitore dietro la finestra (luce ambra verso il vetro) e pulsanti sul fianco destro
+prism_yz([(0.98, 1.275), (1.10, 1.275), (1.10, 1.30), (0.98, 1.30)], -0.07, 0.07, dark_mat, 0.004)
+prism_xz([(-0.05, 1.30), (0.05, 1.30), (0.05, 1.315), (-0.05, 1.315)], 0.99, 1.005, glow_mat, 0.0)
+for yb in (1.14, 1.24):
+    prism_yz([(yb, 1.10), (yb + 0.07, 1.10), (yb + 0.07, 1.15), (yb, 1.15)], 0.205, 0.225, dark_mat, 0.004)
+# morsetto della slitta sul fianco destro (manopola)
+knob = bmesh.ops.create_cone(bm, cap_ends=True, segments=12, radius1=0.055, radius2=0.055, depth=0.06)
+for v in knob['verts']:
+    v.co = mathutils.Vector((v.co.z + 0.235, v.co.x + 0.75, v.co.y + 1.08))
+finish(knob['verts'], dark_mat, 0.0)
 bm.to_mesh(body.data); bm.free()
 
 def classify(m):
@@ -127,12 +185,14 @@ print("PALETTE", sorted(palette))
 
 # Vetro del mirino: oggetto a parte con il suo materiale (Unity ci mette il reticolo luminoso).
 lm = bpy.data.meshes.new('SciRifle_Lens')
-LY = 0.66
-lm.from_pydata([(-WX, LY, ZB), (WX, LY, ZB), (WX, LY, ZT), (-WX, LY, ZT)], [], [(0, 1, 2, 3)])
+LY = 0.70
+win = octa(WX - 0.002, ZB + 0.002, ZT - 0.002, 0.01, 0.06)
+lm.from_pydata([(x, LY, z) for x, z in win], [], [list(range(len(win)))])
 uv = lm.uv_layers.new(name='UVMap')
-k = 0.5 * (ZT - ZB) / (2 * WX)  # UV quadrate: il reticolo resta rotondo anche se il vetro è rettangolare
-for i, c in enumerate([(0, 0.5 - k), (1, 0.5 - k), (1, 0.5 + k), (0, 0.5 + k)]):
-    uv.data[i].uv = c
+cz = 0.5 * (ZB + ZT); half = WX   # UV quadrate centrate sul vetro: il reticolo resta rotondo
+for li, loop in enumerate(lm.loops):
+    x, z = win[loop.vertex_index]
+    uv.data[li].uv = (0.5 + 0.5 * x / half, 0.5 + 0.5 * (z - cz) / half)
 lens = bpy.data.objects.new('SciRifle_Lens', lm)
 bpy.context.scene.collection.objects.link(lens)
 lens.data.materials.append(bpy.data.materials.new('SR_Lens'))
